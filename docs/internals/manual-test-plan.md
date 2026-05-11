@@ -1,7 +1,7 @@
 ---
 title: Manual test plan
-nav_order: 9
-permalink: /manual-test-plan/
+parent: Internals
+nav_order: 5
 ---
 
 # Manual test plan

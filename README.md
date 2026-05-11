@@ -32,7 +32,7 @@ Two cooperating pieces. The **builder tool** (this npm package) installs hooks u
 
 ## Documentation
 
-Full documentation lives at the docs site: [Getting Started](docs/getting-started/index.md), [How it works](docs/core-concepts/index.md), [CLI reference](docs/reference/cli.md), [Troubleshooting](docs/troubleshooting/index.md).
+Full documentation lives at the docs site: [How it works](docs/how-it-works.md), [Installation](docs/installation.md), [Daily use](docs/daily-use.md), [CLI reference](docs/cli-reference.md), [Troubleshooting](docs/troubleshooting.md).
 
 For maintainers of this package itself, see [CONTRIBUTING.md](CONTRIBUTING.md).
 

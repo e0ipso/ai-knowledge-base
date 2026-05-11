@@ -78,7 +78,7 @@ The suite asserts on a stable project-unique substring from the fixture transcri
 
 ### Manual test plan
 
-Before a significant release — schema bump, capture/curate/consume behavior change, pinned Claude Code CLI bump — work through [`docs/manual-test-plan.md`](docs/manual-test-plan.md). It covers the checks that resist automation: per-platform smoke (macOS / Linux / WSL2 / native Windows), PreCompact timing on long sessions, real capture quality, `init --upgrade` from the previous published version, concurrent-pipeline locking, and a few intentionally-broken-state doctor exit-code checks. Record results in the release PR description.
+Before a significant release — schema bump, capture/curate/consume behavior change, pinned Claude Code CLI bump — work through [`docs/internals/manual-test-plan.md`](docs/internals/manual-test-plan.md). It covers the checks that resist automation: per-platform smoke (macOS / Linux / WSL2 / native Windows), PreCompact timing on long sessions, real capture quality, `init --upgrade` from the previous published version, concurrent-pipeline locking, and a few intentionally-broken-state doctor exit-code checks. Record results in the release PR description.
 
 ## Schema-version bump policy
 

@@ -6,7 +6,7 @@ nav_order: 1
 
 # @e0ipso/ai-knowledge-base
 
-A per-repo knowledge base built from your AI coding sessions, for [Claude Code](https://docs.claude.com/en/docs/claude-code).
+A per-repo knowledge base built from your [Claude Code](https://docs.claude.com/en/docs/claude-code) sessions. Your AI conversations produce project-specific knowledge — conventions, gotchas, named modules — and most of it evaporates when the session ends. This tool captures it, lets you review it, and injects it back into every future session.
 
 ## Quick start
 
@@ -15,14 +15,14 @@ npx @e0ipso/ai-knowledge-base init --assistants claude
 ai-knowledge-base doctor
 ```
 
-Then code normally. Sessions are captured automatically. Run `/kb-curate` (or `ai-knowledge-base curate`) when you want to turn captures into reviewable proposals.
+Then code normally. When you want to turn captured material into reviewable proposals, run `/kb-curate` inside a Claude Code session (or `ai-knowledge-base curate` in a shell).
 
-## Sections
+## Read next
 
-- [Getting started](getting-started/): install, first cycle, CI, upgrade.
-- [Core concepts](core-concepts/): the three pipelines, the node model.
-- [Bootstrap](bootstrap/): seed the KB from existing docs.
-- [Customization](customization/): edit prompts, tune settings.
-- [Reference](reference/): CLI, skills, hooks, schemas.
-- [Troubleshooting](troubleshooting/).
-- [Architecture](architecture/): for contributors.
+- **[How it works](how-it-works.md)** — the 3-minute version.
+- **[Installation](installation.md)** — prerequisites and first-time setup.
+- **[Daily use](daily-use.md)** — the loop you'll run week to week.
+- **[CLI reference](cli-reference.md)** — every command, one page.
+- **[Troubleshooting](troubleshooting.md)** — when something looks wrong.
+
+Contributors: see [Internals](internals/).
