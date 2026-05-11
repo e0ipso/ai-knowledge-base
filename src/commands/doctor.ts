@@ -1,7 +1,9 @@
 import { execFile } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
+import { isAbsolute, join } from 'node:path';
 import { promisify } from 'node:util';
 import { log } from '../lib/log.js';
+import { readAllNodes } from '../lib/nodes.js';
 import { findRepoRoot, repoPaths } from '../lib/paths.js';
 
 const exec = promisify(execFile);
@@ -19,7 +21,7 @@ interface NamedCheck {
   result: CheckResult;
 }
 
-export async function runDoctor(_opts: DoctorOptions): Promise<number> {
+export async function runDoctor(opts: DoctorOptions): Promise<number> {
   const root = findRepoRoot();
   const paths = repoPaths(root);
 
@@ -40,6 +42,21 @@ export async function runDoctor(_opts: DoctorOptions): Promise<number> {
     result: checkGitignore(paths.gitignoreFile),
   });
 
+  const dangling = collectDanglingDerivedFrom(root, paths.nodesDir, paths.sessionsDir);
+  checks.push({
+    name: 'derived_from references resolve',
+    result:
+      dangling.length === 0
+        ? { ok: true, detail: 'no dangling references' }
+        : {
+            ok: false,
+            level: 'warn',
+            detail: `${dangling.length} dangling reference(s)${
+              opts.verbose ? '' : ' — re-run with --verbose to list them'
+            }`,
+          },
+  });
+
   let failures = 0;
   let warnings = 0;
   for (const c of checks) {
@@ -54,6 +71,14 @@ export async function runDoctor(_opts: DoctorOptions): Promise<number> {
     }
   }
 
+  if (opts.verbose && dangling.length > 0) {
+    log.plain('');
+    log.plain('Dangling derived_from references:');
+    for (const d of dangling) {
+      log.plain(`  - ${d.nodeId}: ${d.reference}`);
+    }
+  }
+
   log.plain('');
   if (failures === 0 && warnings === 0) {
     log.success('All checks passed.');
@@ -65,6 +90,42 @@ export async function runDoctor(_opts: DoctorOptions): Promise<number> {
   }
   log.error(`${failures} error(s), ${warnings} warning(s).`);
   return 1;
+}
+
+interface DanglingRef {
+  nodeId: string;
+  reference: string;
+}
+
+/**
+ * Collects every `derived_from` entry whose target does not exist on disk.
+ * A reference resolves if any of these match:
+ *   - It is a bare filename and exists under `_sessions/`.
+ *   - It is a repo-relative path and exists when resolved against `root`.
+ *   - It is an absolute path and exists as-is.
+ */
+export function collectDanglingDerivedFrom(
+  root: string,
+  nodesDir: string,
+  sessionsDir: string,
+): DanglingRef[] {
+  if (!existsSync(nodesDir)) return [];
+  const out: DanglingRef[] = [];
+  for (const node of readAllNodes(nodesDir)) {
+    for (const ref of node.frontmatter.derived_from) {
+      if (resolvesOnDisk(ref, root, sessionsDir)) continue;
+      out.push({ nodeId: node.frontmatter.id, reference: ref });
+    }
+  }
+  return out;
+}
+
+function resolvesOnDisk(ref: string, root: string, sessionsDir: string): boolean {
+  if (ref.length === 0) return false;
+  if (isAbsolute(ref) && existsSync(ref)) return true;
+  if (existsSync(join(root, ref))) return true;
+  if (!ref.includes('/') && existsSync(join(sessionsDir, ref))) return true;
+  return false;
 }
 
 function checkNodeVersion(): CheckResult {

@@ -6,10 +6,11 @@ nav_order: 3
 
 # Hook events
 
-`init` registers two hook scripts:
+`init` registers three hook scripts:
 
 - `.claude/hooks/kb-capture.mjs` — runs on `Stop`, `SessionEnd`, and `PreCompact`. Implements **stage-1 capture**: dedup, secret-scan with redaction, write a session log, append to `.queue.json`.
 - `.claude/hooks/kb-stage2-drain.mjs` — runs on `SessionStart` with `async: true`. Drains the stage-2 queue by spawning `claude -p` for each pending session log; updates the log's frontmatter with the structured extraction output.
+- `.claude/hooks/kb-session-start.mjs` — runs on `SessionStart` synchronously. **Consume** step: injects `INDEX.md` as `additionalContext` for the session, appends a stale-INDEX warning when `nodes_hash` has drifted, and emits a one-line nudge when the curate backlog crosses the threshold (hourly throttle).
 
 ## Registered events
 
@@ -18,13 +19,14 @@ nav_order: 3
 | `Stop` | Captures after every assistant turn ends. The transcript hash changes turn-by-turn, so this produces one log per substantive checkpoint within a session. | Synchronous, ≤1 s deadline. Dedup window prevents overlap with the other two events. |
 | `SessionEnd` | Captures when the user explicitly closes or clears the session. The strongest signal that the session is done. | Same pipeline as `Stop`. |
 | `PreCompact` | Fires immediately before Claude Code compacts context. Without this, content about to be discarded would be lost. | Same pipeline as `Stop`. The 1-second deadline still applies; if you have a very long transcript and capture would exceed it, the hook exits silently rather than blocking compaction. |
-| `SessionStart` | Runs the **stage-2 drain** (M2). For each entry in `.queue.json`, spawns `claude -p --output-format stream-json --verbose` against the redacted transcript slice and writes the structured extraction back into the session log's frontmatter. | `async: true` — stdout does not flow into the parent session. Stops after `drainBound` entries (default 5), the rest are deferred to the next session. |
+| `SessionStart` (drain, async) | Runs the **stage-2 drain** (M2). For each entry in `.queue.json`, spawns `claude -p --output-format stream-json --verbose` against the redacted transcript slice and writes the structured extraction back into the session log's frontmatter. | `async: true` — stdout does not flow into the parent session. Stops after `drainBound` entries (default 5), the rest are deferred to the next session. |
+| `SessionStart` (consume, sync) | Runs the **consume** step (M4). Loads `INDEX.md`, emits it as `hookSpecificOutput.additionalContext` so the assistant sees the current KB summary at the start of every session. Appends a stale-INDEX warning when `nodes_hash` drift is detected. Appends a curate nudge when the pending-session backlog ≥ 5 (default) AND it has been ≥ 1 hour since the last nudge (`last_nudged_at` lives in `state.json`). | Synchronous, ≤1 s deadline. stdout is JSON; non-fatal errors go to stderr. |
 
-The three stage-1 events route through the same `kb-capture.mjs` script, so the only difference in the resulting session log is the `captured_by` frontmatter field (`stop`, `session_end`, or `pre_compact`). `SessionStart` is wired separately to `kb-stage2-drain.mjs`.
+The three stage-1 events route through the same `kb-capture.mjs` script, so the only difference in the resulting session log is the `captured_by` frontmatter field (`stop`, `session_end`, or `pre_compact`). `SessionStart` runs two scripts: `kb-stage2-drain.mjs` (async drain) and `kb-session-start.mjs` (sync consume injection). They are independent — failure in one does not block the other.
 
 ## Recursion guard
 
-Both hooks check `KB_BUILDER_INTERNAL=1` in their environment and exit immediately if set. The stage-2 drain (and the curator in M3) spawns `claude -p` subprocesses with this env var so that the child Claude Code instance doesn't fire its own capture or drain hooks and trigger recursive work.
+All three hooks check `KB_BUILDER_INTERNAL=1` in their environment and exit immediately if set. The stage-2 drain (M2), the curator (M3), and `bootstrap-incremental` (M3.5) all spawn `claude -p` subprocesses with this env var so that the child Claude Code instance doesn't fire its own capture, drain, or consume hooks and trigger recursive work.
 
 If you wrap the `claude` CLI in a script that spawns sessions for any reason, set `KB_BUILDER_INTERNAL=1` in those subprocesses.
 
@@ -87,7 +89,7 @@ After `init`, `.claude/settings.json` contains a block per event:
 }
 ```
 
-The same pattern repeats for `SessionEnd` and `PreCompact`. `SessionStart` carries `"async": true` so the drain does not block session startup:
+The same pattern repeats for `SessionEnd` and `PreCompact`. `SessionStart` carries two entries — the drain (async, so it does not block startup) and the consume injection (sync, since its output must reach the assistant before the first turn):
 
 ```json
 {
@@ -101,6 +103,14 @@ The same pattern repeats for `SessionEnd` and `PreCompact`. `SessionStart` carri
             "async": true
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-session-start.mjs"
+          }
+        ]
       }
     ]
   }
@@ -108,3 +118,19 @@ The same pattern repeats for `SessionEnd` and `PreCompact`. `SessionStart` carri
 ```
 
 Existing user-defined hooks in the same file are preserved on re-init.
+
+## Consume hook (`SessionStart`, sync)
+
+The consume hook is the M4 read path. Per invocation:
+
+1. **Recursion guard.** Exits immediately if `KB_BUILDER_INTERNAL=1` is set.
+2. **Resolve `INDEX.md`.** If missing, emits an "_The knowledge base is empty._" stub so the assistant still sees a coherent context. If present, parses the frontmatter and strips it before injection.
+3. **Stale detection.** Compares the frontmatter `nodes_hash` against `computeNodesHash(nodes/)`. On mismatch, appends `> KB index is stale — run \`ai-knowledge-base index rebuild\` to refresh.`
+4. **Nudge throttle.** Counts session logs with `stage_2_status: done` and no `curator_processed_at`. If the count ≥ threshold (default 5) AND `now - state.last_nudged_at ≥ 1 hour`, appends `> You have N pending session log(s). Run \`/kb:curate\` (or \`ai-knowledge-base curate\`) when ready.` and writes the new `last_nudged_at` back to `state.json`.
+5. **Emit.** Writes a single JSON line to stdout matching Claude Code's SessionStart contract:
+
+   ```json
+   {"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"<INDEX body + optional warnings>"}}
+   ```
+
+The hook has a 1-second hard deadline (same as stage-1 capture). If it overruns, the timer exits process 0 so session startup is never blocked.
