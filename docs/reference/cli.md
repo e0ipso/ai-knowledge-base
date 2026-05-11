@@ -11,7 +11,7 @@ The package installs an `ai-knowledge-base` binary. After `npm install -g @e0ips
 ## `init`
 
 ```sh
-ai-knowledge-base init --assistants <list> [--force]
+ai-knowledge-base init --assistants <list> [--force] [--upgrade [--dry-run]]
 ```
 
 First-time setup for a repo. Copies the directory skeleton, slash commands, hook scripts, and pre-commit config; registers the capture hook against three Claude Code events; writes `.ai/.kb-builder/installed-version`.
@@ -19,7 +19,11 @@ First-time setup for a repo. Copies the directory skeleton, slash commands, hook
 Flags:
 
 - `-a, --assistants <list>` (required) — comma-separated list of AI assistants to wire up. v1 supports `claude` only; the list form exists for forward compatibility.
-- `-f, --force` — overwrite existing files. Without this flag, re-running `init` on an already-initialized repo exits with a notice and does nothing.
+- `-f, --force` — overwrite existing files. Without this flag, re-running `init` on an already-initialized repo exits with a notice and does nothing. `--force` does **not** overwrite an existing `.ai/knowledge-base/.config.json` (use the file's own editor) and is incompatible with `--upgrade` (use one or the other).
+- `-u, --upgrade` — refresh hooks, slash commands, prompts, and hook registrations to match the current package version, while preserving local prompt overrides under `.ai/.kb-builder/prompts/` and the existing `.config.json`. Prints a preflight changelist, then applies. Combine with `--dry-run` to print the preflight only.
+- `--dry-run` — only meaningful with `--upgrade`. Lists planned changes without writing.
+
+See [Getting Started > Upgrading](../getting-started/upgrading.md) for a walkthrough.
 
 What `init` writes:
 

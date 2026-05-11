@@ -7,6 +7,7 @@ import { log } from '../lib/log.js';
 import { computeNodesHash, readAllNodes } from '../lib/nodes.js';
 import { findRepoRoot, repoPaths } from '../lib/paths.js';
 import { IndexFrontmatterSchema, SettingsSchema } from '../lib/schemas.js';
+import { packageVersion } from '../lib/version.js';
 
 const exec = promisify(execFile);
 
@@ -34,6 +35,10 @@ export async function runDoctor(opts: DoctorOptions): Promise<number> {
   checks.push({
     name: '.ai/.kb-builder/installed-version',
     result: checkInstalledVersion(paths.installedVersionFile),
+  });
+  checks.push({
+    name: 'installed-version is current',
+    result: checkInstalledVersionCurrent(paths.installedVersionFile),
   });
   checks.push({
     name: 'pre-commit config installed',
@@ -195,6 +200,34 @@ function checkInstalledVersion(file: string): CheckResult {
     return { ok: true, detail: parsed.version ?? 'present (no version field)' };
   } catch (err) {
     return { ok: false, level: 'error', detail: `unreadable: ${(err as Error).message}` };
+  }
+}
+
+function checkInstalledVersionCurrent(file: string): CheckResult {
+  if (!existsSync(file)) {
+    return {
+      ok: false,
+      level: 'warn',
+      detail: 'no installed-version stamp; skipping currency check.',
+    };
+  }
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8')) as { version?: string };
+    const installed = typeof parsed.version === 'string' ? parsed.version : null;
+    const current = packageVersion();
+    if (installed === null) {
+      return { ok: false, level: 'warn', detail: 'installed-version has no `version` field.' };
+    }
+    if (installed === current) {
+      return { ok: true, detail: `${current}` };
+    }
+    return {
+      ok: false,
+      level: 'warn',
+      detail: `installed ${installed} ≠ package ${current}. Run \`ai-knowledge-base init --upgrade\` to refresh templates.`,
+    };
+  } catch (err) {
+    return { ok: false, level: 'warn', detail: `unreadable: ${(err as Error).message}` };
   }
 }
 

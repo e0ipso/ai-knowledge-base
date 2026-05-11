@@ -30,11 +30,31 @@ async function main(): Promise<void> {
           .filter(Boolean),
     )
     .option('-f, --force', 'overwrite existing ai-knowledge-base files', false)
-    .action(async (opts: { assistants: string[]; force?: boolean }) => {
-      const initOpts: { assistants: string[]; force?: boolean } = { assistants: opts.assistants };
-      if (opts.force) initOpts.force = true;
-      await runInit(initOpts);
-    });
+    .option(
+      '-u, --upgrade',
+      'refresh hooks/slash commands/prompts to the current package version while preserving local overrides and .config.json',
+      false,
+    )
+    .option('--dry-run', 'with --upgrade: list planned changes without writing', false)
+    .action(
+      async (opts: {
+        assistants: string[];
+        force?: boolean;
+        upgrade?: boolean;
+        dryRun?: boolean;
+      }) => {
+        const initOpts: {
+          assistants: string[];
+          force?: boolean;
+          upgrade?: boolean;
+          dryRun?: boolean;
+        } = { assistants: opts.assistants };
+        if (opts.force) initOpts.force = true;
+        if (opts.upgrade) initOpts.upgrade = true;
+        if (opts.dryRun) initOpts.dryRun = true;
+        await runInit(initOpts);
+      },
+    );
 
   program
     .command('status')
