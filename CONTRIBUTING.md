@@ -11,7 +11,7 @@ Prerequisites:
 - Claude Code CLI on PATH for integration smoke tests (`claude --version`)
 - No external binaries — the capture-hook secret scan runs [`secretlint`](https://github.com/secretlint/secretlint) programmatically from `node_modules`.
 
-Git hooks are managed by [husky](https://typicode.github.io/husky/) and installed automatically by `npm install` (via the `prepare` script). The `pre-commit` hook runs [`lint-staged`](https://github.com/lint-staged/lint-staged), which in turn runs ESLint, Prettier, and secretlint on staged files, followed by `typecheck` and `test:fast` across the project.
+Git hooks are managed by [husky](https://typicode.github.io/husky/) and installed automatically by `npm install` (via the `prepare` script). The `pre-commit` hook runs [`lint-staged`](https://github.com/lint-staged/lint-staged), which in turn runs ESLint, Prettier, and secretlint on staged files, followed by `typecheck` and `test` across the project.
 
 Set up:
 
@@ -53,30 +53,6 @@ npm run typecheck      # tsc --noEmit
 npm run lint           # eslint
 npm run format:check   # prettier
 ```
-
-### Real-`claude` E2E suite
-
-The optional real-`claude` suite under `tests/e2e/` is gated behind `KB_RUN_REAL_CLAUDE=1`. When the env var is unset (the default) every spec is skipped, so `npm test` stays cheap and deterministic. When set, the suite spawns the actual `claude -p` CLI for stage-2 extraction and curation against a fixture transcript and asserts that the full cycle produces a node and a populated `INDEX.md`.
-
-```sh
-# Local invocation (requires `claude` on PATH, authenticated):
-KB_RUN_REAL_CLAUDE=1 npx vitest run tests/e2e
-```
-
-Per-stage timeout is 5 minutes; the full suite typically finishes in 2–4 minutes when nothing is wrong.
-
-CI does not run the E2E suite on every PR. Trigger it manually via the **E2E (real-claude)** workflow in GitHub Actions (`workflow_dispatch`). The job needs:
-
-- `ANTHROPIC_API_KEY` repository secret (the workflow installs the Claude Code CLI globally; in CI it authenticates via env var, not OAuth).
-- A reason for the run, surfaced as a `workflow_dispatch` input for the audit trail.
-
-Run it on demand when:
-
-- Changing a prompt template (`src/templates-source/prompts/*.md`).
-- Touching `src/lib/headless.ts` or the `claude -p` subprocess flags.
-- Bumping the pinned Claude Code CLI version.
-
-The suite asserts on a stable project-unique substring from the fixture transcript ("Bravo Insider") so that minor wording drift between Claude model versions doesn't break it. If the assertion regresses, inspect the JSONL log under the temp sandbox's `_logs/stage-2/` and `_logs/curator/` to see exactly what the model produced.
 
 ### Manual test plan
 

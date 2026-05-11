@@ -46,7 +46,6 @@
     "format:check": "prettier --check .",
     "pretest": "npm run build",
     "test": "vitest run",
-    "test:fast": "vitest run --exclude tests/e2e/**",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "commitlint": "commitlint --edit",

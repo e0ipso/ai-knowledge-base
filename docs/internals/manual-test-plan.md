@@ -136,7 +136,6 @@ Automated tests cover these:
 - `nodes_hash`, INDEX/GRAPH determinism (`tests/lib/index-gen.test.ts`)
 - Pipeline logic with mocked subprocess (`tests/lib/{stage2-drain,curate,bootstrap}.test.ts`)
 - CLI argument parsing (per-command integration tests)
-- Real-claude E2E full cycle (`KB_RUN_REAL_CLAUDE=1 npx vitest run tests/e2e`)
 - Logs-prune duration parsing (`tests/lib/logs-prune.test.ts`)
 
 If a manual check uncovers a regression that automation should have caught, write the missing test in the fix PR.

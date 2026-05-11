@@ -959,7 +959,7 @@ Architecture                      For contributors and future adapter authors
 
 Lives at the repo root. Aimed at maintainers of @e0ipso/ai-knowledge-base itself, not consumers. Contents:
 - How to set up the dev environment (Node 22+, `pnpm install`, etc.)
-- How to run tests (`vitest`, integration suite, optional real-`claude` E2E suite)
+- How to run tests (`vitest`, integration suite)
 - **Schema-version bump policy** (the moderate policy from §11.19, with examples)
 - Prompt versioning policy: each `templates/prompts/*.md` has a top-of-file version comment; bumping the prompt version is independent of the package version, but a prompt change must be noted in the changelog
 - Release process (semantic-release handles tagging, npm publish, and changelog generation; no manual steps)

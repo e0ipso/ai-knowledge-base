@@ -119,7 +119,6 @@ Adding an adapter: implement the methods, dispatch from `init.ts`.
 ## Testing
 
 - **Unit + integration** (`npm test`) — pure-function tests for `src/lib/`, plus pipeline integration tests against a fake runner. CLI integration tests build the package and run the binary in a temp-dir sandbox. ~10s.
-- **Real-claude E2E** (`tests/e2e/`, gated by `KB_RUN_REAL_CLAUDE=1`) — full cycle against the real `claude` CLI. Run before release.
 - **Manual** — see [Manual test plan](manual-test-plan.md).
 
 ## Where to extend
