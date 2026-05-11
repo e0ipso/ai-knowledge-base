@@ -6,7 +6,6 @@ import { runIndexRebuild } from './commands/index-rebuild.js';
 import { runInit } from './commands/init.js';
 import { runLogsPrune } from './commands/logs-prune.js';
 import { runNodeAdd } from './commands/node-add.js';
-import { runProposalsReview } from './commands/proposals-review.js';
 import { runStatus } from './commands/status.js';
 import { log } from './lib/log.js';
 import { packageVersion } from './lib/version.js';
@@ -185,20 +184,6 @@ async function main(): Promise<void> {
       if (typeof opts.olderThan === 'string') pruneOpts.olderThan = opts.olderThan;
       if (opts.dryRun) pruneOpts.dryRun = true;
       const code = await runLogsPrune(pruneOpts);
-      process.exit(code);
-    });
-
-  const proposalsGroup = program
-    .command('proposals')
-    .description('Inspect and review pending proposals.');
-  proposalsGroup
-    .command('review')
-    .description('Interactively accept, reject, or set the resolution of pending proposals.')
-    .option('--list', 'just list the proposals without prompting', false)
-    .action(async (opts: { list?: boolean }) => {
-      const reviewOpts: { list?: boolean } = {};
-      if (opts.list) reviewOpts.list = true;
-      const code = await runProposalsReview(reviewOpts);
       process.exit(code);
     });
 
