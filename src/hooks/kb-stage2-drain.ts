@@ -68,15 +68,15 @@ async function main(): Promise<void> {
     }
     // Async hook stdout is not injected into the parent session, so log to
     // stderr only on failures the user should know about.
-    const failed = summary.processed.filter((p) => p.status === 'failed' || p.status === 'skipped');
+    const failed = summary.processed.filter(p => p.status === 'failed' || p.status === 'skipped');
     if (failed.length > 0) {
       process.stderr.write(
-        `${PACKAGE_TAG} stage-2 drain: ${failed.length} session(s) failed or skipped; see _logs/stage-2/\n`,
+        `${PACKAGE_TAG} stage-2 drain: ${failed.length} session(s) failed or skipped; see _logs/stage-2/\n`
       );
     }
   } catch (err) {
     process.stderr.write(
-      `${PACKAGE_TAG} stage-2 drain error: ${err instanceof Error ? err.message : String(err)}\n`,
+      `${PACKAGE_TAG} stage-2 drain error: ${err instanceof Error ? err.message : String(err)}\n`
     );
   }
 }
@@ -92,7 +92,7 @@ function loadStage2Prompt(stateDir: string): string | null {
 }
 
 function readStdin(): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (process.stdin.isTTY) {
       resolve('');
       return;

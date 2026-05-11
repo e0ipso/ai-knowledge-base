@@ -52,7 +52,7 @@ const defaultSpawn: SpawnFn = (command, ctx) => {
     reject: false,
   });
   const stdout = proc.stdout as Readable;
-  const result = proc.then((r) => ({
+  const result = proc.then(r => ({
     exitCode: typeof r.exitCode === 'number' ? r.exitCode : undefined,
     failed: r.failed === true,
     timedOut: r.timedOut === true,
@@ -74,7 +74,7 @@ export async function runHeadlessClaude<T>(
   promptBody: string,
   stdin: string,
   schema: ZodSchema<T>,
-  opts: RunHeadlessOptions = {},
+  opts: RunHeadlessOptions = {}
 ): Promise<T> {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const allowedTools = opts.allowedTools ?? [];
@@ -120,7 +120,7 @@ export async function runHeadlessClaude<T>(
   });
   const streamDone = new Promise<void>((resolve, reject) => {
     splitter.once('end', () => resolve());
-    splitter.once('error', (err) => reject(err));
+    splitter.once('error', err => reject(err));
   });
 
   let runResult;
@@ -129,7 +129,7 @@ export async function runHeadlessClaude<T>(
     runResult = r;
   } finally {
     if (logStream) {
-      await new Promise<void>((resolve) => logStream!.end(resolve));
+      await new Promise<void>(resolve => logStream!.end(resolve));
     }
   }
 
@@ -138,7 +138,7 @@ export async function runHeadlessClaude<T>(
   }
   if (runResult.failed || (runResult.exitCode !== undefined && runResult.exitCode !== 0)) {
     throw new Error(
-      `claude subprocess failed (exit code ${String(runResult.exitCode ?? 'unknown')})`,
+      `claude subprocess failed (exit code ${String(runResult.exitCode ?? 'unknown')})`
     );
   }
 
@@ -152,7 +152,7 @@ export async function runHeadlessClaude<T>(
     parsedJson = JSON.parse(extractJsonBlock(finalResult));
   } catch (err) {
     throw new Error(
-      `failed to parse final result as JSON: ${err instanceof Error ? err.message : String(err)}`,
+      `failed to parse final result as JSON: ${err instanceof Error ? err.message : String(err)}`
     );
   }
 

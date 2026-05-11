@@ -86,7 +86,7 @@ describe('pruneLogs', () => {
     expect(existsSync(old2)).toBe(false);
     expect(existsSync(old3)).toBe(false);
 
-    const stage2 = result.buckets.find((b) => b.bucket === 'stage-2');
+    const stage2 = result.buckets.find(b => b.bucket === 'stage-2');
     expect(stage2?.filesDeleted).toBe(1);
     expect(stage2?.filesScanned).toBe(2);
   });

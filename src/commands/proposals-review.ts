@@ -89,7 +89,7 @@ export async function runProposalsReview(opts: ProposalsReviewOptions = {}): Pro
   log.success(`Done. accepted=${accepted} rejected=${rejected} skipped=${skipped}`);
   if (accepted > 0) {
     log.plain(
-      'Run `ai-knowledge-base curate` (or restart Claude Code) to refresh INDEX/GRAPH after acceptance.',
+      'Run `ai-knowledge-base curate` (or restart Claude Code) to refresh INDEX/GRAPH after acceptance.'
     );
   }
   return 0;
@@ -133,7 +133,7 @@ function printProposalHeader(p: DiscoveredProposal): void {
   }
   if (p.bucket === 'contradictions') {
     log.plain(
-      `suggested_resolution: ${p.frontmatter.proposal.suggested_resolution ?? '(unset — choose one)'}`,
+      `suggested_resolution: ${p.frontmatter.proposal.suggested_resolution ?? '(unset — choose one)'}`
     );
   }
   log.plain(`file:         ${p.path}`);
@@ -169,7 +169,7 @@ async function promptForAction(p: DiscoveredProposal): Promise<ReviewAction> {
 
 function writeBack(
   proposal: DiscoveredProposal,
-  patch: Partial<ProposalFrontmatter['proposal']>,
+  patch: Partial<ProposalFrontmatter['proposal']>
 ): void {
   const next: ProposalFrontmatter = {
     ...proposal.frontmatter,

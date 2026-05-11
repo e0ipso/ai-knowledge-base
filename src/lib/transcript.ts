@@ -31,9 +31,9 @@ function extractText(content: unknown): string {
   if (Array.isArray(content)) {
     return content
       .filter((c): c is RawContentBlock => !!c && typeof c === 'object')
-      .filter((c) => (c.type ?? 'text') === 'text')
-      .map((c) => (typeof c.text === 'string' ? c.text : ''))
-      .filter((s) => s.length > 0)
+      .filter(c => (c.type ?? 'text') === 'text')
+      .map(c => (typeof c.text === 'string' ? c.text : ''))
+      .filter(s => s.length > 0)
       .join('\n');
   }
   return '';
@@ -76,6 +76,6 @@ export function parseTranscriptJsonl(text: string): RoleTaggedTranscript {
  */
 export function renderRoleTagged(t: RoleTaggedTranscript): string {
   return t.interleaved
-    .map((seg) => `[${seg.role === 'user' ? 'USER' : 'AGENT'}]: ${seg.text}`)
+    .map(seg => `[${seg.role === 'user' ? 'USER' : 'AGENT'}]: ${seg.text}`)
     .join('\n\n');
 }

@@ -55,7 +55,7 @@ describe('nodes helpers', () => {
     writeFileSync(join(root, 'practice', 'broken.md'), '---\nnot: valid\n---\nbody');
 
     const nodes = readAllNodes(root);
-    expect(nodes.map((n) => n.frontmatter.id).sort()).toEqual(['map-y', 'practice-x']);
+    expect(nodes.map(n => n.frontmatter.id).sort()).toEqual(['map-y', 'practice-x']);
   });
 
   it('computeNodesHash is deterministic and content-sensitive', () => {
@@ -80,7 +80,7 @@ describe('nodes helpers', () => {
   it('slugify and deriveNodeId match the kind-slug pattern', () => {
     expect(slugify('Bravo Insider — module!!')).toBe('bravo-insider-module');
     expect(deriveNodeId('practice', 'Use DI in controllers')).toBe(
-      'practice-use-di-in-controllers',
+      'practice-use-di-in-controllers'
     );
     expect(slugify('   ')).toBe('untitled');
   });

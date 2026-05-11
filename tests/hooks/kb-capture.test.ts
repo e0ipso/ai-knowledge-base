@@ -31,9 +31,9 @@ interface SpawnResult {
 async function runHook(
   cwd: string,
   hookInput: Record<string, unknown>,
-  env: NodeJS.ProcessEnv = {},
+  env: NodeJS.ProcessEnv = {}
 ): Promise<SpawnResult> {
-  return new Promise((resolveFn) => {
+  return new Promise(resolveFn => {
     const proc = execFile(
       'node',
       [hookPath],
@@ -50,7 +50,7 @@ async function runHook(
           stderr: stderr.toString(),
           exitCode: code,
         });
-      },
+      }
     );
     proc.stdin?.write(JSON.stringify(hookInput));
     proc.stdin?.end();
@@ -70,7 +70,7 @@ function writeTranscript(path: string): void {
         type: 'assistant',
         message: { role: 'assistant', content: [{ type: 'text', text: 'ok' }] },
       }),
-    ].join('\n'),
+    ].join('\n')
   );
 }
 
@@ -99,7 +99,7 @@ describe('kb-capture hook (spawned)', () => {
         transcript_path: transcript,
         hook_event_name: 'Stop',
       },
-      { KB_BUILDER_INTERNAL: '1' },
+      { KB_BUILDER_INTERNAL: '1' }
     );
 
     expect(result.exitCode).toBe(0);
@@ -122,7 +122,7 @@ describe('kb-capture hook (spawned)', () => {
       expect(result.exitCode).toBe(0);
       expect(result.stderr).toContain('gitleaks');
       expect(sessionLogs(sandbox)).toHaveLength(0);
-    },
+    }
   );
 
   it.skipIf(!gitleaksAvailable)(
@@ -141,7 +141,7 @@ describe('kb-capture hook (spawned)', () => {
       expect(sessionLogs(sandbox).length).toBeGreaterThan(0);
       const queueFile = join(sandbox, '.ai/knowledge-base/_sessions/.queue.json');
       expect(existsSync(queueFile)).toBe(true);
-    },
+    }
   );
 
   it('exits 0 on missing transcript without throwing', async () => {
@@ -155,7 +155,7 @@ describe('kb-capture hook (spawned)', () => {
   });
 
   it('exits 0 on empty stdin without throwing', async () => {
-    const result = await new Promise<SpawnResult>((resolveFn) => {
+    const result = await new Promise<SpawnResult>(resolveFn => {
       const proc = execFile(
         'node',
         [hookPath],
@@ -170,7 +170,7 @@ describe('kb-capture hook (spawned)', () => {
             stderr: stderr.toString(),
             exitCode: code,
           });
-        },
+        }
       );
       proc.stdin?.end();
     });
@@ -181,5 +181,5 @@ describe('kb-capture hook (spawned)', () => {
 function sessionLogs(sandbox: string): string[] {
   const sessionsDir = join(sandbox, '.ai/knowledge-base/_sessions');
   if (!existsSync(sessionsDir)) return [];
-  return readdirSync(sessionsDir).filter((f) => f.endsWith('.md'));
+  return readdirSync(sessionsDir).filter(f => f.endsWith('.md'));
 }

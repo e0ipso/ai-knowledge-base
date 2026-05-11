@@ -52,7 +52,7 @@ export function eventToTrigger(event: string | undefined): CaptureTrigger {
 
 export async function captureSession(
   input: HookInput,
-  ctx: CaptureContext,
+  ctx: CaptureContext
 ): Promise<CaptureResult> {
   const trigger = eventToTrigger(input.hook_event_name);
   const transcriptPath = input.transcript_path;

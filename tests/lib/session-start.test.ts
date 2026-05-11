@@ -50,7 +50,7 @@ function seedSession(harness: Harness, sessionId: string, processed: boolean): v
   if (processed) fm['curator_processed_at'] = '2026-05-11T11:00:00Z';
   writeFileSync(
     join(harness.sessionsDir, `session-${sessionId}.md`),
-    matter.stringify('## body\n', fm),
+    matter.stringify('## body\n', fm)
   );
 }
 

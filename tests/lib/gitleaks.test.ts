@@ -21,7 +21,7 @@ describe('redactSecrets', () => {
   it('redacts every occurrence of the same secret', () => {
     const findings: GitleaksFinding[] = [{ RuleID: 'token', Secret: 'tok_123' }];
     expect(redactSecrets('A tok_123 B tok_123', findings)).toBe(
-      'A [REDACTED:token] B [REDACTED:token]',
+      'A [REDACTED:token] B [REDACTED:token]'
     );
   });
 

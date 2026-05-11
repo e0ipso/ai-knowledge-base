@@ -33,7 +33,7 @@ describe('queue', () => {
     appendToQueue(queueFile, entry('a'));
     appendToQueue(queueFile, entry('b'));
     const q = readQueue(queueFile);
-    expect(q.entries.map((e) => e.session_id)).toEqual(['a', 'b']);
+    expect(q.entries.map(e => e.session_id)).toEqual(['a', 'b']);
   });
 
   it('appends atomically (no .tmp file left behind)', () => {
@@ -46,6 +46,6 @@ describe('queue', () => {
     writeFileSync(queueFile, 'not json{');
     appendToQueue(queueFile, entry('a'));
     const q = readQueue(queueFile);
-    expect(q.entries.map((e) => e.session_id)).toEqual(['a']);
+    expect(q.entries.map(e => e.session_id)).toEqual(['a']);
   });
 });

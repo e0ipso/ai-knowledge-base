@@ -18,9 +18,7 @@ describe('ClaudeAdapter', () => {
     });
     expect(out.startsWith('---\n')).toBe(true);
     expect(out).toContain('name: kb-add');
-    expect(out).toContain(
-      'description: "Capture a knowledge-base node manually."',
-    );
+    expect(out).toContain('description: "Capture a knowledge-base node manually."');
     expect(out).toContain('# kb-add');
     expect(out.endsWith('\n')).toBe(true);
   });
@@ -42,7 +40,7 @@ describe('ClaudeAdapter', () => {
       body: 'b',
     });
     // The description line is a single JSON-encoded string; no raw newline leak.
-    const descLine = out.split('\n').find((l) => l.startsWith('description:'));
+    const descLine = out.split('\n').find(l => l.startsWith('description:'));
     expect(descLine).toBeDefined();
     expect(descLine).toContain('\\n');
     expect(descLine).toContain('\\"quotes\\"');

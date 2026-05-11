@@ -53,13 +53,13 @@ describe('captureSession', () => {
         transcript_path: transcriptPath,
         hook_event_name: 'Stop',
       },
-      { sessionsDir, scan: fakeScanner('clean') },
+      { sessionsDir, scan: fakeScanner('clean') }
     );
     expect(result.status).toBe('written');
     expect(result.gitleaksStatus).toBe('clean');
 
     // session log file exists with the expected frontmatter
-    const files = readdirSync(sessionsDir).filter((f) => f.endsWith('.md'));
+    const files = readdirSync(sessionsDir).filter(f => f.endsWith('.md'));
     expect(files).toHaveLength(1);
     const logName = files[0];
     expect(logName).toBeDefined();
@@ -95,16 +95,16 @@ describe('captureSession', () => {
     const ctx = { sessionsDir, scan: fakeScanner('clean') };
     const first = await captureSession(
       { session_id: 'x', transcript_path: transcriptPath, hook_event_name: 'Stop' },
-      ctx,
+      ctx
     );
     expect(first.status).toBe('written');
     const second = await captureSession(
       { session_id: 'x', transcript_path: transcriptPath, hook_event_name: 'SessionEnd' },
-      ctx,
+      ctx
     );
     expect(second.status).toBe('duplicate');
     // No second log written.
-    expect(readdirSync(sessionsDir).filter((f) => f.endsWith('.md'))).toHaveLength(1);
+    expect(readdirSync(sessionsDir).filter(f => f.endsWith('.md'))).toHaveLength(1);
   });
 
   it('redacts findings into the session log when scanner returns redacted', async () => {
@@ -116,18 +116,18 @@ describe('captureSession', () => {
           type: 'user',
           message: { role: 'user', content: 'key is sk-abc123 do not share' },
         }),
-      ].join('\n'),
+      ].join('\n')
     );
     const result = await captureSession(
       { session_id: 'secret-1', transcript_path: transcriptPath, hook_event_name: 'Stop' },
-      { sessionsDir, scan: fakeScanner('redact') },
+      { sessionsDir, scan: fakeScanner('redact') }
     );
     expect(result.status).toBe('written');
     expect(result.gitleaksStatus).toBe('redacted');
 
     const log = readFileSync(
-      join(sessionsDir, readdirSync(sessionsDir).filter((f) => f.endsWith('.md'))[0] as string),
-      'utf8',
+      join(sessionsDir, readdirSync(sessionsDir).filter(f => f.endsWith('.md'))[0] as string),
+      'utf8'
     );
     expect(log).toContain('[REDACTED:test-secret]');
     expect(log).not.toContain('sk-abc123');
@@ -136,17 +136,17 @@ describe('captureSession', () => {
   it('aborts without writing when the scanner is blocked', async () => {
     const result = await captureSession(
       { session_id: 'x', transcript_path: transcriptPath, hook_event_name: 'Stop' },
-      { sessionsDir, scan: fakeScanner('blocked') },
+      { sessionsDir, scan: fakeScanner('blocked') }
     );
     expect(result.status).toBe('gitleaks-blocked');
     expect(result.error).toContain('fake blocked');
-    expect(readdirSync(sessionsDir).filter((f) => f.endsWith('.md'))).toHaveLength(0);
+    expect(readdirSync(sessionsDir).filter(f => f.endsWith('.md'))).toHaveLength(0);
   });
 
   it('returns no-transcript when transcript_path is missing', async () => {
     const result = await captureSession(
       { session_id: 'x', transcript_path: '/nonexistent/path.jsonl', hook_event_name: 'Stop' },
-      { sessionsDir, scan: fakeScanner('clean') },
+      { sessionsDir, scan: fakeScanner('clean') }
     );
     expect(result.status).toBe('no-transcript');
   });
@@ -155,7 +155,7 @@ describe('captureSession', () => {
     writeFileSync(transcriptPath, JSON.stringify({ type: 'system', content: 'nothing' }));
     const result = await captureSession(
       { session_id: 'x', transcript_path: transcriptPath, hook_event_name: 'Stop' },
-      { sessionsDir, scan: fakeScanner('clean') },
+      { sessionsDir, scan: fakeScanner('clean') }
     );
     expect(result.status).toBe('no-content');
   });
@@ -163,12 +163,12 @@ describe('captureSession', () => {
   it('uses captured_by derived from hook_event_name', async () => {
     const result = await captureSession(
       { session_id: 'pc', transcript_path: transcriptPath, hook_event_name: 'PreCompact' },
-      { sessionsDir, scan: fakeScanner('clean') },
+      { sessionsDir, scan: fakeScanner('clean') }
     );
     expect(result.status).toBe('written');
     const log = readFileSync(
-      join(sessionsDir, readdirSync(sessionsDir).filter((f) => f.endsWith('.md'))[0] as string),
-      'utf8',
+      join(sessionsDir, readdirSync(sessionsDir).filter(f => f.endsWith('.md'))[0] as string),
+      'utf8'
     );
     const fm = matter(log).data as { captured_by: string };
     expect(fm.captured_by).toBe('pre_compact');

@@ -33,7 +33,7 @@ export async function runNodeAdd(opts: NodeAddOptions = {}): Promise<number> {
   ensureStateLayout(paths);
   if (!existsSync(paths.installedVersionFile)) {
     log.error(
-      'ai-knowledge-base is not initialized in this repo. Run `ai-knowledge-base init --assistants claude`.',
+      'ai-knowledge-base is not initialized in this repo. Run `ai-knowledge-base init --assistants claude`.'
     );
     return 1;
   }
@@ -56,7 +56,7 @@ export async function runNodeAdd(opts: NodeAddOptions = {}): Promise<number> {
   const relatesTo = parseList(answers.relatesTo ?? '');
   const confidence: Confidence = answers.confidence ?? 'high';
 
-  const existingIds = new Set(readAllNodes(paths.nodesDir).map((n) => n.frontmatter.id));
+  const existingIds = new Set(readAllNodes(paths.nodesDir).map(n => n.frontmatter.id));
   const id = ensureUniqueId(existingIds, deriveNodeId(kind, title));
   const now = (opts.now ?? new Date()).toISOString();
 
@@ -127,11 +127,11 @@ async function promptForNode(): Promise<{
   })) as NodeKind;
   const title = await input({
     message: 'Title (short, ≤ 80 chars)',
-    validate: (v) => v.trim().length > 0 || 'Required',
+    validate: v => v.trim().length > 0 || 'Required',
   });
   const summary = await input({
     message: 'Summary (≤ 140 chars)',
-    validate: (v) => v.trim().length > 0 || 'Required',
+    validate: v => v.trim().length > 0 || 'Required',
   });
   const tags = await input({ message: 'Tags (comma-separated, optional)' });
   const relatesTo = await input({
@@ -155,6 +155,6 @@ async function promptForNode(): Promise<{
 function parseList(s: string): string[] {
   return s
     .split(',')
-    .map((x) => x.trim())
+    .map(x => x.trim())
     .filter(Boolean);
 }

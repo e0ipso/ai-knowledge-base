@@ -19,7 +19,7 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
 
   if (!existsSync(paths.installedVersionFile)) {
     log.error(
-      'ai-knowledge-base is not initialized in this repo. Run `ai-knowledge-base init --assistants claude`.',
+      'ai-knowledge-base is not initialized in this repo. Run `ai-knowledge-base init --assistants claude`.'
     );
     return 1;
   }
@@ -65,7 +65,7 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
       return 0;
     case 'completed':
       log.success(
-        `Curator finished: ${result.proposalsWritten} proposal(s), ${result.drops} drop(s) over ${result.batches} batch(es).`,
+        `Curator finished: ${result.proposalsWritten} proposal(s), ${result.drops} drop(s) over ${result.batches} batch(es).`
       );
       log.plain(`Run id: ${result.runId ?? '(unknown)'}`);
       log.plain('Review the proposals with `ai-knowledge-base proposals review`.');

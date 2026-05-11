@@ -37,7 +37,7 @@ describe('state.json lock', () => {
         name: 'stage2-drain',
         pid: 9999,
         now: new Date('2026-05-11T10:01:00Z'),
-      }),
+      })
     ).toBe(false);
   });
 
@@ -46,7 +46,7 @@ describe('state.json lock', () => {
     acquireLock(file, { name: 'stage2-drain', pid: 1234, now: t0, ttlMs: 60_000 });
     const later = new Date('2026-05-11T10:05:00Z');
     expect(acquireLock(file, { name: 'stage2-drain', pid: 5555, now: later, ttlMs: 60_000 })).toBe(
-      true,
+      true
     );
     expect(readState(file).lock?.pid).toBe(5555);
   });

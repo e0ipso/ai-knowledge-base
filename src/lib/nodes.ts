@@ -148,8 +148,8 @@ export function listProposalFiles(proposedDir: string): {
 function listMd(dir: string): string[] {
   if (!existsSync(dir)) return [];
   return readdirSync(dir)
-    .filter((n) => n.endsWith('.md'))
-    .map((n) => join(dir, n))
+    .filter(n => n.endsWith('.md'))
+    .map(n => join(dir, n))
     .sort();
 }
 

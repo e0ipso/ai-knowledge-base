@@ -61,7 +61,7 @@ describe('init', () => {
     expect(result.exitCode).toBe(0);
 
     const installed = JSON.parse(
-      readFileSync(join(sandbox, '.ai/knowledge-base/.state/installed-version'), 'utf8'),
+      readFileSync(join(sandbox, '.ai/knowledge-base/.state/installed-version'), 'utf8')
     );
     expect(installed.schema_version).toBe(1);
     expect(installed.package).toBe('@e0ipso/ai-knowledge-base');
@@ -120,7 +120,7 @@ describe('init', () => {
       const entries = settings.hooks?.[event];
       expect(entries, `expected hook entry for ${event}`).toBeDefined();
       expect(entries?.[0]?.hooks[0]?.command).toBe(
-        `KB_BUILDER_HOOK=${event} node .claude/hooks/kb-capture.mjs`,
+        `KB_BUILDER_HOOK=${event} node .claude/hooks/kb-capture.mjs`
       );
     }
   });
@@ -136,8 +136,8 @@ describe('init', () => {
     const entries = settings.hooks?.['SessionStart'];
     expect(entries, 'expected SessionStart hook entries').toBeDefined();
     expect(entries).toHaveLength(2);
-    const commands = entries?.flatMap((e) =>
-      e.hooks.map((h) => ({ command: h.command, async: h.async })),
+    const commands = entries?.flatMap(e =>
+      e.hooks.map(h => ({ command: h.command, async: h.async }))
     );
     expect(commands).toEqual(
       expect.arrayContaining([
@@ -148,14 +148,14 @@ describe('init', () => {
         expect.objectContaining({
           command: 'KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-session-start.mjs',
         }),
-      ]),
+      ])
     );
   });
 
   it('writes a default .config.json populated with defaults', async () => {
     await runCli(sandbox, ['init', '--assistants', 'claude']);
     const body = JSON.parse(
-      readFileSync(join(sandbox, '.ai/knowledge-base/.config.json'), 'utf8'),
+      readFileSync(join(sandbox, '.ai/knowledge-base/.config.json'), 'utf8')
     ) as Record<string, unknown>;
     expect(body['schema_version']).toBe(1);
     expect(body['drainBound']).toBe(5);
@@ -233,16 +233,16 @@ describe('init', () => {
           assistants: ['claude'],
         },
         null,
-        2,
-      ),
+        2
+      )
     );
     writeFileSync(
       join(sandbox, '.ai/.kb-builder/state.json'),
-      JSON.stringify({ schema_version: 1, last_nudged_at: '2026-01-01T00:00:00Z' }),
+      JSON.stringify({ schema_version: 1, last_nudged_at: '2026-01-01T00:00:00Z' })
     );
     writeFileSync(
       join(sandbox, '.ai/.kb-builder/bootstrap-state.json'),
-      JSON.stringify({ schema_version: 1, docs: {} }),
+      JSON.stringify({ schema_version: 1, docs: {} })
     );
     writeFileSync(join(sandbox, '.ai/.kb-builder/prompts/curator.md'), '# legacy local override\n');
 
@@ -256,7 +256,7 @@ describe('init', () => {
     expect(existsSync(join(sandbox, '.ai/knowledge-base/.state/state.json'))).toBe(true);
     expect(existsSync(join(sandbox, '.ai/knowledge-base/.state/bootstrap-state.json'))).toBe(true);
     expect(
-      readFileSync(join(sandbox, '.ai/knowledge-base/.state/prompts/curator.md'), 'utf8'),
+      readFileSync(join(sandbox, '.ai/knowledge-base/.state/prompts/curator.md'), 'utf8')
     ).toBe('# legacy local override\n');
 
     // Legacy directory is removed.

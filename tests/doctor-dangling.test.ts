@@ -52,7 +52,7 @@ describe('collectDanglingDerivedFrom', () => {
     writeFileSync(join(harness.root, 'docs/auth.md'), 'x');
     writeNode(harness, 'practice-a', ['session-a.md', 'docs/auth.md']);
     expect(collectDanglingDerivedFrom(harness.root, harness.nodesDir, harness.sessionsDir)).toEqual(
-      [],
+      []
     );
   });
 
@@ -83,7 +83,7 @@ describe('collectDanglingDerivedFrom', () => {
     const out = collectDanglingDerivedFrom(
       harness.root,
       join(harness.root, 'no-nodes'),
-      harness.sessionsDir,
+      harness.sessionsDir
     );
     expect(out).toEqual([]);
   });

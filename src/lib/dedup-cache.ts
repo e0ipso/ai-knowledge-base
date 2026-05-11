@@ -21,7 +21,7 @@ function loadEntries(file: string): CacheEntry[] {
 }
 
 function pruneExpired(entries: CacheEntry[], nowMs: number): CacheEntry[] {
-  return entries.filter((e) => {
+  return entries.filter(e => {
     const t = Date.parse(e.expires_at);
     return Number.isFinite(t) && t > nowMs;
   });
@@ -29,11 +29,11 @@ function pruneExpired(entries: CacheEntry[], nowMs: number): CacheEntry[] {
 
 export function isDuplicate(cacheFile: string, hash: string, nowMs: number = Date.now()): boolean {
   const entries = pruneExpired(loadEntries(cacheFile), nowMs);
-  return entries.some((e) => e.hash === hash);
+  return entries.some(e => e.hash === hash);
 }
 
 export function recordHash(cacheFile: string, hash: string, nowMs: number = Date.now()): void {
-  const entries = pruneExpired(loadEntries(cacheFile), nowMs).filter((e) => e.hash !== hash);
+  const entries = pruneExpired(loadEntries(cacheFile), nowMs).filter(e => e.hash !== hash);
   entries.push({ hash, expires_at: new Date(nowMs + DEDUP_TTL_MS).toISOString() });
   const tmp = `${cacheFile}.tmp`;
   writeFileSync(tmp, `${JSON.stringify({ schema_version: 1, entries }, null, 2)}\n`);

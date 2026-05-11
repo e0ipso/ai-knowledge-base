@@ -20,7 +20,7 @@ export interface BootstrapIncrementalOptions {
 }
 
 export async function runBootstrapIncrementalCommand(
-  opts: BootstrapIncrementalOptions,
+  opts: BootstrapIncrementalOptions
 ): Promise<number> {
   const root = findRepoRoot();
   const paths = repoPaths(root);
@@ -28,7 +28,7 @@ export async function runBootstrapIncrementalCommand(
 
   if (!existsSync(paths.installedVersionFile)) {
     log.error(
-      'ai-knowledge-base is not initialized in this repo. Run `ai-knowledge-base init --assistants claude`.',
+      'ai-knowledge-base is not initialized in this repo. Run `ai-knowledge-base init --assistants claude`.'
     );
     return 1;
   }
@@ -74,7 +74,7 @@ export async function runBootstrapIncrementalCommand(
   log.info(
     opts.dryRun
       ? `Bootstrap incremental (dry-run) scanning ${sourceDir}…`
-      : `Bootstrap incremental processing ${sourceDir}…`,
+      : `Bootstrap incremental processing ${sourceDir}…`
   );
 
   const result = await runBootstrapIncremental(ctx);
@@ -87,10 +87,10 @@ export async function runBootstrapIncrementalCommand(
       log.success(`No markdown files matched under ${sourceDir}.`);
       return 0;
     case 'completed': {
-      const toProcess = result.processed.filter((p) => p.status !== 'unchanged').length;
+      const toProcess = result.processed.filter(p => p.status !== 'unchanged').length;
       if (opts.dryRun) {
         log.success(
-          `Dry-run: ${toProcess} file(s) would be processed in ${result.batches} batch(es); ${result.unchanged} unchanged.`,
+          `Dry-run: ${toProcess} file(s) would be processed in ${result.batches} batch(es); ${result.unchanged} unchanged.`
         );
         for (const p of result.processed) {
           if (p.status === 'skipped-dry-run') log.plain(`  + ${p.relPath}`);
@@ -99,10 +99,10 @@ export async function runBootstrapIncrementalCommand(
       }
       log.success(
         `Bootstrap finished: ${result.proposalsWritten} proposal(s) across ${result.batches} batch(es); ` +
-          `${toProcess} processed, ${result.unchanged} unchanged.`,
+          `${toProcess} processed, ${result.unchanged} unchanged.`
       );
       if (result.runId) log.plain(`Run id: ${result.runId}`);
-      const failures = result.processed.filter((p) => p.status === 'failed');
+      const failures = result.processed.filter(p => p.status === 'failed');
       if (failures.length > 0) {
         log.warn(`${failures.length} file(s) failed to process; see logs for details.`);
         for (const f of failures) log.plain(`  ! ${f.relPath}: ${f.error ?? 'unknown error'}`);

@@ -58,7 +58,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
   const templatesDir = packageTemplatesDir();
   if (!existsSync(templatesDir)) {
     throw new Error(
-      `Templates directory not found at ${templatesDir}. Run \`npm run build\` if developing locally.`,
+      `Templates directory not found at ${templatesDir}. Run \`npm run build\` if developing locally.`
     );
   }
 
@@ -67,7 +67,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
   const migration = ensureStateLayout(paths);
   if (migration.migrated) {
     log.info(
-      `Migrated legacy state from .ai/.kb-builder/ → .ai/knowledge-base/.state/ (${migration.movedEntries.length} entr${migration.movedEntries.length === 1 ? 'y' : 'ies'}).`,
+      `Migrated legacy state from .ai/.kb-builder/ → .ai/knowledge-base/.state/ (${migration.movedEntries.length} entr${migration.movedEntries.length === 1 ? 'y' : 'ies'}).`
     );
   }
 
@@ -81,10 +81,10 @@ export async function runInit(opts: InitOptions): Promise<void> {
   // Already initialized?
   if (existsSync(paths.installedVersionFile) && !opts.force) {
     const existing = JSON.parse(
-      readFileSync(paths.installedVersionFile, 'utf8'),
+      readFileSync(paths.installedVersionFile, 'utf8')
     ) as InstalledVersion;
     log.warn(
-      `Already initialized (version ${existing.version}). Re-run with --force to overwrite templates, or use \`init --upgrade\` to refresh templates while preserving local prompt overrides and \`.config.json\`.`,
+      `Already initialized (version ${existing.version}). Re-run with --force to overwrite templates, or use \`init --upgrade\` to refresh templates while preserving local prompt overrides and \`.config.json\`.`
     );
     return;
   }
@@ -114,7 +114,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
     writeFileSync(paths.projectConfigFile, defaultProjectConfigBody());
   } else if (opts.force) {
     log.warn(
-      `.ai/knowledge-base/.config.json already exists; not overwriting (use \`init --upgrade\` to refresh templates without touching settings).`,
+      `.ai/knowledge-base/.config.json already exists; not overwriting (use \`init --upgrade\` to refresh templates without touching settings).`
     );
   }
 
@@ -134,7 +134,7 @@ function validateAssistants(assistants: string[]): void {
   for (const a of assistants) {
     if (!SUPPORTED_ASSISTANTS.has(a)) {
       throw new Error(
-        `Unsupported assistant '${a}'. v1 only supports: ${[...SUPPORTED_ASSISTANTS].join(', ')}.`,
+        `Unsupported assistant '${a}'. v1 only supports: ${[...SUPPORTED_ASSISTANTS].join(', ')}.`
       );
     }
   }
@@ -158,11 +158,7 @@ interface UpgradeChange {
   detail: string;
 }
 
-const LEGACY_KB_COMMAND_FILES = [
-  'kb-add.md',
-  'kb-bootstrap.md',
-  'kb-curate.md',
-];
+const LEGACY_KB_COMMAND_FILES = ['kb-add.md', 'kb-bootstrap.md', 'kb-curate.md'];
 
 /**
  * Removes legacy `.claude/commands/kb-{add,bootstrap,curate}.md` files left
@@ -188,15 +184,15 @@ async function runUpgrade(
   opts: InitOptions,
   root: string,
   paths: ReturnType<typeof repoPaths>,
-  templatesDir: string,
+  templatesDir: string
 ): Promise<void> {
   if (!existsSync(paths.installedVersionFile)) {
     throw new Error(
-      'Not initialized. Run `ai-knowledge-base init --assistants claude` for a first-time install.',
+      'Not initialized. Run `ai-knowledge-base init --assistants claude` for a first-time install.'
     );
   }
   const installed = JSON.parse(
-    readFileSync(paths.installedVersionFile, 'utf8'),
+    readFileSync(paths.installedVersionFile, 'utf8')
   ) as InstalledVersion;
   const current = packageVersion();
 
@@ -305,8 +301,8 @@ function collectUpgradeChanges(ctx: UpgradeContext): UpgradeChange[] {
 
   // Legacy slash-command markdown left over from pre-skills installs.
   if (existsSync(ctx.paths.claudeCommandsDir)) {
-    const lingering = LEGACY_KB_COMMAND_FILES.filter((n) =>
-      existsSync(join(ctx.paths.claudeCommandsDir, n)),
+    const lingering = LEGACY_KB_COMMAND_FILES.filter(n =>
+      existsSync(join(ctx.paths.claudeCommandsDir, n))
     );
     if (lingering.length > 0) {
       out.push({
@@ -429,8 +425,8 @@ function hookRegistrationsNeedRefresh(settingsFile: string): boolean {
   const hooks = parsed.hooks ?? {};
   for (const expected of EXPECTED_HOOK_COMMANDS) {
     const entries = hooks[expected.event] ?? [];
-    const flat = entries.flatMap((e) => e.hooks ?? []);
-    const match = flat.find((h) => h.command === expected.command);
+    const flat = entries.flatMap(e => e.hooks ?? []);
+    const match = flat.find(h => h.command === expected.command);
     if (!match) return true;
     if (expected.async === true && match.async !== true) return true;
   }
@@ -443,8 +439,8 @@ function inspectGitignore(file: string): GitignoreState {
   }
   const body = readFileSync(file, 'utf8');
   const blockPresent = body.includes(GITIGNORE_BLOCK_START);
-  const missing = GITIGNORE_LINES.filter((line) => !body.includes(line));
-  const stale = STALE_LEGACY_GITIGNORE_LINES.filter((line) => body.includes(line));
+  const missing = GITIGNORE_LINES.filter(line => !body.includes(line));
+  const stale = STALE_LEGACY_GITIGNORE_LINES.filter(line => body.includes(line));
   return { blockPresent, missingLines: missing, staleLegacyLines: stale };
 }
 
@@ -497,7 +493,7 @@ async function installClaude(
   assistants: string[],
   templatesDir: string,
   claudeDir: string,
-  root: string,
+  root: string
 ): Promise<void> {
   if (!assistants.includes('claude')) return;
   const adapter = new ClaudeAdapter();
@@ -545,7 +541,7 @@ function installPreCommitConfig(target: string, templatesDir: string): void {
   if (existsSync(target)) {
     log.warn(
       'A .pre-commit-config.yaml already exists; not overwriting. ' +
-        'Add the gitleaks repo entry manually if needed (see docs).',
+        'Add the gitleaks repo entry manually if needed (see docs).'
     );
     return;
   }

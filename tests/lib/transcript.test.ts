@@ -15,7 +15,7 @@ describe('parseTranscriptJsonl', () => {
     const parsed = parseTranscriptJsonl(jsonl);
     expect(parsed.user).toEqual(['Hello', 'Use bravo_pii cache.']);
     expect(parsed.agent).toEqual(['Hi there']);
-    expect(parsed.interleaved.map((s) => s.role)).toEqual(['user', 'agent', 'user']);
+    expect(parsed.interleaved.map(s => s.role)).toEqual(['user', 'agent', 'user']);
   });
 
   it('ignores tool_use and system blocks but keeps text blocks', () => {

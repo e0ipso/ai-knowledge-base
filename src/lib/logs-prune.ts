@@ -106,7 +106,7 @@ export function parseDurationMs(input: string): number {
   const match = trimmed.match(/^(\d+(?:\.\d+)?)\s*(ms|[smhdwy])$/);
   if (!match) {
     throw new Error(
-      `unrecognized duration: ${JSON.stringify(input)}. Expected formats like 30d, 2w, 12h, 45m.`,
+      `unrecognized duration: ${JSON.stringify(input)}. Expected formats like 30d, 2w, 12h, 45m.`
     );
   }
   const value = Number(match[1]);

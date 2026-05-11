@@ -61,17 +61,17 @@ async function main(): Promise<void> {
           hookEventName: 'SessionStart',
           additionalContext: result.additionalContext,
         },
-      })}\n`,
+      })}\n`
     );
   } catch (err) {
     process.stderr.write(
-      `${PACKAGE_TAG} session-start error: ${err instanceof Error ? err.message : String(err)}\n`,
+      `${PACKAGE_TAG} session-start error: ${err instanceof Error ? err.message : String(err)}\n`
     );
   }
 }
 
 function readStdin(): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (process.stdin.isTTY) {
       resolve('');
       return;

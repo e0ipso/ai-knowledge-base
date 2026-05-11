@@ -23,7 +23,7 @@ export async function runIndexRebuild(opts: IndexRebuildOptions = {}): Promise<n
 
   if (!existsSync(paths.installedVersionFile)) {
     log.error(
-      'ai-knowledge-base is not initialized in this repo. Run `ai-knowledge-base init --assistants claude`.',
+      'ai-knowledge-base is not initialized in this repo. Run `ai-knowledge-base init --assistants claude`.'
     );
     return 1;
   }
@@ -47,7 +47,7 @@ export async function runIndexRebuild(opts: IndexRebuildOptions = {}): Promise<n
       (index.hiddenByBudget > 0
         ? ` (${index.hiddenByBudget} hidden by token budget; see GRAPH.md for the full list)`
         : '') +
-      '.',
+      '.'
   );
   return 0;
 }

@@ -33,7 +33,7 @@ export async function runDoctor(opts: DoctorOptions): Promise<number> {
   const migration = ensureStateLayout(paths);
   if (migration.migrated) {
     log.success(
-      `state layout migrated: .ai/.kb-builder/ → .ai/knowledge-base/.state/ (${migration.movedEntries.length} entr${migration.movedEntries.length === 1 ? 'y' : 'ies'})`,
+      `state layout migrated: .ai/.kb-builder/ → .ai/knowledge-base/.state/ (${migration.movedEntries.length} entr${migration.movedEntries.length === 1 ? 'y' : 'ies'})`
     );
   }
 
@@ -152,7 +152,7 @@ interface DanglingRef {
 export function collectDanglingDerivedFrom(
   root: string,
   nodesDir: string,
-  sessionsDir: string,
+  sessionsDir: string
 ): DanglingRef[] {
   if (!existsSync(nodesDir)) return [];
   const out: DanglingRef[] = [];
@@ -293,11 +293,9 @@ function checkClaudeHooks(settingsFile: string, hooksDir: string): CheckResult {
   const hooks = settings.hooks ?? {};
   const missing: string[] = [];
   for (const [event, scripts] of Object.entries(EXPECTED_HOOK_SCRIPTS)) {
-    const commands = (hooks[event] ?? []).flatMap((e) =>
-      (e.hooks ?? []).map((h) => h.command ?? ''),
-    );
+    const commands = (hooks[event] ?? []).flatMap(e => (e.hooks ?? []).map(h => h.command ?? ''));
     for (const script of scripts) {
-      if (!commands.some((c) => c.includes(script))) {
+      if (!commands.some(c => c.includes(script))) {
         missing.push(`${event} → ${script}`);
       }
     }
@@ -330,7 +328,7 @@ function checkClaudeSkills(skillsDir: string): CheckResult {
       detail: `no .claude/skills/ directory. Re-run \`ai-knowledge-base init --assistants claude --force\`.`,
     };
   }
-  const missing = EXPECTED_SKILLS.filter((name) => !existsSync(join(skillsDir, name, 'SKILL.md')));
+  const missing = EXPECTED_SKILLS.filter(name => !existsSync(join(skillsDir, name, 'SKILL.md')));
   if (missing.length === 0) {
     return { ok: true, detail: EXPECTED_SKILLS.join(', ') };
   }
@@ -347,7 +345,7 @@ function checkLegacyKbCommands(commandsDir: string): CheckResult {
   if (!existsSync(commandsDir)) {
     return { ok: true, detail: 'no legacy commands directory' };
   }
-  const lingering = LEGACY_KB_COMMAND_FILES.filter((n) => existsSync(join(commandsDir, n)));
+  const lingering = LEGACY_KB_COMMAND_FILES.filter(n => existsSync(join(commandsDir, n)));
   if (lingering.length === 0) {
     return { ok: true, detail: 'none present' };
   }
@@ -355,7 +353,7 @@ function checkLegacyKbCommands(commandsDir: string): CheckResult {
     ok: false,
     level: 'warn',
     detail: `legacy slash-command file(s) found (the kb-* commands are now Skills under .claude/skills/): ${lingering
-      .map((n) => `.claude/commands/${n}`)
+      .map(n => `.claude/commands/${n}`)
       .join(', ')}. Run \`ai-knowledge-base init --upgrade\` to remove them.`,
   };
 }
@@ -375,7 +373,7 @@ function checkLegacyStateDir(legacyDir: string): CheckResult {
 
 function checkPrompts(stateDir: string): CheckResult {
   const expected = ['stage-2-extract.md', 'curator.md', 'bootstrap-incremental.md'];
-  const missing = expected.filter((p) => !existsSync(join(stateDir, 'prompts', p)));
+  const missing = expected.filter(p => !existsSync(join(stateDir, 'prompts', p)));
   if (missing.length === 0) {
     return { ok: true, detail: 'stage-2, curator, bootstrap-incremental' };
   }
@@ -441,11 +439,11 @@ function checkSettings(file: string): CheckResult {
       ok: false,
       level: 'error',
       detail: `schema validation failed: ${parsed.error.issues
-        .map((i) => `${i.path.join('.') || '(root)'}: ${i.message}`)
+        .map(i => `${i.path.join('.') || '(root)'}: ${i.message}`)
         .join('; ')}`,
     };
   }
-  const keys = Object.keys(parsed.data).filter((k) => k !== 'schema_version').length;
+  const keys = Object.keys(parsed.data).filter(k => k !== 'schema_version').length;
   return { ok: true, detail: `valid (${keys} override(s))` };
 }
 

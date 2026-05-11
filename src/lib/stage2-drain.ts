@@ -15,7 +15,7 @@ export type Stage2Runner = <T>(
   promptBody: string,
   stdin: string,
   schema: ZodSchema<T>,
-  opts: { timeoutMs: number; allowedTools?: string[]; logFile?: string },
+  opts: { timeoutMs: number; allowedTools?: string[]; logFile?: string }
 ) => Promise<T>;
 
 export interface DrainContext {
@@ -241,7 +241,7 @@ interface FrontmatterPatch {
 function writeSessionLogFrontmatter(
   file: string,
   parsed: matter.GrayMatterFile<string>,
-  patch: FrontmatterPatch,
+  patch: FrontmatterPatch
 ): void {
   const data = { ...(parsed.data as Record<string, unknown>) };
   data['stage_2_status'] = patch.stage_2_status;
@@ -262,7 +262,7 @@ function updateStage2Body(content: string, patch: FrontmatterPatch): string {
   // produced without opening the stream-json log.
   return content.replace(
     /\(populated by stage-2 worker\)/,
-    `_Extraction complete — see proposals in frontmatter._`,
+    `_Extraction complete — see proposals in frontmatter._`
   );
 }
 
@@ -270,14 +270,14 @@ function removeFromQueueHead(queueFile: string, sessionId: string): void {
   const queue = readQueue(queueFile);
   const next = {
     schema_version: 1 as const,
-    entries: queue.entries.filter((e) => e.session_id !== sessionId),
+    entries: queue.entries.filter(e => e.session_id !== sessionId),
   };
   atomicWriteJson(queueFile, next);
 }
 
 function bumpAndRotate(queueFile: string, sessionId: string, attempts: number): void {
   const queue = readQueue(queueFile);
-  const matchIdx = queue.entries.findIndex((e) => e.session_id === sessionId);
+  const matchIdx = queue.entries.findIndex(e => e.session_id === sessionId);
   if (matchIdx < 0) return;
   const [entry] = queue.entries.splice(matchIdx, 1);
   if (!entry) return;

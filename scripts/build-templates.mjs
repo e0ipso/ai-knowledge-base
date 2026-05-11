@@ -42,6 +42,6 @@ if (existsSync(compiledHooksDir)) {
 } else {
   console.warn(
     `Compiled hooks directory not found: ${compiledHooksDir}. Run tsup first ` +
-      `(npm run build:cli). Continuing without hooks — templates may be incomplete.`,
+      `(npm run build:cli). Continuing without hooks — templates may be incomplete.`
   );
 }

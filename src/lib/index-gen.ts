@@ -137,7 +137,7 @@ function renderBody(
   header: string,
   sections: Array<{ heading: string; bullets: NodeFile[] }>,
   recentSuperseded: NodeFile[],
-  hidden: number,
+  hidden: number
 ): string {
   const parts: string[] = [header];
   for (const s of sections) {

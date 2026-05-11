@@ -56,7 +56,7 @@ describe('doctor', () => {
     await runCli(sandbox, ['init', '--assistants', 'claude']);
     writeFileSync(
       join(sandbox, '.ai/knowledge-base/.config.json'),
-      JSON.stringify({ schema_version: 1, drainBound: -1 }),
+      JSON.stringify({ schema_version: 1, drainBound: -1 })
     );
     const result = await runCli(sandbox, ['doctor']);
     expect(result.exitCode).toBe(1);

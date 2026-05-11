@@ -102,8 +102,8 @@ describe.skipIf(!ENABLED)('e2e: full capture → drain → curate → review cyc
             ],
           },
           null,
-          2,
-        ) + '\n',
+          2
+        ) + '\n'
       );
 
       // 2. Drain stage-2 with the real Claude adapter.
@@ -113,7 +113,7 @@ describe.skipIf(!ENABLED)('e2e: full capture → drain → curate → review cyc
 
       const stage2Prompt = readFileSync(
         join(sandbox, '.ai/knowledge-base/.state/prompts/stage-2-extract.md'),
-        'utf8',
+        'utf8'
       );
 
       const drainSummary = await drainStage2Queue({
@@ -138,7 +138,7 @@ describe.skipIf(!ENABLED)('e2e: full capture → drain → curate → review cyc
         adapter.runHeadless(prompt, stdin, schema, opts);
       const curatorPrompt = readFileSync(
         join(sandbox, '.ai/knowledge-base/.state/prompts/curator.md'),
-        'utf8',
+        'utf8'
       );
 
       const curateResult = await runCurate({
@@ -158,13 +158,13 @@ describe.skipIf(!ENABLED)('e2e: full capture → drain → curate → review cyc
 
       // 4. Accept all proposals via the review TUI's accept-all path.
       const additionsBefore = existsSync(join(proposedDir, 'additions'))
-        ? readdirSync(join(proposedDir, 'additions')).filter((f) => f.endsWith('.md'))
+        ? readdirSync(join(proposedDir, 'additions')).filter(f => f.endsWith('.md'))
         : [];
       const modificationsBefore = existsSync(join(proposedDir, 'modifications'))
-        ? readdirSync(join(proposedDir, 'modifications')).filter((f) => f.endsWith('.md'))
+        ? readdirSync(join(proposedDir, 'modifications')).filter(f => f.endsWith('.md'))
         : [];
       const contradictionsBefore = existsSync(join(proposedDir, 'contradictions'))
-        ? readdirSync(join(proposedDir, 'contradictions')).filter((f) => f.endsWith('.md'))
+        ? readdirSync(join(proposedDir, 'contradictions')).filter(f => f.endsWith('.md'))
         : [];
       const totalProposals =
         additionsBefore.length + modificationsBefore.length + contradictionsBefore.length;
@@ -200,14 +200,14 @@ describe.skipIf(!ENABLED)('e2e: full capture → drain → curate → review cyc
 
       // The unique-term assertion must match against the combined node bodies
       // OR the INDEX itself — different models may put it in different places.
-      const haystacks = [indexBody, ...allNodeFiles.map((f) => readFileSync(f, 'utf8'))];
-      const found = haystacks.some((h) => h.toLowerCase().includes(UNIQUE_TERM.toLowerCase()));
+      const haystacks = [indexBody, ...allNodeFiles.map(f => readFileSync(f, 'utf8'))];
+      const found = haystacks.some(h => h.toLowerCase().includes(UNIQUE_TERM.toLowerCase()));
       expect(
         found,
-        `expected at least one node or INDEX.md to mention '${UNIQUE_TERM}'. Got ${totalProposals} proposal(s), ${allNodeFiles.length} node(s).`,
+        `expected at least one node or INDEX.md to mention '${UNIQUE_TERM}'. Got ${totalProposals} proposal(s), ${allNodeFiles.length} node(s).`
       ).toBe(true);
     },
-    FIVE_MINUTES_MS * 3 + 60_000,
+    FIVE_MINUTES_MS * 3 + 60_000
   );
 });
 

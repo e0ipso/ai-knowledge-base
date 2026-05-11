@@ -42,20 +42,20 @@ async function main(): Promise<void> {
     const result = await captureSession(input, { sessionsDir: paths.sessionsDir });
     if (result.status === 'gitleaks-blocked') {
       process.stderr.write(
-        `${PACKAGE_TAG} gitleaks blocked stage-1 capture: ${result.error ?? 'unknown error'}\n`,
+        `${PACKAGE_TAG} gitleaks blocked stage-1 capture: ${result.error ?? 'unknown error'}\n`
       );
     }
     // All other statuses are intentionally silent. `ai-knowledge-base status`
     // surfaces pending counts when the user wants to check.
   } catch (err) {
     process.stderr.write(
-      `${PACKAGE_TAG} capture error: ${err instanceof Error ? err.message : String(err)}\n`,
+      `${PACKAGE_TAG} capture error: ${err instanceof Error ? err.message : String(err)}\n`
     );
   }
 }
 
 function readStdin(): Promise<string> {
-  return new Promise((resolve) => {
+  return new Promise(resolve => {
     if (process.stdin.isTTY) {
       resolve('');
       return;

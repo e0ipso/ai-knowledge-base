@@ -42,7 +42,7 @@ export interface Adapter {
     promptBody: string,
     stdin: string,
     schema: ZodSchema<T>,
-    opts?: HeadlessOpts,
+    opts?: HeadlessOpts
   ): Promise<T>;
 
   renderSkill(spec: SkillSpec): string;

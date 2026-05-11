@@ -32,7 +32,7 @@ describe('paths: state layout migration', () => {
     const result = ensureStateLayout(paths);
     expect(result.migrated).toBe(true);
     expect(result.movedEntries.sort()).toEqual(
-      ['installed-version', 'prompts', 'state.json'].sort(),
+      ['installed-version', 'prompts', 'state.json'].sort()
     );
     expect(existsSync(paths.legacyStateDir)).toBe(false);
     expect(readFileSync(paths.installedVersionFile, 'utf8')).toBe('{"version":"x"}');

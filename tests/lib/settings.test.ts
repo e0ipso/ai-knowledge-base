@@ -31,7 +31,7 @@ describe('settings', () => {
     const userFile = join(sandbox, 'user.json');
     writeFileSync(
       userFile,
-      JSON.stringify({ schema_version: 1, drainBound: 99, indexBudgetTokens: 4096 }),
+      JSON.stringify({ schema_version: 1, drainBound: 99, indexBudgetTokens: 4096 })
     );
     const result = resolveSettings({
       projectFile: join(sandbox, 'missing.json'),
@@ -110,7 +110,7 @@ describe('settings', () => {
 
   it('projectConfigPath joins to the kb dir', () => {
     expect(projectConfigPath('/repo/.ai/knowledge-base')).toBe(
-      '/repo/.ai/knowledge-base/.config.json',
+      '/repo/.ai/knowledge-base/.config.json'
     );
   });
 });

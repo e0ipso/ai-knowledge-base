@@ -33,7 +33,7 @@ export type CuratorRunner = <T>(
   promptBody: string,
   stdin: string,
   schema: ZodSchema<T>,
-  opts: { timeoutMs: number; allowedTools?: string[]; logFile?: string },
+  opts: { timeoutMs: number; allowedTools?: string[]; logFile?: string }
 ) => Promise<T>;
 
 export interface CurateContext {
@@ -135,7 +135,7 @@ const BATCH_PLACEHOLDER = '[BATCH PLACEHOLDER — substituted at runtime]';
 export function batchSessions(
   sessions: PendingSession[],
   batchSize: number,
-  tokenBudget: number,
+  tokenBudget: number
 ): PendingSession[][] {
   const batches: PendingSession[][] = [];
   let current: PendingSession[] = [];
@@ -188,7 +188,7 @@ export interface CuratorBatchPayload {
 export function buildBatchPayload(
   batch: PendingSession[],
   kbDir: string,
-  nodesDir: string,
+  nodesDir: string
 ): CuratorBatchPayload {
   const referenced = new Set<string>();
   for (const s of batch) {
@@ -219,7 +219,7 @@ export function buildBatchPayload(
   return {
     index_summary: indexSummary,
     existing_nodes: existingNodes,
-    batch: batch.map((s) => ({
+    batch: batch.map(s => ({
       session_id: s.sessionId,
       captured_at: s.capturedAt,
       derived_from: s.filename,
@@ -304,7 +304,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
     }
 
     const merged = dedupActions(allActions);
-    const existingIds = new Set(readAllNodes(ctx.nodesDir).map((n) => n.frontmatter.id));
+    const existingIds = new Set(readAllNodes(ctx.nodesDir).map(n => n.frontmatter.id));
     const seenSlugs = new Set<string>();
     let proposalsWritten = 0;
     let drops = 0;
@@ -333,7 +333,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
       batches: batches.length,
       candidates: pending.reduce(
         (sum, s) => sum + s.practiceCandidates.length + s.mapCandidates.length,
-        0,
+        0
       ),
       proposalsWritten,
       drops,
@@ -359,7 +359,7 @@ function persistAction(action: CuratorAction, ctx: PersistContext): boolean {
   const kind: NodeKind = proposedNode.kind;
   const id = ensureUniqueId(
     new Set([...ctx.existingIds, ...ctx.seenSlugs]),
-    proposedNode.id || deriveNodeId(kind, proposedNode.title),
+    proposedNode.id || deriveNodeId(kind, proposedNode.title)
   );
   ctx.seenSlugs.add(id);
   const filename = proposalFilename(kind, id);
@@ -403,7 +403,7 @@ function persistAction(action: CuratorAction, ctx: PersistContext): boolean {
 }
 
 function proposalFolderFor(
-  action: CuratorAction['action'],
+  action: CuratorAction['action']
 ): 'additions' | 'modifications' | 'contradictions' {
   if (action === 'modify') return 'modifications';
   if (action === 'contradict') return 'contradictions';
@@ -411,7 +411,7 @@ function proposalFolderFor(
 }
 
 function proposalKindFor(
-  action: CuratorAction['action'],
+  action: CuratorAction['action']
 ): 'addition' | 'modification' | 'contradiction' {
   if (action === 'modify') return 'modification';
   if (action === 'contradict') return 'contradiction';

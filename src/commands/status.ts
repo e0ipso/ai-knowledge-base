@@ -15,7 +15,7 @@ export async function runStatus(): Promise<void> {
 
   if (!existsSync(paths.installedVersionFile)) {
     log.warn(
-      'ai-knowledge-base is not initialized in this repo. Run `ai-knowledge-base init --assistants claude`.',
+      'ai-knowledge-base is not initialized in this repo. Run `ai-knowledge-base init --assistants claude`.'
     );
     return;
   }
@@ -35,7 +35,7 @@ export async function runStatus(): Promise<void> {
   const nodeCounts = countNodes(paths.nodesDir);
 
   log.plain(
-    `@e0ipso/ai-knowledge-base v${installed.version} (installed ${installed.installed_at})`,
+    `@e0ipso/ai-knowledge-base v${installed.version} (installed ${installed.installed_at})`
   );
   log.plain('');
   log.plain('Knowledge base');
@@ -100,5 +100,5 @@ function countNodes(dir: string): { practice: number; map: number } {
 
 function countMarkdown(dir: string): number {
   if (!existsSync(dir) || !statSync(dir).isDirectory()) return 0;
-  return readdirSync(dir).filter((f) => f.endsWith('.md')).length;
+  return readdirSync(dir).filter(f => f.endsWith('.md')).length;
 }

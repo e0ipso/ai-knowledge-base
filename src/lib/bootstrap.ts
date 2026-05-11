@@ -31,7 +31,7 @@ export type BootstrapRunner = <T>(
   promptBody: string,
   stdin: string,
   schema: ZodSchema<T>,
-  opts: { timeoutMs: number; allowedTools?: string[]; logFile?: string },
+  opts: { timeoutMs: number; allowedTools?: string[]; logFile?: string }
 ) => Promise<T>;
 
 export interface BootstrapContext {
@@ -239,11 +239,11 @@ export function discoverMarkdownFiles(opts: DiscoverOptions): string[] {
   const excludes = opts.exclude ?? [];
   const ignore = opts.gitignorePatterns ?? [];
   return out
-    .map((abs) => relativePosix(opts.repoRoot, abs))
-    .filter((rel) => {
-      if (excludes.some((p) => globMatch(p, rel))) return false;
-      if (ignore.some((p) => globMatch(p, rel))) return false;
-      if (includes.length > 0 && !includes.some((p) => globMatch(p, rel))) return false;
+    .map(abs => relativePosix(opts.repoRoot, abs))
+    .filter(rel => {
+      if (excludes.some(p => globMatch(p, rel))) return false;
+      if (ignore.some(p => globMatch(p, rel))) return false;
+      if (includes.length > 0 && !includes.some(p => globMatch(p, rel))) return false;
       return true;
     })
     .sort();
@@ -401,7 +401,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
   }
 
   if (ctx.dryRun) {
-    const dryResults: BootstrapDocResult[] = candidates.map((c) => ({
+    const dryResults: BootstrapDocResult[] = candidates.map(c => ({
       relPath: c.relPath,
       status: 'skipped-dry-run',
       sha256: c.sha256,
@@ -559,7 +559,7 @@ function writeBootstrapProposal(args: WriteBootstrapProposalArgs): string | null
   const { candidate, derivedFrom, proposedDir, existingIds, seenSlugs, now } = args;
   const id = ensureUniqueId(
     new Set([...existingIds, ...seenSlugs]),
-    deriveNodeId(candidate.kind, candidate.title),
+    deriveNodeId(candidate.kind, candidate.title)
   );
   seenSlugs.add(id);
   const filename = proposalFilename(candidate.kind, id);

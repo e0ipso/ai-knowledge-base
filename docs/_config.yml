@@ -1,7 +1,7 @@
-title: "@e0ipso/ai-knowledge-base"
+title: '@e0ipso/ai-knowledge-base'
 description: Build and maintain a per-repo knowledge base from AI coding sessions.
 url: https://mateuaguilo.com
-baseurl: "/ai-knowledge-base"
+baseurl: '/ai-knowledge-base'
 
 # Just the Docs theme configuration
 remote_theme: just-the-docs/just-the-docs
@@ -13,17 +13,17 @@ heading_anchors: true
 
 # Mermaid support (built into Just the Docs)
 mermaid:
-  version: "10.6.1"
+  version: '10.6.1'
 
 # Navigation
 nav_sort: case_sensitive
 
 # Repository link in header
 aux_links:
-  "View on GitHub":
-    - "https://github.com/e0ipso/ai-knowledge-base"
-  "npm":
-    - "https://www.npmjs.com/package/@e0ipso/ai-knowledge-base"
+  'View on GitHub':
+    - 'https://github.com/e0ipso/ai-knowledge-base'
+  'npm':
+    - 'https://www.npmjs.com/package/@e0ipso/ai-knowledge-base'
 
 # Make aux links open in a new tab
 aux_links_new_tab: true

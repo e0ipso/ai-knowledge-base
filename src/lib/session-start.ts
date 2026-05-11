@@ -64,13 +64,13 @@ export function buildSessionStartContext(ctx: SessionStartContext): SessionStart
   if (indexStale) {
     lines.push('');
     lines.push(
-      `> KB index is stale — run \`ai-knowledge-base index rebuild\` to refresh (live hash differs from INDEX.md \`nodes_hash\`).`,
+      `> KB index is stale — run \`ai-knowledge-base index rebuild\` to refresh (live hash differs from INDEX.md \`nodes_hash\`).`
     );
   }
   if (shouldNudge) {
     lines.push('');
     lines.push(
-      `> You have ${pending} pending session log(s). Run \`/kb-curate\` (or \`ai-knowledge-base curate\`) when ready.`,
+      `> You have ${pending} pending session log(s). Run \`/kb-curate\` (or \`ai-knowledge-base curate\`) when ready.`
     );
   }
 

@@ -70,7 +70,7 @@ const PROMPT_TEMPLATE = 'Extract.\n\n[CHUNK PLACEHOLDER — substituted at runti
 function makeCandidate(
   kind: 'practice' | 'map',
   title: string,
-  derivedFrom: string[] = [],
+  derivedFrom: string[] = []
 ): BootstrapCandidate {
   return {
     kind,
@@ -96,7 +96,7 @@ function runnerOf(output: BootstrapOutput | BootstrapOutput[]): BootstrapRunner 
 describe('sha256Hex', () => {
   it('is stable and matches a known value', () => {
     expect(sha256Hex('hello\n')).toBe(
-      '5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03',
+      '5891b5b522d5df086d0ff0b110fbd9d21bb4fc7163af34d08286a2e846f6be03'
     );
   });
 });
@@ -125,7 +125,7 @@ describe('parseGitignore', () => {
     expect(patterns).toContain('**/node_modules');
     expect(patterns).toContain('**/dist/**');
     expect(patterns).toContain('anchored.txt');
-    expect(patterns.some((p) => p.includes('keep.md'))).toBe(false);
+    expect(patterns.some(p => p.includes('keep.md'))).toBe(false);
   });
 });
 
@@ -179,7 +179,7 @@ describe('chunkDocs', () => {
     }));
     const batches = chunkDocs(docs, 2500);
     // First batch can fit 2 docs (≈2000), 3rd would overflow.
-    expect(batches.map((b) => b.length)).toEqual([2, 2]);
+    expect(batches.map(b => b.length)).toEqual([2, 2]);
   });
 
   it('lets an oversized single doc live in its own batch', () => {
@@ -189,7 +189,7 @@ describe('chunkDocs', () => {
     ];
     const batches = chunkDocs(docs, 1000);
     expect(batches).toHaveLength(2);
-    expect(batches[0]!.map((d) => d.relPath)).toEqual(['big.md']);
+    expect(batches[0]!.map(d => d.relPath)).toEqual(['big.md']);
   });
 });
 
@@ -334,7 +334,7 @@ describe('runBootstrapIncremental', () => {
     expect(result.status).toBe('completed');
     expect(runnerCalled).toBe(0);
     expect(result.proposalsWritten).toBe(0);
-    expect(result.processed.filter((p) => p.status === 'skipped-dry-run')).toHaveLength(2);
+    expect(result.processed.filter(p => p.status === 'skipped-dry-run')).toHaveLength(2);
     // Did not create proposals on disk.
     const additionsDir = join(harness.proposedDir, 'additions');
     const hasProposals = existsSync(additionsDir) && readdirSync(additionsDir).length > 0;

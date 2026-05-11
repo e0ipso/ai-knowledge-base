@@ -30,13 +30,13 @@ describe('renderSessionLog', () => {
 describe('buildSessionLogFilename', () => {
   it('uses YYYYMMDD-HHmm prefix and sanitized id', () => {
     expect(buildSessionLogFilename('2026-05-11T12:34:00.000Z', 'sess-abc/123')).toBe(
-      '20260511-1234-sessabc123.md',
+      '20260511-1234-sessabc123.md'
     );
   });
 
   it('falls back to "session" when id has no alphanumerics', () => {
     expect(buildSessionLogFilename('2026-05-11T12:34:00.000Z', '___')).toBe(
-      '20260511-1234-session.md',
+      '20260511-1234-session.md'
     );
   });
 });

@@ -54,7 +54,7 @@ function seedSession(
   sessionId: string,
   practice: Stage2Candidate[],
   map: Stage2Candidate[],
-  capturedAt = '2026-05-11T10:00:00Z',
+  capturedAt = '2026-05-11T10:00:00Z'
 ): string {
   const filename = `session-${sessionId}.md`;
   const fm = {
@@ -91,7 +91,7 @@ function makeCandidate(kind: 'practice' | 'map', title: string): Stage2Candidate
 
 function makeAction(
   action: 'add' | 'modify' | 'contradict' | 'drop',
-  overrides: Partial<CuratorAction> = {},
+  overrides: Partial<CuratorAction> = {}
 ): CuratorAction {
   const base: CuratorAction = {
     action,
@@ -147,7 +147,7 @@ describe('listPendingSessions', () => {
     };
     writeFileSync(join(harness.sessionsDir, 'session-pending.md'), matter.stringify('# x', fm));
     const sessions = listPendingSessions(harness.sessionsDir);
-    expect(sessions.map((s) => s.sessionId)).toEqual(['a']);
+    expect(sessions.map(s => s.sessionId)).toEqual(['a']);
   });
 });
 
@@ -163,7 +163,7 @@ describe('batchSessions', () => {
       mapCandidates: [],
     }));
     const batches = batchSessions(sessions, 10, 1_000_000);
-    expect(batches.map((b) => b.length)).toEqual([10, 10, 5]);
+    expect(batches.map(b => b.length)).toEqual([10, 10, 5]);
   });
 });
 
@@ -268,7 +268,7 @@ describe('runCurate', () => {
         makeCandidate('practice', 'Mod'),
         makeCandidate('practice', 'Contradict'),
       ],
-      [],
+      []
     );
     const runner: CuratorRunner = async () => [
       makeAction('add'),
@@ -292,7 +292,7 @@ describe('runCurate', () => {
     const contradictFile = join(
       harness.proposedDir,
       'contradictions',
-      readdirSync(join(harness.proposedDir, 'contradictions'))[0]!,
+      readdirSync(join(harness.proposedDir, 'contradictions'))[0]!
     );
     const fm = matter(readFileSync(contradictFile, 'utf8')).data as {
       proposal: { suggested_resolution: string | null };
@@ -378,10 +378,10 @@ describe('runCurate', () => {
       harness,
       's',
       [{ ...makeCandidate('practice', 'Hi'), supports_existing_node: 'practice-x' }],
-      [],
+      []
     );
     const sessions = listPendingSessions(harness.sessionsDir);
     const payload = buildBatchPayload(sessions, harness.kbDir, harness.nodesDir);
-    expect(payload.existing_nodes.map((n) => n.id)).toEqual(['practice-x']);
+    expect(payload.existing_nodes.map(n => n.id)).toEqual(['practice-x']);
   });
 });

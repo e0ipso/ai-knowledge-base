@@ -18,7 +18,7 @@ interface SpawnResult {
 }
 
 function runHook(cwd: string, input: object, env: NodeJS.ProcessEnv = {}): Promise<SpawnResult> {
-  return new Promise((resolveFn) => {
+  return new Promise(resolveFn => {
     const proc = execFile(
       'node',
       [hookPath],
@@ -31,7 +31,7 @@ function runHook(cwd: string, input: object, env: NodeJS.ProcessEnv = {}): Promi
               ? 1
               : 0;
         resolveFn({ stdout: stdout.toString(), stderr: stderr.toString(), exitCode: code });
-      },
+      }
     );
     proc.stdin?.write(JSON.stringify(input));
     proc.stdin?.end();
@@ -51,7 +51,7 @@ function seedSession(sandbox: string, sessionId: string): string {
       transcriptHash: 'sha256:abc',
       gitleaksStatus: 'clean',
       body: '[USER]: use bravo_pii.cache for PII\n[AGENT]: ok',
-    }),
+    })
   );
   writeFileSync(
     join(sessionsDir, '.queue.json'),
@@ -69,8 +69,8 @@ function seedSession(sandbox: string, sessionId: string): string {
         ],
       },
       null,
-      2,
-    ),
+      2
+    )
   );
   return filename;
 }
@@ -100,7 +100,7 @@ describe('kb-stage2-drain hook (spawned)', () => {
     sandbox = makeSandbox();
     const { execFile: ef } = await import('node:child_process');
     await new Promise<void>((res, rej) =>
-      ef('git', ['init', '-q'], { cwd: sandbox }, (err) => (err ? rej(err) : res())),
+      ef('git', ['init', '-q'], { cwd: sandbox }, err => (err ? rej(err) : res()))
     );
     await runCli(sandbox, ['init', '--assistants', 'claude']);
   });
@@ -115,7 +115,7 @@ describe('kb-stage2-drain hook (spawned)', () => {
     const result = await runHook(sandbox, { cwd: sandbox }, { KB_BUILDER_INTERNAL: '1' });
     expect(result.exitCode).toBe(0);
     const queue = JSON.parse(
-      readFileSync(join(sandbox, '.ai/knowledge-base/_sessions/.queue.json'), 'utf8'),
+      readFileSync(join(sandbox, '.ai/knowledge-base/_sessions/.queue.json'), 'utf8')
     );
     expect(queue.entries).toHaveLength(1);
   });
@@ -143,7 +143,7 @@ describe('kb-stage2-drain hook (spawned)', () => {
     const hookResult = await runHook(
       sandbox,
       { cwd: sandbox },
-      { PATH: `${fakeBin}:${process.env['PATH'] ?? ''}` },
+      { PATH: `${fakeBin}:${process.env['PATH'] ?? ''}` }
     );
     expect(hookResult.exitCode).toBe(0);
 
@@ -153,7 +153,7 @@ describe('kb-stage2-drain hook (spawned)', () => {
     expect(proposals.practice).toHaveLength(1);
 
     const queueAfter = JSON.parse(
-      readFileSync(join(sandbox, '.ai/knowledge-base/_sessions/.queue.json'), 'utf8'),
+      readFileSync(join(sandbox, '.ai/knowledge-base/_sessions/.queue.json'), 'utf8')
     );
     expect(queueAfter.entries).toHaveLength(0);
 

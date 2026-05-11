@@ -3,13 +3,7 @@ import { dirname, join } from 'node:path';
 import type { ZodSchema } from 'zod';
 import { runHeadlessClaude, type RunHeadlessOptions } from '../lib/headless.js';
 import { parseTranscriptJsonl } from '../lib/transcript.js';
-import type {
-  Adapter,
-  HeadlessOpts,
-  HookSpec,
-  RoleTaggedTranscript,
-  SkillSpec,
-} from './types.js';
+import type { Adapter, HeadlessOpts, HookSpec, RoleTaggedTranscript, SkillSpec } from './types.js';
 
 interface ClaudeSettings {
   hooks?: Record<
@@ -50,11 +44,11 @@ export class ClaudeAdapter implements Adapter {
     // Strip any entries we previously wrote.
     for (const [event, entries] of Object.entries(settings.hooks)) {
       const filtered = entries
-        .map((entry) => ({
+        .map(entry => ({
           ...entry,
-          hooks: entry.hooks.filter((h) => !h.command.includes('KB_BUILDER_HOOK')),
+          hooks: entry.hooks.filter(h => !h.command.includes('KB_BUILDER_HOOK')),
         }))
-        .filter((entry) => entry.hooks.length > 0);
+        .filter(entry => entry.hooks.length > 0);
       if (filtered.length === 0) delete settings.hooks[event];
       else settings.hooks[event] = filtered;
     }
@@ -99,7 +93,7 @@ export class ClaudeAdapter implements Adapter {
     promptBody: string,
     stdin: string,
     schema: ZodSchema<T>,
-    opts?: HeadlessOpts,
+    opts?: HeadlessOpts
   ): Promise<T> {
     const runOpts: RunHeadlessOptions = {};
     if (opts?.timeoutMs !== undefined) runOpts.timeoutMs = opts.timeoutMs;
@@ -113,10 +107,7 @@ export class ClaudeAdapter implements Adapter {
     // YAML frontmatter (name, description, optional allowed-tools) and a
     // markdown body. This method returns the SKILL.md contents only; the
     // caller is responsible for writing it under `<skillInstallPath()>/<name>/`.
-    const frontmatter = [
-      `name: ${spec.name}`,
-      `description: ${JSON.stringify(spec.description)}`,
-    ];
+    const frontmatter = [`name: ${spec.name}`, `description: ${JSON.stringify(spec.description)}`];
     if (spec.allowedTools !== undefined) {
       frontmatter.push(`allowed-tools: ${spec.allowedTools}`);
     }

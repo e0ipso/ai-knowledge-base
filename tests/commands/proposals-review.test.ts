@@ -26,7 +26,7 @@ function sandbox(): string {
       version: '0.0.0-test',
       installed_at: '2026-05-11T10:00:00Z',
       assistants: ['claude'],
-    }),
+    })
   );
   mkdirSync(join(root, '.ai/knowledge-base/nodes/practice'), { recursive: true });
   mkdirSync(join(root, '.ai/knowledge-base/nodes/map'), { recursive: true });
@@ -39,7 +39,7 @@ function sandbox(): string {
 function makeProposal(
   bucket: 'additions' | 'modifications' | 'contradictions',
   id: string,
-  overrides: Partial<ProposalFrontmatter['proposal']> = {},
+  overrides: Partial<ProposalFrontmatter['proposal']> = {}
 ): ProposalFrontmatter {
   return {
     schema_version: 1,
@@ -78,7 +78,7 @@ function writeProposal(
   root: string,
   bucket: 'additions' | 'modifications' | 'contradictions',
   fm: ProposalFrontmatter,
-  body = '# body\n\nProposal body.\n',
+  body = '# body\n\nProposal body.\n'
 ): void {
   const file = join(root, '.ai/knowledge-base/_proposed', bucket, `${fm.id}.md`);
   writeFileSync(file, matter.stringify(body, fm));
@@ -102,7 +102,7 @@ describe('proposals review', () => {
     const code = await runProposalsReview({ actions: [{ type: 'accept' }] });
     expect(code).toBe(0);
     expect(existsSync(join(cwd, '.ai/knowledge-base/_proposed/additions/practice-foo.md'))).toBe(
-      false,
+      false
     );
     const moved = join(cwd, '.ai/knowledge-base/nodes/practice/practice-foo.md');
     expect(existsSync(moved)).toBe(true);
@@ -115,7 +115,7 @@ describe('proposals review', () => {
     writeProposal(cwd, 'additions', makeProposal('additions', 'practice-bar'));
     await runProposalsReview({ actions: [{ type: 'reject' }] });
     expect(existsSync(join(cwd, '.ai/knowledge-base/_proposed/additions/practice-bar.md'))).toBe(
-      false,
+      false
     );
     expect(readdirSync(join(cwd, '.ai/knowledge-base/nodes/practice'))).toHaveLength(0);
   });
@@ -141,18 +141,18 @@ describe('proposals review', () => {
     };
     writeFileSync(
       join(cwd, '.ai/knowledge-base/nodes/practice/practice-old.md'),
-      matter.stringify('# Old\nBody.\n', targetFm),
+      matter.stringify('# Old\nBody.\n', targetFm)
     );
     writeProposal(
       cwd,
       'contradictions',
-      makeProposal('contradictions', 'practice-new', { target_node: 'practice-old' }),
+      makeProposal('contradictions', 'practice-new', { target_node: 'practice-old' })
     );
     await runProposalsReview({
       actions: [{ type: 'set_resolution', value: 'supersede' }, { type: 'accept' }],
     });
     const target = matter(
-      readFileSync(join(cwd, '.ai/knowledge-base/nodes/practice/practice-old.md'), 'utf8'),
+      readFileSync(join(cwd, '.ai/knowledge-base/nodes/practice/practice-old.md'), 'utf8')
     ).data as Record<string, unknown>;
     expect(target['superseded_by']).toBe('practice-new');
     expect(typeof target['valid_until']).toBe('string');
@@ -164,7 +164,7 @@ describe('proposals review', () => {
     expect(code).toBe(0);
     // file is untouched.
     expect(existsSync(join(cwd, '.ai/knowledge-base/_proposed/additions/practice-listed.md'))).toBe(
-      true,
+      true
     );
   });
 });

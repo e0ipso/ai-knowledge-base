@@ -25,7 +25,7 @@ function sandbox(): string {
       version: '0.0.0-test',
       installed_at: '2026-05-11T10:00:00Z',
       assistants: ['claude'],
-    }),
+    })
   );
   mkdirSync(join(root, '.ai/knowledge-base/nodes/practice'), { recursive: true });
   mkdirSync(join(root, '.ai/knowledge-base/nodes/map'), { recursive: true });
@@ -87,7 +87,7 @@ describe('node add', () => {
         depends_on: [],
         confidence: 'high',
         summary: 'orig',
-      }),
+      })
     );
     await runNodeAdd({
       preset: {

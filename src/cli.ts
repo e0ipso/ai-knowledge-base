@@ -27,14 +27,14 @@ async function main(): Promise<void> {
       (value: string) =>
         value
           .split(',')
-          .map((s) => s.trim())
-          .filter(Boolean),
+          .map(s => s.trim())
+          .filter(Boolean)
     )
     .option('-f, --force', 'overwrite existing ai-knowledge-base files', false)
     .option(
       '-u, --upgrade',
       'refresh hooks/slash commands/prompts to the current package version while preserving local overrides and .config.json',
-      false,
+      false
     )
     .option('--dry-run', 'with --upgrade: list planned changes without writing', false)
     .action(
@@ -54,7 +54,7 @@ async function main(): Promise<void> {
         if (opts.upgrade) initOpts.upgrade = true;
         if (opts.dryRun) initOpts.dryRun = true;
         await runInit(initOpts);
-      },
+      }
     );
 
   program
@@ -78,13 +78,11 @@ async function main(): Promise<void> {
   program
     .command('curate')
     .description('Run the curator non-interactively over pending session logs.')
-    .option('--batch-size <n>', 'sessions per curator batch (default 10)', (v) => parseInt(v, 10))
-    .option('--token-budget <n>', 'approx token budget per batch (default 50000)', (v) =>
-      parseInt(v, 10),
+    .option('--batch-size <n>', 'sessions per curator batch (default 10)', v => parseInt(v, 10))
+    .option('--token-budget <n>', 'approx token budget per batch (default 50000)', v =>
+      parseInt(v, 10)
     )
-    .option('--timeout <ms>', 'per-batch subprocess timeout (default 120000)', (v) =>
-      parseInt(v, 10),
-    )
+    .option('--timeout <ms>', 'per-batch subprocess timeout (default 120000)', v => parseInt(v, 10))
     .action(async (opts: { batchSize?: number; tokenBudget?: number; timeout?: number }) => {
       const curateOpts: { batchSize?: number; tokenBudget?: number; timeoutMs?: number } = {};
       if (typeof opts.batchSize === 'number' && !Number.isNaN(opts.batchSize))
@@ -100,28 +98,26 @@ async function main(): Promise<void> {
   program
     .command('bootstrap-incremental')
     .description(
-      'Incrementally bootstrap the KB from markdown docs under --from; processes only files whose content hash changed since last run.',
+      'Incrementally bootstrap the KB from markdown docs under --from; processes only files whose content hash changed since last run.'
     )
     .requiredOption('--from <path>', 'directory (or file) to scan for markdown documentation')
     .option(
       '--include <glob>',
       'glob to whitelist files (relative to repo root, repeatable)',
       (value: string, prev: string[] = []) => [...prev, value],
-      [] as string[],
+      [] as string[]
     )
     .option(
       '--exclude <glob>',
       'glob to skip files (relative to repo root, repeatable)',
       (value: string, prev: string[] = []) => [...prev, value],
-      [] as string[],
+      [] as string[]
     )
     .option('--dry-run', 'report what would be processed without invoking the LLM', false)
-    .option('--token-budget <n>', 'approx token budget per batch (default 10000)', (v) =>
-      parseInt(v, 10),
+    .option('--token-budget <n>', 'approx token budget per batch (default 10000)', v =>
+      parseInt(v, 10)
     )
-    .option('--timeout <ms>', 'per-batch subprocess timeout (default 120000)', (v) =>
-      parseInt(v, 10),
-    )
+    .option('--timeout <ms>', 'per-batch subprocess timeout (default 120000)', v => parseInt(v, 10))
     .action(
       async (opts: {
         from: string;
@@ -148,7 +144,7 @@ async function main(): Promise<void> {
           cmdOpts.timeoutMs = opts.timeout;
         const code = await runBootstrapIncrementalCommand(cmdOpts);
         process.exit(code);
-      },
+      }
     );
 
   const nodeGroup = program.command('node').description('Manage knowledge-base nodes.');
@@ -164,7 +160,7 @@ async function main(): Promise<void> {
   indexGroup
     .command('rebuild')
     .description('Regenerate INDEX.md and GRAPH.md from the current nodes/ tree (deterministic).')
-    .option('--budget-tokens <n>', 'INDEX.md token budget (default 2000)', (v) => parseInt(v, 10))
+    .option('--budget-tokens <n>', 'INDEX.md token budget (default 2000)', v => parseInt(v, 10))
     .action(async (opts: { budgetTokens?: number }) => {
       const rebuildOpts: { budgetTokens?: number } = {};
       if (typeof opts.budgetTokens === 'number' && !Number.isNaN(opts.budgetTokens))
@@ -177,11 +173,11 @@ async function main(): Promise<void> {
   logsGroup
     .command('prune')
     .description(
-      'Delete JSONL log files under .ai/knowledge-base/_logs/ older than a duration (default: 30d or settings.logsRetentionDays).',
+      'Delete JSONL log files under .ai/knowledge-base/_logs/ older than a duration (default: 30d or settings.logsRetentionDays).'
     )
     .option(
       '--older-than <duration>',
-      "ms-style duration (e.g. '30d', '2w', '12h'); files older than this are deleted",
+      "ms-style duration (e.g. '30d', '2w', '12h'); files older than this are deleted"
     )
     .option('--dry-run', 'list what would be deleted without touching files', false)
     .action(async (opts: { olderThan?: string; dryRun?: boolean }) => {

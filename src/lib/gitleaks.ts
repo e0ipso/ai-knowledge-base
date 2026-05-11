@@ -70,7 +70,7 @@ export async function scanAndRedact(text: string, timeoutMs = 1000): Promise<Git
           '--exit-code',
           '0',
         ],
-        { timeout: timeoutMs },
+        { timeout: timeoutMs }
       );
     } catch (err) {
       const e = err as NodeJS.ErrnoException & { signal?: string };

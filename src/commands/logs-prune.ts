@@ -16,7 +16,7 @@ export async function runLogsPrune(opts: LogsPruneOptions = {}): Promise<number>
 
   if (!existsSync(paths.installedVersionFile)) {
     log.error(
-      'ai-knowledge-base is not initialized in this repo. Run `ai-knowledge-base init --assistants claude`.',
+      'ai-knowledge-base is not initialized in this repo. Run `ai-knowledge-base init --assistants claude`.'
     );
     return 1;
   }
@@ -45,20 +45,20 @@ export async function runLogsPrune(opts: LogsPruneOptions = {}): Promise<number>
 
   const action = result.dryRun ? 'Would delete' : 'Deleted';
   log.info(
-    `${action} ${result.totalFilesDeleted} log file(s) older than ${olderThan} (${result.cutoffIso}).`,
+    `${action} ${result.totalFilesDeleted} log file(s) older than ${olderThan} (${result.cutoffIso}).`
   );
   for (const bucket of result.buckets) {
     log.plain(
       `  • ${bucket.bucket}: ${bucket.filesDeleted}/${bucket.filesScanned} eligible — ${formatBytes(
-        bucket.bytesFreed,
-      )}`,
+        bucket.bytesFreed
+      )}`
     );
   }
   log.plain('');
   log.success(
     `${result.dryRun ? 'Dry-run: ' : ''}freed ${formatBytes(result.totalBytesFreed)} across ${
       LOG_BUCKETS.length
-    } bucket(s).`,
+    } bucket(s).`
   );
   return 0;
 }

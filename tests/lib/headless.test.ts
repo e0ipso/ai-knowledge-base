@@ -8,7 +8,7 @@ import { runHeadlessClaude, type SpawnContext, type SpawnFn } from '../../src/li
 
 function makeSpawn(
   lines: string[],
-  opts: { exitCode?: number; timedOut?: boolean } = {},
+  opts: { exitCode?: number; timedOut?: boolean } = {}
 ): {
   spawn: SpawnFn;
   captured: { ctx?: SpawnContext };
@@ -16,7 +16,7 @@ function makeSpawn(
   const captured: { ctx?: SpawnContext } = {};
   const spawn: SpawnFn = (_command, ctx) => {
     captured.ctx = ctx;
-    const stdout = Readable.from(lines.map((l) => `${l}\n`));
+    const stdout = Readable.from(lines.map(l => `${l}\n`));
     const result = Promise.resolve({
       exitCode: opts.exitCode ?? 0,
       failed: opts.exitCode !== undefined && opts.exitCode !== 0,
@@ -122,7 +122,7 @@ describe('runHeadlessClaude', () => {
       JSON.stringify({ type: 'assistant', message: { content: 'hi' } }),
     ]);
     await expect(runHeadlessClaude('p', '', Schema, { spawn })).rejects.toThrow(
-      /no final result message/,
+      /no final result message/
     );
   });
 
