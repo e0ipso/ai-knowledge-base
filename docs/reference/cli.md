@@ -38,7 +38,15 @@ What `init` writes:
 ai-knowledge-base doctor [--verbose]
 ```
 
-Verify the installation. Checks Node version, the `claude` CLI, gitleaks, the installed-version marker, the pre-commit config, and the gitignore block. Exits 0 if there are no errors (warnings are allowed). Exits 1 if any check fails.
+Verify the installation. Checks:
+
+- Node ≥ 22, `claude` CLI on PATH, gitleaks on PATH.
+- `.ai/.kb-builder/installed-version` marker.
+- `.pre-commit-config.yaml` present with a gitleaks entry.
+- `.gitignore` carries the managed ai-knowledge-base block.
+- Every `derived_from` reference under `nodes/` resolves on disk (session log filename, repo-relative path, or absolute path). Dangling references are a warning, not an error — the consume path silently ignores them. `--verbose` prints the offending references after the check summary.
+
+Exits 0 if there are no errors (warnings are allowed). Exits 1 if any check fails.
 
 ## `status`
 

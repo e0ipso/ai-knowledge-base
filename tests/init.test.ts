@@ -39,6 +39,7 @@ describe('init', () => {
       '.claude/commands/kb-bootstrap.md',
       '.claude/hooks/kb-capture.mjs',
       '.claude/hooks/kb-stage2-drain.mjs',
+      '.claude/hooks/kb-session-start.mjs',
       '.ai/.kb-builder/installed-version',
       '.ai/.kb-builder/prompts/stage-2-extract.md',
       '.ai/.kb-builder/prompts/curator.md',
@@ -120,7 +121,7 @@ describe('init', () => {
     }
   });
 
-  it('registers SessionStart drain hook with async: true', async () => {
+  it('registers SessionStart drain (async) and session-start (sync) hooks', async () => {
     await runCli(sandbox, ['init', '--assistants', 'claude']);
     const settings = JSON.parse(readFileSync(join(sandbox, '.claude/settings.json'), 'utf8')) as {
       hooks?: Record<
@@ -129,11 +130,22 @@ describe('init', () => {
       >;
     };
     const entries = settings.hooks?.['SessionStart'];
-    expect(entries, 'expected SessionStart hook entry').toBeDefined();
-    expect(entries?.[0]?.hooks[0]?.command).toBe(
-      'KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-stage2-drain.mjs',
+    expect(entries, 'expected SessionStart hook entries').toBeDefined();
+    expect(entries).toHaveLength(2);
+    const commands = entries?.flatMap((e) =>
+      e.hooks.map((h) => ({ command: h.command, async: h.async })),
     );
-    expect(entries?.[0]?.hooks[0]?.async).toBe(true);
+    expect(commands).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          command: 'KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-stage2-drain.mjs',
+          async: true,
+        }),
+        expect.objectContaining({
+          command: 'KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-session-start.mjs',
+        }),
+      ]),
+    );
   });
 
   it('ships the rename — no references to the old `kb-builder` binary in copied prompts', async () => {

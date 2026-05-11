@@ -83,6 +83,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
         scriptPath: '.claude/hooks/kb-stage2-drain.mjs',
         async: true,
       },
+      { event: 'SessionStart', scriptPath: '.claude/hooks/kb-session-start.mjs' },
     ]);
   }
 
