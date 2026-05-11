@@ -2,9 +2,11 @@ import { execFile } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 import { promisify } from 'node:util';
+import matter from 'gray-matter';
 import { log } from '../lib/log.js';
-import { readAllNodes } from '../lib/nodes.js';
+import { computeNodesHash, readAllNodes } from '../lib/nodes.js';
 import { findRepoRoot, repoPaths } from '../lib/paths.js';
+import { IndexFrontmatterSchema } from '../lib/schemas.js';
 
 const exec = promisify(execFile);
 
@@ -40,6 +42,19 @@ export async function runDoctor(opts: DoctorOptions): Promise<number> {
   checks.push({
     name: '.gitignore lists ai-knowledge-base paths',
     result: checkGitignore(paths.gitignoreFile),
+  });
+
+  checks.push({
+    name: 'Claude hooks registered',
+    result: checkClaudeHooks(paths.claudeSettingsFile, paths.claudeHooksDir),
+  });
+  checks.push({
+    name: 'shipped prompts present',
+    result: checkPrompts(paths.builderDir),
+  });
+  checks.push({
+    name: 'INDEX.md is fresh',
+    result: checkIndexFreshness(join(paths.kbDir, 'INDEX.md'), paths.nodesDir),
   });
 
   const dangling = collectDanglingDerivedFrom(root, paths.nodesDir, paths.sessionsDir);
@@ -192,6 +207,101 @@ function checkPreCommit(file: string): CheckResult {
     return { ok: true, detail: 'gitleaks entry present' };
   }
   return { ok: false, level: 'warn', detail: 'present but no gitleaks entry found' };
+}
+
+const EXPECTED_HOOK_SCRIPTS: Record<string, string[]> = {
+  Stop: ['.claude/hooks/kb-capture.mjs'],
+  SessionEnd: ['.claude/hooks/kb-capture.mjs'],
+  PreCompact: ['.claude/hooks/kb-capture.mjs'],
+  SessionStart: ['.claude/hooks/kb-stage2-drain.mjs', '.claude/hooks/kb-session-start.mjs'],
+};
+
+function checkClaudeHooks(settingsFile: string, hooksDir: string): CheckResult {
+  if (!existsSync(settingsFile)) {
+    return {
+      ok: false,
+      level: 'error',
+      detail: 'no .claude/settings.json. Run `ai-knowledge-base init --assistants claude --force`.',
+    };
+  }
+  let settings: {
+    hooks?: Record<string, Array<{ hooks: Array<{ command?: string }> }>>;
+  };
+  try {
+    settings = JSON.parse(readFileSync(settingsFile, 'utf8')) as typeof settings;
+  } catch (err) {
+    return { ok: false, level: 'error', detail: `unparseable: ${(err as Error).message}` };
+  }
+  const hooks = settings.hooks ?? {};
+  const missing: string[] = [];
+  for (const [event, scripts] of Object.entries(EXPECTED_HOOK_SCRIPTS)) {
+    const commands = (hooks[event] ?? []).flatMap((e) =>
+      (e.hooks ?? []).map((h) => h.command ?? ''),
+    );
+    for (const script of scripts) {
+      if (!commands.some((c) => c.includes(script))) {
+        missing.push(`${event} → ${script}`);
+      }
+    }
+  }
+  const missingFiles: string[] = [];
+  for (const script of new Set(Object.values(EXPECTED_HOOK_SCRIPTS).flat())) {
+    const file = join(hooksDir, script.split('/').pop()!);
+    if (!existsSync(file)) missingFiles.push(script);
+  }
+  if (missing.length === 0 && missingFiles.length === 0) {
+    return { ok: true, detail: 'all expected hook entries and scripts present' };
+  }
+  const parts: string[] = [];
+  if (missing.length > 0) parts.push(`missing registrations: ${missing.join(', ')}`);
+  if (missingFiles.length > 0) parts.push(`missing scripts: ${missingFiles.join(', ')}`);
+  return {
+    ok: false,
+    level: 'error',
+    detail: parts.join('; ') + '. Re-run `ai-knowledge-base init --assistants claude --force`.',
+  };
+}
+
+function checkPrompts(builderDir: string): CheckResult {
+  const expected = ['stage-2-extract.md', 'curator.md', 'bootstrap-incremental.md'];
+  const missing = expected.filter((p) => !existsSync(join(builderDir, 'prompts', p)));
+  if (missing.length === 0) {
+    return { ok: true, detail: 'stage-2, curator, bootstrap-incremental' };
+  }
+  return {
+    ok: false,
+    level: 'warn',
+    detail: `missing local override(s): ${missing.join(', ')}. The bundled package fallback is still used; re-run \`init --force\` to restore.`,
+  };
+}
+
+function checkIndexFreshness(indexFile: string, nodesDir: string): CheckResult {
+  if (!existsSync(indexFile)) {
+    return {
+      ok: false,
+      level: 'warn',
+      detail: 'INDEX.md missing — run `ai-knowledge-base index rebuild`.',
+    };
+  }
+  try {
+    const parsed = matter(readFileSync(indexFile, 'utf8'));
+    const fm = IndexFrontmatterSchema.safeParse(parsed.data);
+    if (!fm.success) {
+      return { ok: false, level: 'warn', detail: 'INDEX.md frontmatter is invalid; rebuild it.' };
+    }
+    const recorded = fm.data.nodes_hash.startsWith('sha256:')
+      ? fm.data.nodes_hash.slice(7)
+      : fm.data.nodes_hash;
+    const live = computeNodesHash(nodesDir);
+    if (recorded === live) return { ok: true, detail: `fresh (${fm.data.node_count} node(s))` };
+    return {
+      ok: false,
+      level: 'warn',
+      detail: 'stale (nodes_hash drift) — run `ai-knowledge-base index rebuild`.',
+    };
+  } catch (err) {
+    return { ok: false, level: 'warn', detail: `unreadable: ${(err as Error).message}` };
+  }
 }
 
 function checkGitignore(file: string): CheckResult {

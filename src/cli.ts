@@ -2,6 +2,7 @@ import { Command } from 'commander';
 import { runBootstrapIncrementalCommand } from './commands/bootstrap-incremental.js';
 import { runCurateCommand } from './commands/curate.js';
 import { runDoctor } from './commands/doctor.js';
+import { runIndexRebuild } from './commands/index-rebuild.js';
 import { runInit } from './commands/init.js';
 import { runNodeAdd } from './commands/node-add.js';
 import { runProposalsReview } from './commands/proposals-review.js';
@@ -135,6 +136,19 @@ async function main(): Promise<void> {
     .description('Interactively draft a new node; writes a proposal under _proposed/additions/.')
     .action(async () => {
       const code = await runNodeAdd();
+      process.exit(code);
+    });
+
+  const indexGroup = program.command('index').description('Manage INDEX.md and GRAPH.md.');
+  indexGroup
+    .command('rebuild')
+    .description('Regenerate INDEX.md and GRAPH.md from the current nodes/ tree (deterministic).')
+    .option('--budget-tokens <n>', 'INDEX.md token budget (default 2000)', (v) => parseInt(v, 10))
+    .action(async (opts: { budgetTokens?: number }) => {
+      const rebuildOpts: { budgetTokens?: number } = {};
+      if (typeof opts.budgetTokens === 'number' && !Number.isNaN(opts.budgetTokens))
+        rebuildOpts.budgetTokens = opts.budgetTokens;
+      const code = await runIndexRebuild(rebuildOpts);
       process.exit(code);
     });
 
