@@ -52,7 +52,7 @@ src/
 │   └── claude.ts                # Claude Code adapter (only v1 implementation)
 └── templates-source/            # Files copied verbatim into consumer repos
     ├── prompts/                 # stage-2-extract.md, curator.md, bootstrap-incremental.md
-    ├── claude/                  # .claude/commands/* + settings.json scaffolding
+    ├── claude/                  # .claude/skills/* + .claude/hooks + settings.json scaffolding
     ├── knowledge-base/          # .ai/knowledge-base/* scaffolding
     └── precommit/               # pre-commit-config.yaml shipped to consumers
 ```
@@ -117,15 +117,15 @@ Every YAML frontmatter shape and every JSON state file carries `schema_version: 
 interface Adapter {
   name: string;
   hookInstallPath(): string;
-  commandInstallPath(): string;
+  skillInstallPath(): string;
   writeHookConfig(repoRoot: string, hooks: HookSpec[]): Promise<void>;
   readTranscript(hookInput: unknown): Promise<RoleTaggedTranscript>;
   runHeadless<T>(promptBody: string, stdin: string, schema: ZodSchema<T>, opts?: HeadlessOpts): Promise<T>;
-  renderSlashCommand(spec: SlashCommandSpec): string;
+  renderSkill(spec: SkillSpec): string;
 }
 ```
 
-Adding a new adapter is mostly mechanical: implement these five methods (`name`, `hookInstallPath`, `commandInstallPath`, `writeHookConfig`, `readTranscript`, `runHeadless`, `renderSlashCommand`) and add the adapter to the dispatch in `init.ts`. The hook scripts themselves are not adapter-specific — they parse hook input via the adapter's `readTranscript`, so the transcript-format details are hidden. v1 ships the Claude adapter only.
+Adding a new adapter is mostly mechanical: implement these methods (`name`, `hookInstallPath`, `skillInstallPath`, `writeHookConfig`, `readTranscript`, `runHeadless`, `renderSkill`) and add the adapter to the dispatch in `init.ts`. The hook scripts themselves are not adapter-specific — they parse hook input via the adapter's `readTranscript`, so the transcript-format details are hidden. v1 ships the Claude adapter only.
 
 ## Determinism contract
 
