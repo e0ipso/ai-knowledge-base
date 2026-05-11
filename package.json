@@ -33,9 +33,9 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "build": "tsup",
+    "build": "npm run build:cli && npm run build:templates",
+    "build:cli": "tsup",
     "build:templates": "node ./scripts/build-templates.mjs",
-    "prebuild": "npm run build:templates",
     "dev": "tsup --watch",
     "lint": "eslint .",
     "format": "prettier --write .",

@@ -28,7 +28,7 @@ ai-knowledge-base doctor
 This will:
 
 1. Create `.ai/knowledge-base/` with the directory skeleton (`nodes/`, `_proposed/`, `_sessions/`, `_logs/`, plus `INDEX.md`, `GRAPH.md`, and a `README.md` that explains the layout to teammates).
-2. Create `.claude/` with the slash command for bootstrap. Hooks are registered in later phases as their scripts ship.
+2. Create `.claude/` with the bootstrap slash command and the compiled stage-1 capture hook (`kb-capture.mjs`). The hook is registered against `Stop`, `SessionEnd`, and `PreCompact` in `.claude/settings.json`. See [Reference > Hook events](../reference/hook-events.md) for what each one does.
 3. Create or extend `.gitignore` to keep `_sessions/` and `_logs/` out of git by default.
 4. Drop a `.pre-commit-config.yaml` with a [gitleaks](https://github.com/gitleaks/gitleaks) hook (or merge entry if you already have one).
 5. Write `.ai/.kb-builder/installed-version` recording which package version produced the templates.
