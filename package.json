@@ -1,0 +1,68 @@
+{
+  "name": "@e0ipso/ai-knowledge-base",
+  "version": "0.0.0-development",
+  "description": "Builds and maintains a per-repo knowledge base from AI coding sessions, for use with Claude Code.",
+  "license": "MIT",
+  "author": "e0ipso",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/e0ipso/ai-knowledge-base.git"
+  },
+  "homepage": "https://github.com/e0ipso/ai-knowledge-base#readme",
+  "bugs": {
+    "url": "https://github.com/e0ipso/ai-knowledge-base/issues"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "knowledge-base",
+    "ai",
+    "agents"
+  ],
+  "type": "module",
+  "bin": {
+    "ai-knowledge-base": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "tsup",
+    "build:templates": "node ./scripts/build-templates.mjs",
+    "prebuild": "npm run build:templates",
+    "dev": "tsup --watch",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "pretest": "npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.2.1",
+    "commander": "^13.0.0",
+    "execa": "^9.5.2",
+    "gray-matter": "^4.0.3",
+    "split2": "^4.2.0",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/split2": "^4.2.3",
+    "@typescript-eslint/eslint-plugin": "^8.20.0",
+    "@typescript-eslint/parser": "^8.20.0",
+    "eslint": "^9.18.0",
+    "prettier": "^3.4.2",
+    "tsup": "^8.3.5",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

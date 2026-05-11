@@ -1,0 +1,93 @@
+# Contributing to @e0ipso/ai-knowledge-base
+
+Thanks for considering a contribution. This document is for maintainers and contributors to the npm package itself, not for end users of the tool. End-user docs live on the [docs site](docs/).
+
+## Dev environment
+
+Prerequisites:
+
+- Node 22+
+- npm 10+ (or pnpm 9+)
+- Claude Code CLI on PATH for integration smoke tests (`claude --version`)
+- [`gitleaks`](https://github.com/gitleaks/gitleaks) and [`pre-commit`](https://pre-commit.com) on PATH for the secret-scan tests
+
+Set up:
+
+```sh
+git clone git@github.com:e0ipso/ai-knowledge-base.git
+cd ai-knowledge-base
+npm install
+npm run build
+```
+
+`npm install` runs `prepare`, which builds templates and the CLI. After build, `node dist/cli.js --help` should work from the repo root.
+
+## Project layout
+
+```
+src/
+  cli.ts                          # commander entry, registers subcommands
+  commands/                       # one file per subcommand (init, doctor, status, ...)
+  adapters/
+    types.ts                      # assistant-agnostic adapter contract
+    claude.ts                     # Claude Code adapter implementation
+  lib/                            # shared utilities (paths, log, version, ...)
+  templates-source/               # source for the shipped templates/ directory
+scripts/
+  build-templates.mjs             # copies templates-source/ → templates/
+templates/                        # built; bundled into the npm package
+tests/
+  fixtures/                       # transcripts and bootstrap docs used by integration tests
+docs/                             # Jekyll/Just-the-Docs site, served via GitHub Pages
+PRD.md                            # product requirements (authoritative)
+IMPLEMENTATION.md                 # technical design (authoritative)
+```
+
+## Running tests
+
+```sh
+npm test               # unit + integration with mocked `claude` subprocess
+npm run typecheck      # tsc --noEmit
+npm run lint           # eslint
+npm run format:check   # prettier
+```
+
+The optional real-`claude` end-to-end suite is gated behind an env var (see `tests/e2e/`); it spawns the actual `claude -p` CLI against fixture transcripts. Run it on demand when changing prompt templates.
+
+## Schema-version bump policy
+
+Every frontmatter and JSON state file in the system carries `schema_version: 1`. The policy is **moderate**: tools that read v1 must tolerate unknown additive fields without bumping, but renames/removals/semantic-shifts get an explicit migration boundary.
+
+Concretely:
+
+- **Bump `schema_version: 1 → 2`** when: removing a field; renaming a field; changing the semantics of a field (e.g. changing `kind` from string to enum-with-different-values); making a previously-optional field required.
+- **Do not bump** when: adding an optional field; adding a new enum case; relaxing a constraint.
+
+When you bump, ship a migrator in the same PR.
+
+## Prompt versioning
+
+Each `src/templates-source/prompts/*.md` and `src/templates-source/claude/commands/*.md` carries a top-of-file `Version: N` comment. Bump the version when you change behavior. Prompt version is independent of the npm package version, but a prompt change must be noted in the changelog so users know to inspect the diff.
+
+## Release process
+
+Releases are automated via [semantic-release](https://semantic-release.gitbook.io/). Conventional commit messages (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`) determine the next version and changelog entry. Merging to `main` triggers the release pipeline; no manual tagging or `npm publish` is needed.
+
+## Docs site preview
+
+The docs site is Jekyll under `docs/`. To preview locally:
+
+```sh
+cd docs
+bundle install
+bundle exec jekyll serve
+```
+
+CI deploys on push to `main`.
+
+## Submitting a PR
+
+- One logical change per PR. Branch from `main`.
+- Include doc updates for the phase you're touching (see IMPLEMENTATION.md §15.5 for the per-phase doc distribution).
+- Run `npm test`, `npm run typecheck`, and `npm run lint` before pushing.
+- Conventional commit format on commit messages and the PR title.

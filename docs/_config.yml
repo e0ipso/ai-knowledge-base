@@ -1,0 +1,29 @@
+title: "@e0ipso/ai-knowledge-base"
+description: "Build and maintain a per-repo knowledge base from AI coding sessions."
+remote_theme: just-the-docs/just-the-docs
+url: https://e0ipso.github.io
+baseurl: /ai-knowledge-base
+
+color_scheme: light
+
+search_enabled: true
+heading_anchors: true
+
+aux_links:
+  GitHub:
+    - "https://github.com/e0ipso/ai-knowledge-base"
+  npm:
+    - "https://www.npmjs.com/package/@e0ipso/ai-knowledge-base"
+
+# Top-level navigation
+nav_external_links: []
+
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor

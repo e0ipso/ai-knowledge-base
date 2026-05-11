@@ -1,0 +1,12 @@
+dist
+node_modules
+templates
+tests/fixtures
+docs/_site
+
+# Authored prose — leave wrapping intact.
+PRD.md
+IMPLEMENTATION.md
+docs
+src/templates-source/prompts
+src/templates-source/claude/commands

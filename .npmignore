@@ -1,0 +1,15 @@
+src
+tests
+scripts
+.github
+docs
+PRD.md
+IMPLEMENTATION.md
+CONTRIBUTING.md
+tsup.config.ts
+tsconfig.json
+vitest.config.ts
+eslint.config.mjs
+.prettierrc.json
+.prettierignore
+.editorconfig

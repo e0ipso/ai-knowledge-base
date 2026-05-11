@@ -1,0 +1,11 @@
+node_modules/
+dist/
+templates/
+*.log
+.DS_Store
+.env
+.env.local
+coverage/
+docs/_site/
+docs/.jekyll-cache/
+docs/Gemfile.lock
