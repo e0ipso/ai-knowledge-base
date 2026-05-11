@@ -202,7 +202,7 @@ These are constraints, not omissions. Each one trades expressiveness for "the co
 |---|---|
 | Change extraction behavior | `templates-source/prompts/stage-2-extract.md` (project-tunable copy at `.ai/.kb-builder/prompts/stage-2-extract.md`). |
 | Change curator behavior | `templates-source/prompts/curator.md`. Tighten the dedup or contradiction logic in `src/lib/curate.ts`. |
-| Change bootstrap behavior | `templates-source/prompts/bootstrap-incremental.md` for the CLI prompt; `templates-source/claude/commands/kb-bootstrap.md` for the in-session agent. |
+| Change bootstrap behavior | `templates-source/prompts/bootstrap-incremental.md` for the CLI prompt; `templates-source/claude/skills/kb-bootstrap/SKILL.md` for the in-session agent. |
 | Add a new CLI subcommand | `src/commands/<name>.ts` + wire it in `src/cli.ts`. Add doc to `docs/reference/cli.md`. |
 | Add a new hook | `src/hooks/<name>.ts` + entry in `tsup.config.ts` + register in `src/commands/init.ts`. Doc in `docs/reference/hook-events.md`. |
 | Add a new state file | Schema in `src/lib/schemas.ts` (with `schema_version: 1`); read/write helpers next to the existing patterns. Add to `.gitignore` block in `src/commands/init.ts`. |
