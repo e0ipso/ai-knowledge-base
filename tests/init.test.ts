@@ -37,6 +37,7 @@ describe('init', () => {
       '.ai/knowledge-base/_logs/bootstrap-incremental/.gitkeep',
       '.claude/settings.json',
       '.claude/commands/kb-bootstrap.md',
+      '.claude/hooks/kb-capture.mjs',
       '.ai/.kb-builder/installed-version',
       '.ai/.kb-builder/prompts/stage-2-extract.md',
       '.ai/.kb-builder/prompts/curator.md',
@@ -101,6 +102,21 @@ describe('init', () => {
     await runCli(sandbox, ['init', '--assistants', 'claude']);
     const after = readFileSync(join(sandbox, '.pre-commit-config.yaml'), 'utf8');
     expect(after).toBe(existing);
+  });
+
+  it('registers Stop, SessionEnd, and PreCompact capture hooks in .claude/settings.json', async () => {
+    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    const settings = JSON.parse(readFileSync(join(sandbox, '.claude/settings.json'), 'utf8')) as {
+      hooks?: Record<string, Array<{ hooks: Array<{ type: string; command: string }> }>>;
+    };
+    expect(settings.hooks).toBeDefined();
+    for (const event of ['Stop', 'SessionEnd', 'PreCompact']) {
+      const entries = settings.hooks?.[event];
+      expect(entries, `expected hook entry for ${event}`).toBeDefined();
+      expect(entries?.[0]?.hooks[0]?.command).toBe(
+        `KB_BUILDER_HOOK=${event} node .claude/hooks/kb-capture.mjs`,
+      );
+    }
   });
 
   it('ships the rename — no references to the old `kb-builder` binary in copied prompts', async () => {

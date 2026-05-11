@@ -67,15 +67,18 @@ export async function runInit(opts: InitOptions): Promise<void> {
   // 1. Knowledge-base skeleton.
   copyTree(join(templatesDir, 'knowledge-base'), paths.kbDir);
 
-  // 2. Claude-specific files (commands + settings).
+  // 2. Claude-specific files (commands + settings + hooks).
   if (opts.assistants.includes('claude')) {
     const claudeAdapter = new ClaudeAdapter();
     const claudeTemplateDir = join(templatesDir, 'claude');
     if (existsSync(claudeTemplateDir)) {
       copyTree(claudeTemplateDir, paths.claudeDir);
     }
-    // In M0 there are no hooks to register; later phases extend this list.
-    await claudeAdapter.writeHookConfig(root, []);
+    await claudeAdapter.writeHookConfig(root, [
+      { event: 'Stop', scriptPath: '.claude/hooks/kb-capture.mjs' },
+      { event: 'SessionEnd', scriptPath: '.claude/hooks/kb-capture.mjs' },
+      { event: 'PreCompact', scriptPath: '.claude/hooks/kb-capture.mjs' },
+    ]);
   }
 
   // 3. Prompts under .ai/.kb-builder/prompts (for local override).

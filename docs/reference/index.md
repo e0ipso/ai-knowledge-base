@@ -8,7 +8,7 @@ permalink: /reference/
 # Reference
 
 - [CLI commands](cli.md) — every `ai-knowledge-base` subcommand.
+- [Hook events](hook-events.md) — the three capture triggers and the recursion guard.
 - Slash commands — _coming in M3._
 - Frontmatter schemas — _coming in M4._
-- Hook events — _coming in M1._
 - Failure modes — _coming progressively._

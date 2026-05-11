@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { parseTranscriptJsonl } from '../lib/transcript.js';
 import type {
   Adapter,
   HeadlessOpts,
@@ -73,8 +74,23 @@ export class ClaudeAdapter implements Adapter {
     writeFileSync(settingsFile, `${JSON.stringify(settings, null, 2)}\n`);
   }
 
-  async readTranscript(_hookInput: unknown): Promise<RoleTaggedTranscript> {
-    throw new Error('readTranscript() is implemented in M1');
+  /**
+   * Reads a Claude Code hook input and returns a role-tagged transcript.
+   * The hook input is expected to carry a `transcript_path` pointing at
+   * the JSONL session file on disk; we parse only user/assistant text
+   * messages, dropping tool calls and system events.
+   */
+  async readTranscript(hookInput: unknown): Promise<RoleTaggedTranscript> {
+    const input = hookInput as { transcript_path?: unknown } | null;
+    const path = input && typeof input.transcript_path === 'string' ? input.transcript_path : null;
+    if (!path) {
+      throw new Error('hook input is missing transcript_path');
+    }
+    if (!existsSync(path)) {
+      throw new Error(`transcript file not found: ${path}`);
+    }
+    const text = readFileSync(path, 'utf8');
+    return parseTranscriptJsonl(text);
   }
 
   async runHeadless<T>(
