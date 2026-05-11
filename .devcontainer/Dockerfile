@@ -41,10 +41,6 @@ RUN SNIPPET="export PROMPT_COMMAND='history -a' && export HISTFILE=/commandhisto
   && touch /commandhistory/.bash_history \
   && chown -R $USERNAME /commandhistory
 
-# Create worktrees directory for git worktrees
-RUN mkdir -p /worktrees \
-  && chown -R $USERNAME /worktrees
-
 # Pre-create directories that will be needed for bind mounts
 RUN mkdir -p /home/$USERNAME/.claude/debug && chown -R $USERNAME:$USERNAME /home/$USERNAME/.claude
 
