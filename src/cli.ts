@@ -4,6 +4,7 @@ import { runCurateCommand } from './commands/curate.js';
 import { runDoctor } from './commands/doctor.js';
 import { runIndexRebuild } from './commands/index-rebuild.js';
 import { runInit } from './commands/init.js';
+import { runLogsPrune } from './commands/logs-prune.js';
 import { runNodeAdd } from './commands/node-add.js';
 import { runProposalsReview } from './commands/proposals-review.js';
 import { runStatus } from './commands/status.js';
@@ -169,6 +170,25 @@ async function main(): Promise<void> {
       if (typeof opts.budgetTokens === 'number' && !Number.isNaN(opts.budgetTokens))
         rebuildOpts.budgetTokens = opts.budgetTokens;
       const code = await runIndexRebuild(rebuildOpts);
+      process.exit(code);
+    });
+
+  const logsGroup = program.command('logs').description('Manage stream-json log files.');
+  logsGroup
+    .command('prune')
+    .description(
+      'Delete JSONL log files under .ai/knowledge-base/_logs/ older than a duration (default: 30d or settings.logsRetentionDays).',
+    )
+    .option(
+      '--older-than <duration>',
+      "ms-style duration (e.g. '30d', '2w', '12h'); files older than this are deleted",
+    )
+    .option('--dry-run', 'list what would be deleted without touching files', false)
+    .action(async (opts: { olderThan?: string; dryRun?: boolean }) => {
+      const pruneOpts: { olderThan?: string; dryRun?: boolean } = {};
+      if (typeof opts.olderThan === 'string') pruneOpts.olderThan = opts.olderThan;
+      if (opts.dryRun) pruneOpts.dryRun = true;
+      const code = await runLogsPrune(pruneOpts);
       process.exit(code);
     });
 
