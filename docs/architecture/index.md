@@ -7,11 +7,158 @@ permalink: /architecture/
 
 # Architecture
 
-_Completed in M5._
+Aimed at contributors to `@e0ipso/ai-knowledge-base` and at future adapter authors who want to add support for AI assistants beyond Claude Code. For day-to-day usage, read [Core Concepts > How it works](../core-concepts/how-it-works.md) instead.
 
-This page is aimed at contributors to `@e0ipso/ai-knowledge-base` and at future adapter authors who want to add support for AI assistants beyond Claude Code.
+## Layout
 
-Until M5, the authoritative architecture documents are:
+```
+src/
+├── cli.ts                       # Commander entry point — wires CLI subcommands
+├── commands/                    # User-facing CLI command implementations
+│   ├── init.ts
+│   ├── doctor.ts
+│   ├── status.ts
+│   ├── curate.ts
+│   ├── node-add.ts
+│   ├── proposals-review.ts
+│   ├── bootstrap-incremental.ts
+│   └── index-rebuild.ts
+├── hooks/                       # Compiled-to-.mjs hook scripts
+│   ├── kb-capture.ts            # Stop / SessionEnd / PreCompact (stage-1)
+│   ├── kb-stage2-drain.ts       # SessionStart, async (stage-2)
+│   └── kb-session-start.ts      # SessionStart, sync (consume injection)
+├── lib/                         # Pure-ish reusable building blocks
+│   ├── schemas.ts               # All Zod schemas (`schema_version: 1` everywhere)
+│   ├── paths.ts                 # repoPaths, packageRoot, findRepoRoot
+│   ├── log.ts                   # Console logger (NO_COLOR-aware)
+│   ├── transcript.ts            # Parse Claude Code JSONL into role-tagged strings
+│   ├── gitleaks.ts              # Run gitleaks; redact findings
+│   ├── dedup-cache.ts           # SHA-256 dedup window for stage-1
+│   ├── queue.ts                 # Atomic `.queue.json` writes
+│   ├── session-log.ts           # Render/write session log markdown
+│   ├── capture.ts               # Top-level stage-1 orchestration
+│   ├── state.ts                 # `state.json` + named locks (PID + TTL)
+│   ├── headless.ts              # `claude -p` runner with stream-json + Zod validation
+│   ├── stage2-drain.ts          # Stage-2 queue drain
+│   ├── curate.ts                # Curator batching + proposal write
+│   ├── nodes.ts                 # Node walks + nodes_hash + slugify + proposal writes
+│   ├── index-gen.ts             # INDEX.md + GRAPH.md deterministic generation
+│   ├── ulid.ts                  # ULID for run-ids
+│   ├── bootstrap.ts             # Bootstrap-incremental pipeline
+│   ├── session-start.ts         # Consume-hook payload builder
+│   └── version.ts               # package.json version reader
+├── adapters/
+│   ├── types.ts                 # Adapter interface (v1 placeholder for multi-assistant)
+│   └── claude.ts                # Claude Code adapter (only v1 implementation)
+└── templates-source/            # Files copied verbatim into consumer repos
+    ├── prompts/                 # stage-2-extract.md, curator.md, bootstrap-incremental.md
+    ├── claude/                  # .claude/commands/* + settings.json scaffolding
+    ├── knowledge-base/          # .ai/knowledge-base/* scaffolding
+    └── precommit/               # pre-commit-config.yaml shipped to consumers
+```
 
-- [PRD.md](https://github.com/e0ipso/ai-knowledge-base/blob/main/PRD.md) — product requirements.
-- [IMPLEMENTATION.md](https://github.com/e0ipso/ai-knowledge-base/blob/main/IMPLEMENTATION.md) — technical design, decisions, and rationale. See in particular §1 (architecture overview), §10 (adapter interface), and §11 (key decisions and rationale).
+`tsup` builds two outputs:
+
+- `dist/cli.js` — the CLI binary (single ESM file with shebang).
+- `dist/hooks/*.mjs` — one bundle per hook script. `.mjs` extension means consumers don't need a `package.json` in the hooks dir.
+
+The `prepare` lifecycle (`npm install`, `npm publish`) runs `scripts/build-templates.mjs` which copies `templates-source/` into `templates/` and drops the compiled hooks into `templates/claude/hooks/`. The npm package ships `dist/` and `templates/` (see the `files` field in `package.json`).
+
+## Three pipelines, four hooks, two CLI shapes
+
+The system is three deliberately separate pipelines (capture, curate, consume) with four Claude Code hooks wiring them in. Each pipeline can be disabled by removing its hook entry — `init --force` re-registers them.
+
+```
+Stop / SessionEnd / PreCompact  →  kb-capture       (sync, ≤1 s)
+SessionStart                    →  kb-stage2-drain  (async)
+                                →  kb-session-start (sync, ≤1 s)
+```
+
+The two CLI shapes:
+
+- **Deterministic CLIs** (`init`, `doctor`, `status`, `node add`, `index rebuild`, `proposals review`) — no LLM, no subprocess. Pure code over filesystem state.
+- **LLM-invoking CLIs** (`curate`, `bootstrap-incremental`) — spawn `claude -p` via `runHeadlessClaude`, parse stream-JSON output, validate against Zod. All subprocesses get `KB_BUILDER_INTERNAL=1` so the spawned Claude doesn't fire our hooks recursively.
+
+## State files
+
+| File | Owner | Purpose |
+|---|---|---|
+| `.ai/knowledge-base/_sessions/<log>.md` | capture + stage-2 + curator | Per-session checkpoint; frontmatter tracks stage_2 status, gitleaks status, curator processed marker. |
+| `.ai/knowledge-base/_sessions/.queue.json` | capture + drain | Atomic stage-1 → stage-2 handoff queue. |
+| `.ai/knowledge-base/_sessions/.dedup-cache.json` | capture | 5-minute SHA-256 window so back-to-back Stop/SessionEnd/PreCompact don't double-capture. |
+| `.ai/knowledge-base/_logs/{stage-2,curator,bootstrap-incremental}/*.jsonl` | stage-2 + curator + bootstrap | Stream-JSON traces of every `claude -p` invocation. Gitignored. |
+| `.ai/knowledge-base/_proposed/{additions,modifications,contradictions}/` | curator + node-add + bootstrap | Pending proposals awaiting review. |
+| `.ai/knowledge-base/nodes/{practice,map}/` | proposals review | Canonical, accepted knowledge. The only thing the assistant sees via INDEX. |
+| `.ai/knowledge-base/INDEX.md`, `GRAPH.md` | curator + index-rebuild | Deterministic outputs derived from `nodes/`. INDEX is token-budgeted; GRAPH is the full edge listing. |
+| `.ai/.kb-builder/installed-version` | init | Marker recording package version + selected assistants. Committed. |
+| `.ai/.kb-builder/state.json` | drain + curator + bootstrap + consume | Single shared state file. `lock` (one at a time) + `last_nudged_at`. Gitignored. |
+| `.ai/.kb-builder/bootstrap-state.json` | bootstrap | SHA-256 of every doc the bootstrap pipelines have processed. Gitignored. |
+| `.ai/.kb-builder/prompts/*` | init | Local overrides for the three shipped prompts. Committed. |
+
+## Locking
+
+`state.json` holds one lock at a time. Each pipeline takes its own named lock (`name: <pipeline>`, `pid`, `acquired_at`, `ttl_ms`). 30-minute TTL; an older lock is treated as stale and reclaimed. The pipelines that need the lock:
+
+- `stage2-drain` — prevents two concurrent SessionStart drains from racing on the queue.
+- `curator` — prevents two concurrent curate runs from writing duplicate proposals.
+- `bootstrap-incremental` — prevents two concurrent bootstraps from writing duplicate proposals.
+
+The consume hook does **not** lock — it only reads INDEX and writes `last_nudged_at`, both of which are fine to clobber.
+
+## Schema versioning
+
+Every YAML frontmatter shape and every JSON state file carries `schema_version: 1`. v1 → v2 will ship a migration script under `src/lib/migrations/`. The runtime fails closed on shapes it can't validate (returns "no data" rather than guessing), so a stale-schema file in the wild can be detected by `doctor` rather than silently corrupted.
+
+## Adapter interface
+
+`src/adapters/types.ts` defines an `Adapter` interface intended to make adding non-Claude assistants tractable in v2:
+
+```ts
+interface Adapter {
+  name: string;
+  hookInstallPath(): string;
+  commandInstallPath(): string;
+  writeHookConfig(repoRoot: string, hooks: HookSpec[]): Promise<void>;
+  readTranscript(hookInput: unknown): Promise<RoleTaggedTranscript>;
+  runHeadless<T>(promptBody: string, stdin: string, schema: ZodSchema<T>, opts?: HeadlessOpts): Promise<T>;
+  renderSlashCommand(spec: SlashCommandSpec): string;
+}
+```
+
+Adding a new adapter is mostly mechanical: implement these five methods (`name`, `hookInstallPath`, `commandInstallPath`, `writeHookConfig`, `readTranscript`, `runHeadless`, `renderSlashCommand`) and add the adapter to the dispatch in `init.ts`. The hook scripts themselves are not adapter-specific — they parse hook input via the adapter's `readTranscript`, so the transcript-format details are hidden. v1 ships the Claude adapter only.
+
+## Determinism contract
+
+The non-LLM parts of the system are deterministic:
+
+- `computeNodesHash` is a content-addressed walk; same `nodes/` → same hash, regardless of mtime or filesystem.
+- `generateIndex` and `generateGraph` are pure functions of `nodes/` plus a `now` injection (used for `generated_at`). Two calls at the same instant produce byte-identical output.
+- `slugify`, `deriveNodeId`, and `ensureUniqueId` are pure.
+- ULID generation is the only randomness path on the hot path; it's confined to `run_id` minting (curator + bootstrap) where uniqueness, not reproducibility, is the goal.
+
+Tests rely on this: see `tests/lib/index-gen.test.ts` for golden-file comparisons.
+
+## What's intentionally not here
+
+Per [IMPLEMENTATION §12](https://github.com/e0ipso/ai-knowledge-base/blob/main/IMPLEMENTATION.md#12-implementation-phases):
+
+- **No `.config.json`.** Configuration values live in code as named constants. v1.5 will add a config file.
+- **No `init --upgrade`.** Re-run with `--force`; the gitignore-block and `.claude/settings.json` merging are idempotent.
+- **No `logs prune`.** v1.5.
+- **No multi-assistant adapter dispatch.** v2.
+- **No `bootstrap-incremental` overlap detection.** v2 (always writes additions; reviewer rejects duplicates).
+- **No managed-MCP injection.** The INDEX-as-additionalContext pattern is the entire injection surface.
+
+These are constraints, not omissions. Each one trades expressiveness for "the code is easy to read end-to-end in an afternoon."
+
+## Where to extend
+
+| You want to… | Look at… |
+|---|---|
+| Change extraction behavior | `templates-source/prompts/stage-2-extract.md` (project-tunable copy at `.ai/.kb-builder/prompts/stage-2-extract.md`). |
+| Change curator behavior | `templates-source/prompts/curator.md`. Tighten the dedup or contradiction logic in `src/lib/curate.ts`. |
+| Change bootstrap behavior | `templates-source/prompts/bootstrap-incremental.md` for the CLI prompt; `templates-source/claude/commands/kb-bootstrap.md` for the in-session agent. |
+| Add a new CLI subcommand | `src/commands/<name>.ts` + wire it in `src/cli.ts`. Add doc to `docs/reference/cli.md`. |
+| Add a new hook | `src/hooks/<name>.ts` + entry in `tsup.config.ts` + register in `src/commands/init.ts`. Doc in `docs/reference/hook-events.md`. |
+| Add a new state file | Schema in `src/lib/schemas.ts` (with `schema_version: 1`); read/write helpers next to the existing patterns. Add to `.gitignore` block in `src/commands/init.ts`. |
+| Add a new adapter | Implement `src/adapters/types.ts`'s interface. Update `src/commands/init.ts` to dispatch on the assistant list. |

@@ -136,10 +136,18 @@ Flags:
 
 See [Bootstrap > Incremental bootstrap](../bootstrap/incremental-bootstrap.md) for usage recipes and [Reference > `bootstrap-state.json` schema](bootstrap-state.md) for the state file shape.
 
-## Commands available in later phases
+## `index rebuild`
 
-| Command | Phase |
-|---|---|
-| `index rebuild` | M4 / M5 |
+```sh
+ai-knowledge-base index rebuild [--budget-tokens <n>]
+```
 
-When those phases ship, this page will document each subcommand's full flag set and exit codes.
+Regenerate `INDEX.md` and `GRAPH.md` from the current `nodes/` tree. Deterministic, no LLM. The curator and `node add` already regenerate INDEX/GRAPH at the end of every run, so use this command after you hand-edit a node file (or rebase someone else's changes into `nodes/`) and want to refresh the index without running a curator pass.
+
+`doctor`'s freshness check uses the frontmatter `nodes_hash` to detect drift between the recorded index and the live `nodes/` tree. Run `index rebuild` to clear that warning.
+
+Flags:
+
+- `--budget-tokens <n>` — INDEX.md token budget (default `2000`, ~4 chars per token). Per-kind sections trim oldest entries until the rendered body fits; trimmed counts are reported in a "_N additional nodes hidden by token budget — see GRAPH.md_" footer.
+
+`GRAPH.md` is always the full, unfiltered node listing — it doesn't honor the token budget. Treat INDEX as the at-a-glance summary the assistant gets injected, and GRAPH as the source of truth when the assistant needs full edges (`relates_to`, `depends_on`, `supersedes` chains).
