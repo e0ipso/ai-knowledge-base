@@ -1,3 +1,40 @@
+## [2.0.0](https://github.com/e0ipso/ai-knowledge-base/compare/v1.2.0...v2.0.0) (2026-05-12)
+
+### ⚠ BREAKING CHANGES
+
+* every on-disk shape that previously carried the
+stage_2_* keys bumps schema_version from 1 to 2 as a clean break.
+No migrator ships. Users should delete _sessions/ and the old
+_logs/stage-2/ on upgrade.
+
+Renamed identifiers and surfaces:
+
+* Session-log frontmatter: stage_2_status, stage_2_completed_at,
+  stage_2_error, stage_2_log become proposal_status,
+  proposal_completed_at, proposal_error, proposal_log.
+* Settings keys: stage2Timeout, stage2Model become proposalTimeout,
+  proposalModel.
+* Section headings in session logs: Stage 1 (redacted transcript
+  slice) and Stage 2 (structured summary) become Transcript and
+  Proposal.
+* Bundled hook filename: kb-stage2-drain.mjs becomes
+  kb-proposal-drain.mjs.
+* Prompt template: prompts/stage-2-extract.md becomes
+  prompts/proposal-extract.md (Version bumped on all three prompts).
+* Log subdirectory: _logs/stage-2/ becomes _logs/proposal/.
+* state.json lock name: stage2-drain becomes proposal-drain.
+* TS types and Zod schemas: Stage2Status, Stage2Candidate,
+  Stage2Output, Stage2Runner become ProposalStatus,
+  ProposalCandidate, ProposalOutput, ProposalRunner.
+
+KB nodes, INDEX.md, GRAPH.md, PRD.md, IMPLEMENTATION.md, README.md,
+docs/, and the kb-curate skill are rewritten under the new
+vocabulary. CHANGELOG.md records the breaking entry.
+
+### Code Refactoring
+
+* rename stages to transcript/proposal ([3d8a797](https://github.com/e0ipso/ai-knowledge-base/commit/3d8a79735ea74624fb26183239fd80941098647a))
+
 ## [1.2.0](https://github.com/e0ipso/ai-knowledge-base/compare/v1.1.0...v1.2.0) (2026-05-12)
 
 ### Features
