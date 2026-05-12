@@ -1,11 +1,12 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:ddcdfa366b97c0de528654822a49de0de01595d0d27cf94c4c1cb3380e868b80'
-node_count: 28
+generated_at: '2026-05-12T15:50:15.081Z'
+nodes_hash: 'sha256:b624a095cf7888f4e8577e43f4b8821eb94974ad534624a4092438d2cc44325f'
+node_count: 42
 ---
 # KB Graph
 
-Total nodes: 28
+Total nodes: 42
 
 ## map-adapter-interface
 
@@ -34,6 +35,15 @@ Total nodes: 28
 - **relates_to:** practice-bootstrap-skip-changelog-and-implementation
 - **derived_from:** 20260512-0959-f963bf78b135.md
 
+## map-build-templates-script
+
+- **kind:** map
+- **status:** valid
+- **title:** scripts/build-templates.mjs: regenerates templates/ from sources
+- **tags:** build, templates, script
+- **relates_to:** map-templates-npm-artifact, practice-do-not-commit-bundled-output
+- **derived_from:** 20260512-1439-722a03fa9cbe.md
+
 ## map-claude-hooks
 
 - **kind:** map
@@ -42,6 +52,24 @@ Total nodes: 28
 - **tags:** hooks, claude-code, capture, extract, consume
 - **relates_to:** practice-hooks-meet-1s-deadline, practice-recursion-guard-env-var
 - **derived_from:** docs/internals/hooks.md, docs/internals/architecture.md
+
+## map-dedup-cache
+
+- **kind:** map
+- **status:** valid
+- **title:** dedup-cache: sha256-of-slice cache with 5-minute TTL
+- **tags:** dedup, kb-pipeline, cache
+- **relates_to:** map-kb-capture-hook, practice-one-session-log-per-session-id
+- **derived_from:** 20260512-1438-e5b4618a5295.md
+
+## map-dogfood-claude-hooks-output
+
+- **kind:** map
+- **status:** valid
+- **title:** .claude/hooks/*.mjs: this repo's own init output (dogfooding)
+- **tags:** dogfooding, hooks, claude
+- **relates_to:** map-templates-npm-artifact, map-claude-hooks, practice-do-not-commit-bundled-output
+- **derived_from:** 20260512-1439-722a03fa9cbe.md
 
 ## map-index-and-graph-files
 
@@ -52,6 +80,15 @@ Total nodes: 28
 - **relates_to:** map-nodes-directory, practice-determinism-contract
 - **derived_from:** docs/how-it-works.md, docs/internals/architecture.md, docs/internals/schemas.md
 
+## map-kb-capture-hook
+
+- **kind:** map
+- **status:** valid
+- **title:** kb-capture hook: writes session logs on Stop/SessionEnd/PreCompact
+- **tags:** hook, capture, kb-pipeline
+- **relates_to:** map-claude-hooks, map-dedup-cache, map-session-log-and-queue-helpers
+- **derived_from:** 20260512-1438-e5b4618a5295.md
+
 ## map-kb-claude-skills
 
 - **kind:** map
@@ -60,6 +97,15 @@ Total nodes: 28
 - **tags:** skills, claude-code, curate, add, bootstrap
 - **relates_to:** map-ai-knowledge-base-cli, map-pending-conflicts-file
 - **derived_from:** docs/cli-reference.md, docs/daily-use.md, PRD.md
+
+## map-kb-stage2-drain
+
+- **kind:** map
+- **status:** valid
+- **title:** kb-stage2-drain: async worker that runs the extraction step
+- **tags:** worker, stage-2, kb-pipeline
+- **relates_to:** map-claude-hooks, practice-rename-stage-vocab-to-transcript-proposal
+- **derived_from:** 20260512-1438-e5b4618a5295.md, 20260512-1527-aa21a0a11614.md
 
 ## map-map-node
 
@@ -115,6 +161,24 @@ Total nodes: 28
 - **relates_to:** practice-bootstrap-skip-changelog-and-implementation
 - **derived_from:** 20260512-0959-f963bf78b135.md
 
+## map-proposal-artifact
+
+- **kind:** map
+- **status:** valid
+- **title:** Proposal: structured candidate nodes extracted from a Transcript
+- **tags:** kb-pipeline, artifact, vocabulary
+- **relates_to:** map-transcript-artifact, map-kb-stage2-drain, practice-rename-stage-vocab-to-transcript-proposal
+- **derived_from:** 20260512-1527-aa21a0a11614.md
+
+## map-session-log-and-queue-helpers
+
+- **kind:** map
+- **status:** valid
+- **title:** session-log and queue helpers in src/lib
+- **tags:** module, kb-pipeline, helpers
+- **relates_to:** map-kb-capture-hook, practice-one-session-log-per-session-id
+- **derived_from:** 20260512-1438-e5b4618a5295.md
+
 ## map-sessions-directory
 
 - **kind:** map
@@ -132,6 +196,24 @@ Total nodes: 28
 - **tags:** state, lock, nudge, gitignore
 - **relates_to:** map-claude-hooks
 - **derived_from:** docs/internals/schemas.md, docs/internals/architecture.md
+
+## map-templates-npm-artifact
+
+- **kind:** map
+- **status:** valid
+- **title:** templates/: shipped npm artifact, regenerated on publish
+- **tags:** npm, publish, artifact
+- **relates_to:** map-build-templates-script, map-adapter-interface, practice-do-not-commit-bundled-output
+- **derived_from:** 20260512-1439-722a03fa9cbe.md
+
+## map-transcript-artifact
+
+- **kind:** map
+- **status:** valid
+- **title:** Transcript: raw session capture in the KB pipeline
+- **tags:** kb-pipeline, artifact, vocabulary
+- **relates_to:** map-proposal-artifact, map-sessions-directory, practice-rename-stage-vocab-to-transcript-proposal
+- **derived_from:** 20260512-1527-aa21a0a11614.md
 
 ## practice-atomic-prs-with-paired-docs
 
@@ -184,6 +266,15 @@ Total nodes: 28
 - **relates_to:** map-index-and-graph-files, map-nodes-directory
 - **derived_from:** docs/internals/architecture.md, docs/internals/schemas.md
 
+## practice-do-not-commit-bundled-output
+
+- **kind:** practice
+- **status:** valid
+- **title:** Don't commit bundled/generated output to the repo
+- **tags:** build-output, gitignore, repo-hygiene
+- **relates_to:** map-build-templates-script, map-templates-npm-artifact, map-dogfood-claude-hooks-output
+- **derived_from:** 20260512-1439-722a03fa9cbe.md
+
 ## practice-hooks-meet-1s-deadline
 
 - **kind:** practice
@@ -227,6 +318,15 @@ Total nodes: 28
 - **relates_to:** map-zod-schemas
 - **derived_from:** CONTRIBUTING.md
 
+## practice-one-session-log-per-session-id
+
+- **kind:** practice
+- **status:** valid
+- **title:** One session log per session_id, not per assistant turn
+- **tags:** kb-capture, session-log, hooks, dedup
+- **relates_to:** map-kb-capture-hook, map-dedup-cache, map-session-log-and-queue-helpers
+- **derived_from:** 20260512-1438-e5b4618a5295.md
+
 ## practice-prompt-versioning
 
 - **kind:** practice
@@ -244,6 +344,24 @@ Total nodes: 28
 - **relates_to:** map-claude-hooks
 - **derived_from:** docs/internals/hooks.md, docs/internals/architecture.md
 
+## practice-rename-stage-vocab-to-transcript-proposal
+
+- **kind:** practice
+- **status:** valid
+- **title:** Rename Stage 1/Stage 2 to Transcript/Proposal across the KB pipeline
+- **tags:** naming, refactor, kb-pipeline, vocabulary
+- **relates_to:** map-transcript-artifact, map-proposal-artifact, map-kb-stage2-drain
+- **derived_from:** 20260512-1527-aa21a0a11614.md
+
+## practice-sessions-and-stage2-logs-are-intermediate-artifacts
+
+- **kind:** practice
+- **status:** valid
+- **title:** Session logs and extraction logs are intermediate artifacts, safe to wipe
+- **tags:** cleanup, kb-pipeline, intermediate-artifacts
+- **relates_to:** map-sessions-directory, map-nodes-directory
+- **derived_from:** 20260512-1438-e5b4618a5295.md
+
 ## practice-v1-claude-code-only
 
 - **kind:** practice
@@ -252,3 +370,12 @@ Total nodes: 28
 - **tags:** adapters, scope, claude-code, v1
 - **relates_to:** map-adapter-interface
 - **derived_from:** PRD.md, docs/internals/architecture.md
+
+## practice-verify-shipped-artifact-before-delete
+
+- **kind:** practice
+- **status:** valid
+- **title:** Verify shipped-artifact status before deleting tracked files
+- **tags:** safety, destructive-actions, verification
+- **relates_to:** practice-do-not-commit-bundled-output, map-templates-npm-artifact
+- **derived_from:** 20260512-1439-722a03fa9cbe.md
