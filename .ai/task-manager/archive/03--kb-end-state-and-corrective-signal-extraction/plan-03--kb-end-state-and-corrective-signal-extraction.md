@@ -203,14 +203,14 @@ No `AGENTS.md` file exists in this repository at the relevant scope. Skill files
 **Validation Gates:**
 - Reference: `/config/hooks/POST_PHASE.md`
 
-### Phase 1: Prompt source revisions
+### ✅ Phase 1: Prompt source revisions
 **Parallel Tasks:**
-- Task 001: Revise proposal-extract.md to enforce end-state framing and surface corrective signals
-- Task 002: Revise curator.md to backstop end-state framing, and mirror the new drop reason in docs/internals/prompts.md
+- ✔️ Task 001: Revise proposal-extract.md to enforce end-state framing and surface corrective signals
+- ✔️ Task 002: Revise curator.md to backstop end-state framing, and mirror the new drop reason in docs/internals/prompts.md
 
-### Phase 2: Rebuild and verify shipped artifact
+### ✅ Phase 2: Rebuild and verify shipped artifact
 **Parallel Tasks:**
-- Task 003: Rebuild shipped templates and verify the artifact matches the prompt sources (depends on: 001, 002)
+- ✔️ Task 003: Rebuild shipped templates and verify the artifact matches the prompt sources (depends on: 001, 002)
 
 ### Dependency Diagram
 
@@ -227,3 +227,25 @@ After Phase 2 completes successfully, the plan's Self Validation section (steps 
 ### Execution Summary
 - Total Phases: 2
 - Total Tasks: 3
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-12
+
+### Results
+
+- `src/templates-source/prompts/proposal-extract.md` gained the end-state framing rule, a corrective-pattern subsection, a self-review-apply subsection, a task-specific scope filter with the drop-over-low-confidence bias, and an inline worked example using `feedback/round-2.xml` (non-`review.xml`) demonstrating one keep and one drop.
+- `src/templates-source/prompts/curator.md` extended its modify, contradict, and drop action blocks: end-state-rewrite rule, supersession-via-frontmatter clarification, change-oriented framing as automatic drop reason with a salvage path for end-state claims embedded in transition narratives.
+- `docs/internals/prompts.md` gained one bullet in the curator Anti-patterns subsection mirroring the new drop reason.
+- Shipped artifacts under `templates/prompts/` regenerate via `npm run build:templates` and diff identically against source. `templates/` is gitignored per project convention, so no artifact files were committed.
+- Lint: clean. Tests: 214/214 pass. No retrospective framing, em-dashes, or backwards-compat language introduced.
+
+### Noteworthy Events
+
+- Task 003's acceptance criterion called for `git diff --stat templates/prompts/*.md` to show updates, but `templates/` is gitignored in this repo (`practice-do-not-commit-bundled-output`). The substantive verification (`diff source vs artifact` after rebuild) was used in its place and passed.
+- Phase 2 produced no committable code change because the only artifact change lived under the gitignored `templates/` directory. Plan and task metadata updates were rolled into the archival commit rather than a separate Phase 2 commit.
+
+### Necessary follow-ups
+
+- None. Retroactive cleanup of existing changelog-style nodes was explicitly out of scope per the work order.
