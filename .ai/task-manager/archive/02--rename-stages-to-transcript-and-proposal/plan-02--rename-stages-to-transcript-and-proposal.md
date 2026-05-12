@@ -314,3 +314,42 @@ After all Phase 1 tasks complete, POST_PHASE runs `npm run lint` and creates a s
 - Total Phases: 1
 - Total Tasks: 5
 
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-12
+
+### Results
+
+Single atomic refactor commit landed on `feature/2--rename-stages-to-transcript-and-proposal` (commit `3d8a797`, `refactor!: rename stages to transcript/proposal`, BREAKING CHANGE footer enumerating every renamed surface). 127 files changed, 770 insertions, 819 deletions.
+
+All five Phase 1 tasks completed in parallel:
+
+- Task 001 (schemas + source + build): `src/lib/schemas.ts`, `src/lib/proposal-drain.ts`, `src/hooks/kb-proposal-drain.ts`, every consumer under `src/`, `tsup.config.ts`, `.ai/knowledge-base/config.yaml`, `.claude/settings.json`, rebuilt `.claude/hooks/kb-proposal-drain.mjs`, deleted `kb-stage2-drain.mjs`.
+- Task 002 (prompts): renamed `stage-2-extract.md` to `proposal-extract.md` in both `src/templates-source/prompts/` and `templates/prompts/`; Version bumps on all three prompts; `docs/internals/prompts.md` updated.
+- Task 003 (tests): renamed `tests/lib/proposal-drain.test.ts`, `tests/hooks/kb-proposal-drain.test.ts`; every assertion and fixture across `tests/` updated; `schema_version: 1` bumped to `2` across test fixtures.
+- Task 004 (KB nodes): rewrote prose in offending nodes, renamed `map-kb-stage2-drain.md` to `map-kb-proposal-drain.md` and `practice-sessions-and-stage2-logs-...` to `practice-sessions-and-proposal-logs-...`, deleted the planning meta-node, regenerated INDEX.md and GRAPH.md.
+- Task 005 (human docs): `PRD.md`, `IMPLEMENTATION.md`, `README.md`, `docs/cli-reference.md`, `docs/internals/architecture.md`, `docs/internals/hooks.md`, `docs/internals/schemas.md`, `docs/internals/manual-test-plan.md`, `docs/internals/index.md`, `.claude/skills/kb-curate/SKILL.md`, and a CHANGELOG entry.
+
+Post-execution validation:
+
+- Comprehensive `grep -rn "stage[ _-]\?[12]\|Stage 1\|Stage 2\|Stage2\|stage2\|Stage1\|stage1"` across `src/ tests/ templates/ src/templates-source/ docs/ PRD.md IMPLEMENTATION.md README.md .ai/knowledge-base/{nodes,INDEX.md,GRAPH.md,config.yaml} .claude/{settings.json,hooks,skills} tsup.config.ts`: zero hits.
+- `npm test`: 214 tests passing (27 files).
+- `npm run typecheck`: green.
+- `npm run lint`: green.
+- `npm run build`: produces `dist/hooks/kb-proposal-drain.mjs` and propagates to `.claude/hooks/`.
+- Scratch-dir `init` smoke: `.claude/settings.json` SessionStart command points at `kb-proposal-drain.mjs`; `.config/prompts/` ships `proposal-extract.md` (no `stage-2-extract.md`); `doctor` reports `proposal-extract`, `curator`, `bootstrap-incremental` as present.
+
+### Noteworthy Events
+
+- The five parallel agents left three cross-boundary gaps that the coordinator closed: (1) `src/templates-source/claude/skills/kb-curate/SKILL.md` and `templates/claude/skills/kb-curate/SKILL.md` still mentioned `stage_2_status` (Task 5 owned the `.claude/skills/` copy but not the templates-source/templates copies); (2) `docs/internals/prompts.md` still had eight stage-2 references (Task 2 added the version-notes section but did not sweep the rest of the file; Task 5 explicitly delegated this file to Task 2); (3) the `_logs/stage-2/` bucket directory in both `src/templates-source/knowledge-base/_logs/` and `templates/knowledge-base/_logs/` was not renamed by Task 1 (which scoped to `src/`, `tsup.config.ts`, and `config.yaml`, not the `templates-source/knowledge-base/` skeleton).
+- Five test failures from initial post-rename `npm test` were all expected post-rename assertion drift (`schema_version: 1` to `2` literal in four tests; an em-dash in the test fixture string `[TRANSCRIPT PLACEHOLDER — substituted at runtime]` that did not match the production hyphen-minus). The coordinator fixed each in place.
+- An additional surface beyond the plan: every KB node frontmatter on disk carried `schema_version: 1` while the now-strict `NodeFrontmatterSchema` requires `2`. Bulk-bumped via `sed` across 41 nodes; pre-commit lint-staged regenerated INDEX.md and GRAPH.md cleanly.
+- Pre-existing uncommitted KB-related WIP (modified `config.yaml`, 14 draft KB nodes, and `INDEX.md`/`GRAPH.md` edits) blocked feature-branch creation. Per the user's directive, this was committed to `main` as `chore(kb): land draft notes and model preferences` before branching.
+
+### Necessary follow-ups
+
+- The breaking-change commit lands on `feature/2--rename-stages-to-transcript-and-proposal`; the user should open the PR and let semantic-release cut the major-version bump on merge.
+- On upgrade, users delete `.ai/knowledge-base/_sessions/` and `.ai/knowledge-base/_logs/stage-2/`. The CHANGELOG entry documents the cleanup command.
+- The plan's Self Validation Step 5 (replay a fixture through `kb-capture`) was not run as a separate scratch-dir smoke; the equivalent behavior is exercised by the test suite (214 passing, including the proposal-drain integration tests).
