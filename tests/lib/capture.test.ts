@@ -160,6 +160,97 @@ describe('captureSession', () => {
     expect(result.status).toBe('no-content');
   });
 
+  it('reuses the existing session log file when the same session_id captures again with new turns', async () => {
+    const ctx = { sessionsDir, scan: fakeScanner('clean') };
+    const first = await captureSession(
+      { session_id: 'multi', transcript_path: transcriptPath, hook_event_name: 'Stop' },
+      ctx
+    );
+    expect(first.status).toBe('written');
+    const firstFiles = readdirSync(sessionsDir).filter(f => f.endsWith('.md'));
+    expect(firstFiles).toHaveLength(1);
+    const firstName = firstFiles[0] as string;
+
+    // Append another turn to the transcript — Stop fires again in the same session.
+    writeFileSync(
+      transcriptPath,
+      [
+        JSON.stringify({ type: 'user', message: { role: 'user', content: 'use bravo_pii.cache' } }),
+        JSON.stringify({
+          type: 'assistant',
+          message: { role: 'assistant', content: [{ type: 'text', text: 'understood' }] },
+        }),
+        JSON.stringify({ type: 'user', message: { role: 'user', content: 'now what about X?' } }),
+        JSON.stringify({
+          type: 'assistant',
+          message: { role: 'assistant', content: [{ type: 'text', text: 'here is X' }] },
+        }),
+      ].join('\n')
+    );
+
+    const second = await captureSession(
+      { session_id: 'multi', transcript_path: transcriptPath, hook_event_name: 'Stop' },
+      ctx
+    );
+    expect(second.status).toBe('written');
+
+    // Still only one session log file, with the same filename.
+    const secondFiles = readdirSync(sessionsDir).filter(f => f.endsWith('.md'));
+    expect(secondFiles).toEqual([firstName]);
+
+    // The file now contains the new turn.
+    const log = readFileSync(join(sessionsDir, firstName), 'utf8');
+    expect(log).toContain('now what about X?');
+    expect(log).toContain('here is X');
+
+    // Queue has exactly one entry for this session.
+    const queue = JSON.parse(readFileSync(join(sessionsDir, '.queue.json'), 'utf8')) as {
+      entries: Array<{ session_id: string; session_log: string }>;
+    };
+    expect(queue.entries).toHaveLength(1);
+    expect(queue.entries[0]?.session_id).toBe('multi');
+    expect(queue.entries[0]?.session_log).toBe(firstName);
+  });
+
+  it('re-queues an already-drained session when new turns arrive', async () => {
+    const ctx = { sessionsDir, scan: fakeScanner('clean') };
+    const first = await captureSession(
+      { session_id: 'drained', transcript_path: transcriptPath, hook_event_name: 'Stop' },
+      ctx
+    );
+    expect(first.status).toBe('written');
+
+    // Simulate the drainer consuming the queue entry (file stays).
+    writeFileSync(
+      join(sessionsDir, '.queue.json'),
+      `${JSON.stringify({ schema_version: 1, entries: [] }, null, 2)}\n`
+    );
+
+    // New turn → new transcript hash → capture proceeds.
+    writeFileSync(
+      transcriptPath,
+      [
+        JSON.stringify({ type: 'user', message: { role: 'user', content: 'use bravo_pii.cache' } }),
+        JSON.stringify({
+          type: 'assistant',
+          message: { role: 'assistant', content: [{ type: 'text', text: 'understood' }] },
+        }),
+        JSON.stringify({ type: 'user', message: { role: 'user', content: 'follow-up' } }),
+      ].join('\n')
+    );
+    const second = await captureSession(
+      { session_id: 'drained', transcript_path: transcriptPath, hook_event_name: 'SessionEnd' },
+      ctx
+    );
+    expect(second.status).toBe('written');
+
+    const queue = JSON.parse(readFileSync(join(sessionsDir, '.queue.json'), 'utf8')) as {
+      entries: Array<{ session_id: string }>;
+    };
+    expect(queue.entries).toHaveLength(1);
+    expect(queue.entries[0]?.session_id).toBe('drained');
+  });
+
   it('uses captured_by derived from hook_event_name', async () => {
     const result = await captureSession(
       { session_id: 'pc', transcript_path: transcriptPath, hook_event_name: 'PreCompact' },

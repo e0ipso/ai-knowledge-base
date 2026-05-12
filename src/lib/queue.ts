@@ -27,3 +27,7 @@ export function appendToQueue(file: string, entry: QueueEntry): void {
   writeFileSync(tmp, `${JSON.stringify(queue, null, 2)}\n`);
   renameSync(tmp, file);
 }
+
+export function hasQueueEntry(file: string, sessionId: string): boolean {
+  return readQueue(file).entries.some(e => e.session_id === sessionId);
+}

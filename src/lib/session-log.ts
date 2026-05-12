@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { CaptureTrigger, SecretScanStatus } from './schemas.js';
 
@@ -71,8 +71,29 @@ export function buildSessionLogFilename(capturedAt: string, sessionId: string): 
   const stamp =
     `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}` +
     `-${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}`;
-  const short = sessionId.replace(/[^a-z0-9]/gi, '').slice(0, 12) || 'session';
-  return `${stamp}-${short}.md`;
+  return `${stamp}-${shortSessionId(sessionId)}.md`;
+}
+
+/**
+ * Returns the filename of an existing session log for the given session_id,
+ * or null if none exists. Stop fires after every assistant turn, so a single
+ * Claude Code session emits multiple capture events; this lets the capture
+ * path overwrite the prior file in place instead of writing a new one each turn.
+ */
+export function findSessionLogBySessionId(
+  sessionsDir: string,
+  sessionId: string
+): string | null {
+  if (!existsSync(sessionsDir)) return null;
+  const suffix = `-${shortSessionId(sessionId)}.md`;
+  const matches = readdirSync(sessionsDir)
+    .filter(f => f.endsWith(suffix))
+    .sort();
+  return matches[0] ?? null;
+}
+
+function shortSessionId(sessionId: string): string {
+  return sessionId.replace(/[^a-z0-9]/gi, '').slice(0, 12) || 'session';
 }
 
 function pad(n: number): string {

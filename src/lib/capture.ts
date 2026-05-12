@@ -4,9 +4,14 @@ import { join } from 'node:path';
 import { isDuplicate, recordHash } from './dedup-cache.js';
 import type { SecretScanResult, SecretScanner } from './secret-scan.js';
 import { scanAndRedact } from './secret-scan.js';
-import { appendToQueue } from './queue.js';
+import { appendToQueue, hasQueueEntry } from './queue.js';
 import type { CaptureTrigger } from './schemas.js';
-import { buildSessionLogFilename, renderSessionLog, writeSessionLog } from './session-log.js';
+import {
+  buildSessionLogFilename,
+  findSessionLogBySessionId,
+  renderSessionLog,
+  writeSessionLog,
+} from './session-log.js';
 import { parseTranscriptJsonl, renderRoleTagged } from './transcript.js';
 
 export interface HookInput {
@@ -92,7 +97,12 @@ export async function captureSession(
     typeof input.session_id === 'string' && input.session_id.length > 0
       ? input.session_id
       : hash.slice(7, 19);
-  const filename = buildSessionLogFilename(capturedAt, sessionId);
+  // Stop fires per-turn, so a multi-turn session would otherwise produce one
+  // log file per turn. Reuse the existing file for this session_id (the new
+  // transcript is a superset of the previous capture) and skip re-queueing
+  // when a pending entry already points at it.
+  const existingFilename = findSessionLogBySessionId(ctx.sessionsDir, sessionId);
+  const filename = existingFilename ?? buildSessionLogFilename(capturedAt, sessionId);
   const body = renderSessionLog({
     sessionId,
     capturedBy: trigger,
@@ -105,13 +115,16 @@ export async function captureSession(
   const sessionLogPath = writeSessionLog(ctx.sessionsDir, filename, body);
   recordHash(dedupCacheFile, hash, nowMs);
 
-  appendToQueue(join(ctx.sessionsDir, '.queue.json'), {
-    session_id: sessionId,
-    session_log: filename,
-    captured_by: trigger,
-    captured_at: capturedAt,
-    attempts: 0,
-  });
+  const queueFile = join(ctx.sessionsDir, '.queue.json');
+  if (!hasQueueEntry(queueFile, sessionId)) {
+    appendToQueue(queueFile, {
+      session_id: sessionId,
+      session_log: filename,
+      captured_by: trigger,
+      captured_at: capturedAt,
+      attempts: 0,
+    });
+  }
 
   return {
     status: 'written',
