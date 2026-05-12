@@ -1,4 +1,5 @@
 import type { ZodSchema } from 'zod';
+import type { EffortLevel, ModelFamily } from '../lib/schemas.js';
 
 export type HookEvent = 'Stop' | 'SessionEnd' | 'PreCompact' | 'SessionStart' | 'UserPromptSubmit';
 
@@ -20,6 +21,8 @@ export interface HeadlessOpts {
   timeoutMs?: number;
   allowedTools?: string[];
   logFile?: string;
+  model?: ModelFamily;
+  effort?: EffortLevel;
   onMessage?: (msg: unknown) => void;
 }
 

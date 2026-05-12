@@ -99,6 +99,8 @@ export class ClaudeAdapter implements Adapter {
     if (opts?.timeoutMs !== undefined) runOpts.timeoutMs = opts.timeoutMs;
     if (opts?.allowedTools !== undefined) runOpts.allowedTools = opts.allowedTools;
     if (opts?.logFile !== undefined) runOpts.logFile = opts.logFile;
+    if (opts?.model !== undefined) runOpts.model = opts.model;
+    if (opts?.effort !== undefined) runOpts.effort = opts.effort;
     if (opts?.onMessage !== undefined) runOpts.onMessage = opts.onMessage;
     return runHeadlessClaude(promptBody, stdin, schema, runOpts);
   }

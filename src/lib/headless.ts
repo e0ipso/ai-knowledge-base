@@ -4,6 +4,7 @@ import { dirname } from 'node:path';
 import { Readable } from 'node:stream';
 import split2 from 'split2';
 import type { ZodSchema } from 'zod';
+import type { EffortLevel, ModelFamily } from './schemas.js';
 
 export const DEFAULT_TIMEOUT_MS = 60_000;
 
@@ -12,6 +13,10 @@ export interface RunHeadlessOptions {
   allowedTools?: string[];
   logFile?: string;
   env?: NodeJS.ProcessEnv;
+  /** When set, passed through as `claude -p --model <value>`. */
+  model?: ModelFamily;
+  /** When set, passed through as `claude -p --effort <value>`. */
+  effort?: EffortLevel;
   /** Invoked once per successfully parsed stream-json line. */
   onMessage?: (msg: StreamJsonMessage) => void;
   /** Test seam: substitute the underlying spawn. */
@@ -89,6 +94,8 @@ export async function runHeadlessClaude<T>(
     'stream-json',
     '--verbose',
   ];
+  if (opts.model) args.push('--model', opts.model);
+  if (opts.effort) args.push('--effort', opts.effort);
   const env: NodeJS.ProcessEnv = {
     ...(opts.env ?? process.env),
     KB_BUILDER_INTERNAL: '1',

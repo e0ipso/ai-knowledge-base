@@ -61,6 +61,17 @@ export type DedupCacheFile = z.infer<typeof DedupCacheFileSchema>;
 export const ConfidenceSchema = z.enum(['low', 'medium', 'high']);
 export type Confidence = z.infer<typeof ConfidenceSchema>;
 
+export const ModelFamilySchema = z.enum(['haiku', 'sonnet', 'opus']);
+export type ModelFamily = z.infer<typeof ModelFamilySchema>;
+
+export const EffortLevelSchema = z.enum(['low', 'medium', 'high', 'xhigh', 'max']);
+export type EffortLevel = z.infer<typeof EffortLevelSchema>;
+
+const ModelChoiceSchema = z
+  .object({ name: ModelFamilySchema, effort: EffortLevelSchema })
+  .strict();
+export type ModelChoice = z.infer<typeof ModelChoiceSchema>;
+
 export const Stage2CandidateSchema = z.object({
   kind: z.enum(['practice', 'map']),
   tags: z.array(z.string()),
@@ -247,6 +258,12 @@ export type FailureReport = z.infer<typeof FailureReportSchema>;
  * Every field is optional in the on-disk file; `resolveSettings()` layers the
  * documented defaults under user-level overrides under project-level overrides.
  * The `schema_version` field is the only required key when a file is present.
+ *
+ * Model and effort selection: `stage2Model`, `curatorModel`, and `bootstrapModel`
+ * each take a `{ name, effort }` object that steers the corresponding `claude -p`
+ * subprocess. `name` is one of `haiku`, `sonnet`, `opus`. `effort` is one of
+ * `low`, `medium`, `high`, `xhigh`, `max`. When a key is unset the spawn omits
+ * both `--model` and `--effort` and the user's `claude` CLI default applies.
  */
 export const SettingsSchema = z
   .object({
@@ -259,6 +276,9 @@ export const SettingsSchema = z
     curationThreshold: z.number().int().positive().optional(),
     bootstrapTokenBudget: z.number().int().positive().optional(),
     logsRetentionDays: z.number().int().positive().optional(),
+    stage2Model: ModelChoiceSchema.optional(),
+    curatorModel: ModelChoiceSchema.optional(),
+    bootstrapModel: ModelChoiceSchema.optional(),
   })
   .strict();
 export type SettingsFile = z.infer<typeof SettingsSchema>;
