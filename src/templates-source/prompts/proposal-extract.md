@@ -13,6 +13,50 @@ The transcript is provided as role-tagged segments below. Each segment is prefix
 
 ---
 
+## Session-disposition gate
+
+Before extracting any candidate, judge the **session disposition**: did the session, taken as a whole, converge on durable knowledge worth recording? The unit of judgment here is the **session**, not the individual turn. This filter operates at a different level from the two later filters and stacks with them: the task-specific scope filter judges whether a single rule generalizes across files and changes, and the end-state framing rule judges the wording of a single candidate body. Session disposition asks a prior question, about the conversation as a whole.
+
+If the session reads as **non-productive**, emit `{"practice": [], "map": []}` and stop. Five non-productive shapes apply, each a whole-session reject: abandoned, exploratory, cursory, unrelated, and meta-only.
+
+- **Abandoned / dead-end.** The user reverses an in-flight approach without committing to a replacement. Triggers in the transcript include "let's not do this", "never mind", "we'll come back to this", "let's defer this", "actually, don't bother". The session ends with the reversal or with a tangent, not with a durable claim. This shape is distinct from the corrective pattern below: a corrective pattern names a replacement rule ("don't do X, do Y"); abandonment names no replacement.
+- **Exploratory / open-ended.** The session is investigation that surveys options without selecting one. Triggers include "what could we do about X?", "let me look at how this works", "I'm trying to understand Y". Questions are raised, hypotheses are floated, no end-state claim is committed to.
+- **Cursory / single-turn / trivial.** The session is very short or very shallow. Single-turn exchanges, status checks, formatting fixes, one-line questions, "is it running?" probes. No durable convention can have been established.
+- **Unrelated / off-project.** The session is not about this project. General programming help, work on a different repository, personal conversation, support questions that do not reference this project's modules, vocabulary, or conventions.
+- **Meta-only.** The session's visible work is planning, tasking, brainstorming, scoping, or architecture-sketching, without arriving at a durable end-state claim about the project itself. Plan or task documents under `.ai/task-manager` (or any equivalent location the session reveals) are the canonical case, but the category is broader: any conversation that talks *about* what to build rather than capturing how the project already is. The whole session is skipped, with **no exception** for imperative corrections that occur mid-conversation; consistency with the other four shapes wins over per-candidate salvage.
+
+**Gate decision.** If any of the five shapes applies to the session as a whole, emit `{"practice": [], "map": []}` and stop. Producing nothing is the correct output for a non-productive session, just as it is for a productive session with no teaching moments.
+
+**Confidence-bias rule for the gate.** When the session's disposition is ambiguous (could be productive, could not), prefer the empty proposal. A phantom convention costs more to remove than a missed real one costs to leave on the table.
+
+**Scope clarification.** The gate is about session disposition, not candidate quality. A productive session with low-quality candidates still passes the gate; the per-candidate filters then decide which candidates are kept. A non-productive session with apparently high-quality candidates fails the gate; no candidates survive.
+
+### Inline example: a meta-only session that contains a rule-shaped statement
+
+This example exists to inoculate against the most common false positive: phantom conventions extracted from planning conversations.
+
+**Input transcript:**
+
+```
+[USER]: I'm drafting a plan under .ai/task-manager/plans/12--release-gate/ for the new release gate. Can you outline the success criteria for me?
+[AGENT]: Sure. I'll list candidate criteria: a CI run on the PR, a successful build of the docs site, and a passing smoke test on the staging deploy.
+[USER]: Good. Let me state it as a rule: we always want a CI gate before merging. Add that to the plan's success criteria section.
+[AGENT]: Added. The success criteria now lists "CI gate before merging" as criterion 1.
+[USER]: Let me reread the plan and decide what else belongs there. I'll come back to this.
+```
+
+**Correct output:**
+
+```json
+{"practice": [], "map": []}
+```
+
+**Commentary on why the gate fires (not part of the JSON output):**
+
+The session is meta-only. Its visible work is plan-authoring under `.ai/task-manager/plans/`. The statement "we always want a CI gate before merging" reads rule-shaped, but its subject is the plan's success criteria section, not a project-wide convention. The conservative gate skips the whole session, with no exception for the rule-shaped mid-thread statement. This is the failure mode the gate inoculates against: extracting a phantom project rule from a planning conversation. If the project genuinely adopts a CI-gate rule later, a follow-up session that states the rule in non-planning context will capture it then.
+
+---
+
 ## What you are looking for
 
 There are exactly two kinds of knowledge worth capturing:

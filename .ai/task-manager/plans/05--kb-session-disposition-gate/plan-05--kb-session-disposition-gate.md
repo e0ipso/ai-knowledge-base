@@ -253,11 +253,11 @@ graph TD
 
 No circular dependencies.
 
-### Phase 1: Prompt source edits
+### ✅ Phase 1: Prompt source edits
 
 **Parallel Tasks:**
-- Task 001: Add session-disposition gate to proposal-extract.md
-- Task 002: Add non-productive-provenance backstop to curator.md and align internals doc
+- ✔️ Task 001: Add session-disposition gate to proposal-extract.md
+- ✔️ Task 002: Add non-productive-provenance backstop to curator.md and align internals doc
 
 ### Phase 2: Build and verify
 

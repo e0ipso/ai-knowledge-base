@@ -32,7 +32,7 @@ The biggest quality lever in capture. Controls what the extractor treats as wort
 
 1. **Version comment**.
 2. **What to extract** - practice/map definitions, trigger phrases.
-3. **What to skip** - typos, file reads, agent paraphrases, generic programming knowledge.
+3. **What to skip** - typos, file reads, agent paraphrases, generic programming knowledge. Also: non-productive sessions (abandoned, exploratory, cursory, unrelated, meta-only) short-circuit to `{"practice": [], "map": []}` via the session-disposition gate at the top of the prompt; the gate fires when the session as a whole does not converge on durable knowledge.
 4. **Ownership boundary** - how to split combined statements between practice and map.
 5. **Inline example** - a worked transcript with expected JSON.
 6. **Output schema** - must match `ProposalOutputSchema`.
@@ -116,6 +116,7 @@ The wrapper applies actions directly:
 - Suggesting a `suggested_resolution` value (it's ignored - the user picks via the kb-curate skill).
 - Crossing the practice/map boundary.
 - Change-oriented framing (transition narratives, migration stories, rename or removal logs): automatic drop regardless of confidence, unless a clean end-state claim can be salvaged.
+- Non-productive provenance signatures: candidates whose framing carries hedged wording, references to hypothetical entities, plan-scoped or task-scoped wording, or low-confidence-without-rationale are dropped. The curator weighs these signals together (not any single one in isolation) and treats a combined signature as evidence the candidate originated from an abandoned, exploratory, cursory, unrelated, or meta-only session that slipped the extractor's session-disposition gate.
 
 ## Bootstrap-incremental prompt
 
