@@ -19,6 +19,7 @@ import {
 } from "fs";
 import { join, posix, relative, sep } from "path";
 import matter from "gray-matter";
+import "zod";
 
 // src/lib/schemas.ts
 import { z } from "zod";
@@ -62,6 +63,9 @@ var DedupCacheFileSchema = z.object({
   entries: z.array(DedupCacheEntrySchema)
 });
 var ConfidenceSchema = z.enum(["low", "medium", "high"]);
+var ModelFamilySchema = z.enum(["haiku", "sonnet", "opus"]);
+var EffortLevelSchema = z.enum(["low", "medium", "high", "xhigh", "max"]);
+var ModelChoiceSchema = z.object({ name: ModelFamilySchema, effort: EffortLevelSchema }).strict();
 var Stage2CandidateSchema = z.object({
   kind: z.enum(["practice", "map"]),
   tags: z.array(z.string()),
@@ -190,7 +194,10 @@ var SettingsSchema = z.object({
   indexBudgetTokens: z.number().int().positive().optional(),
   curationThreshold: z.number().int().positive().optional(),
   bootstrapTokenBudget: z.number().int().positive().optional(),
-  logsRetentionDays: z.number().int().positive().optional()
+  logsRetentionDays: z.number().int().positive().optional(),
+  stage2Model: ModelChoiceSchema.optional(),
+  curatorModel: ModelChoiceSchema.optional(),
+  bootstrapModel: ModelChoiceSchema.optional()
 }).strict();
 var BootstrapStateSchema = z.object({
   schema_version: z.literal(1),
@@ -371,7 +378,7 @@ function repoPaths(root) {
     configDir,
     promptsDir,
     installedVersionFile: join3(stateDir, "installed-version"),
-    projectConfigFile: join3(kbDir, ".config.json"),
+    projectConfigFile: join3(kbDir, "config.yaml"),
     sessionsDir: join3(kbDir, "_sessions"),
     logsDir: join3(kbDir, "_logs"),
     nodesDir: join3(kbDir, "nodes"),
@@ -393,6 +400,7 @@ function repoPaths(root) {
 import { existsSync as existsSync5, readFileSync as readFileSync5 } from "fs";
 import { homedir } from "os";
 import { join as join4 } from "path";
+import yaml from "js-yaml";
 var SETTINGS_DEFAULTS = {
   drainBound: 5,
   maxAttempts: 3,
@@ -403,6 +411,7 @@ var SETTINGS_DEFAULTS = {
   bootstrapTokenBudget: 1e4,
   logsRetentionDays: 30
 };
+var MODEL_CHOICE_KEYS = ["stage2Model", "curatorModel", "bootstrapModel"];
 function resolveSettings(opts = {}) {
   const projectFile = opts.projectFile ?? null;
   const userFile = opts.userFile ?? defaultUserConfigPath();
@@ -427,6 +436,10 @@ function applyOverrides(target, src) {
       target[key] = value;
     }
   }
+  for (const key of MODEL_CHOICE_KEYS) {
+    const value = src[key];
+    if (value !== void 0) target[key] = value;
+  }
 }
 function loadFile(file, warnings) {
   if (!existsSync5(file)) return null;
@@ -439,9 +452,9 @@ function loadFile(file, warnings) {
   }
   let parsed;
   try {
-    parsed = JSON.parse(raw);
+    parsed = yaml.load(raw);
   } catch (err) {
-    warnings.push(`settings file is not valid JSON (${file}): ${err.message}`);
+    warnings.push(`settings file is not valid YAML (${file}): ${err.message}`);
     return null;
   }
   const result = SettingsSchema.safeParse(parsed);
@@ -454,7 +467,7 @@ function loadFile(file, warnings) {
 function defaultUserConfigPath(env = process.env) {
   const xdg = env["XDG_CONFIG_HOME"];
   const base = xdg && xdg.length > 0 ? xdg : join4(homedir(), ".config");
-  return join4(base, "@e0ipso", "ai-knowledge-base", "config.json");
+  return join4(base, "ai-knowledge-base", "config.yaml");
 }
 
 // src/hooks/kb-session-start.ts

@@ -38,6 +38,8 @@ async function runHeadlessClaude(promptBody, stdin, schema, opts = {}) {
     "stream-json",
     "--verbose"
   ];
+  if (opts.model) args.push("--model", opts.model);
+  if (opts.effort) args.push("--effort", opts.effort);
   const env = {
     ...opts.env ?? process.env,
     KB_BUILDER_INTERNAL: "1"
@@ -61,10 +63,14 @@ async function runHeadlessClaude(promptBody, stdin, schema, opts = {}) {
     if (trimmed.length === 0) return;
     if (logStream) logStream.write(`${trimmed}
 `);
+    let parsed;
     try {
-      messages.push(JSON.parse(trimmed));
+      parsed = JSON.parse(trimmed);
     } catch {
+      return;
     }
+    messages.push(parsed);
+    if (opts.onMessage) opts.onMessage(parsed);
   });
   const streamDone = new Promise((resolve2, reject) => {
     splitter.once("end", () => resolve2());
@@ -92,12 +98,11 @@ async function runHeadlessClaude(promptBody, stdin, schema, opts = {}) {
     throw new Error("claude subprocess produced no final result message");
   }
   let parsedJson;
+  const jsonText = extractJsonBlock(finalResult);
   try {
-    parsedJson = JSON.parse(extractJsonBlock(finalResult));
+    parsedJson = JSON.parse(jsonText);
   } catch (err) {
-    throw new Error(
-      `failed to parse final result as JSON: ${err instanceof Error ? err.message : String(err)}`
-    );
+    throw new Error(buildParseFailureMessage(err, jsonText, opts.logFile));
   }
   const validated = schema.safeParse(parsedJson);
   if (!validated.success) {
@@ -114,6 +119,32 @@ function findFinalResult(messages) {
     }
   }
   return null;
+}
+var SNIPPET_RADIUS = 60;
+function buildParseFailureMessage(err, jsonText, logFile) {
+  const parseMessage = err instanceof Error ? err.message : String(err);
+  const offsetMatch = /position (\d+)/.exec(parseMessage);
+  const lines = [
+    "curator JSON output is malformed.",
+    `  Parse error: ${parseMessage}`
+  ];
+  if (offsetMatch && offsetMatch[1]) {
+    const offset = Number(offsetMatch[1]);
+    const start = Math.max(0, offset - SNIPPET_RADIUS);
+    const end = Math.min(jsonText.length, offset + SNIPPET_RADIUS);
+    const snippet = jsonText.slice(start, end).replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+    lines.push(`  Snippet near offset ${offset}: \u2026${snippet}\u2026`);
+  }
+  lines.push(`  Full curator transcript: ${logFile ?? "(no log file)"}`);
+  lines.push("  Next steps:");
+  lines.push(
+    "    1. Re-run `ai-knowledge-base curate` (the model may emit valid JSON on retry)."
+  );
+  lines.push(
+    '    2. Inspect the last `type:"result"` event in the transcript to see the full raw output.'
+  );
+  lines.push("    3. If this keeps happening, file an issue and attach the transcript.");
+  return lines.join("\n");
 }
 function extractJsonBlock(text) {
   const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -157,7 +188,7 @@ function repoPaths(root) {
     configDir,
     promptsDir,
     installedVersionFile: join(stateDir, "installed-version"),
-    projectConfigFile: join(kbDir, ".config.json"),
+    projectConfigFile: join(kbDir, "config.yaml"),
     sessionsDir: join(kbDir, "_sessions"),
     logsDir: join(kbDir, "_logs"),
     nodesDir: join(kbDir, "nodes"),
@@ -179,6 +210,7 @@ function repoPaths(root) {
 import { existsSync as existsSync2, readFileSync as readFileSync2 } from "fs";
 import { homedir } from "os";
 import { join as join2 } from "path";
+import yaml from "js-yaml";
 
 // src/lib/schemas.ts
 import { z } from "zod";
@@ -222,6 +254,9 @@ var DedupCacheFileSchema = z.object({
   entries: z.array(DedupCacheEntrySchema)
 });
 var ConfidenceSchema = z.enum(["low", "medium", "high"]);
+var ModelFamilySchema = z.enum(["haiku", "sonnet", "opus"]);
+var EffortLevelSchema = z.enum(["low", "medium", "high", "xhigh", "max"]);
+var ModelChoiceSchema = z.object({ name: ModelFamilySchema, effort: EffortLevelSchema }).strict();
 var Stage2CandidateSchema = z.object({
   kind: z.enum(["practice", "map"]),
   tags: z.array(z.string()),
@@ -350,7 +385,10 @@ var SettingsSchema = z.object({
   indexBudgetTokens: z.number().int().positive().optional(),
   curationThreshold: z.number().int().positive().optional(),
   bootstrapTokenBudget: z.number().int().positive().optional(),
-  logsRetentionDays: z.number().int().positive().optional()
+  logsRetentionDays: z.number().int().positive().optional(),
+  stage2Model: ModelChoiceSchema.optional(),
+  curatorModel: ModelChoiceSchema.optional(),
+  bootstrapModel: ModelChoiceSchema.optional()
 }).strict();
 var BootstrapStateSchema = z.object({
   schema_version: z.literal(1),
@@ -370,6 +408,7 @@ var SETTINGS_DEFAULTS = {
   bootstrapTokenBudget: 1e4,
   logsRetentionDays: 30
 };
+var MODEL_CHOICE_KEYS = ["stage2Model", "curatorModel", "bootstrapModel"];
 function resolveSettings(opts = {}) {
   const projectFile = opts.projectFile ?? null;
   const userFile = opts.userFile ?? defaultUserConfigPath();
@@ -394,6 +433,10 @@ function applyOverrides(target, src) {
       target[key] = value;
     }
   }
+  for (const key of MODEL_CHOICE_KEYS) {
+    const value = src[key];
+    if (value !== void 0) target[key] = value;
+  }
 }
 function loadFile(file, warnings) {
   if (!existsSync2(file)) return null;
@@ -406,9 +449,9 @@ function loadFile(file, warnings) {
   }
   let parsed;
   try {
-    parsed = JSON.parse(raw);
+    parsed = yaml.load(raw);
   } catch (err) {
-    warnings.push(`settings file is not valid JSON (${file}): ${err.message}`);
+    warnings.push(`settings file is not valid YAML (${file}): ${err.message}`);
     return null;
   }
   const result = SettingsSchema.safeParse(parsed);
@@ -421,7 +464,7 @@ function loadFile(file, warnings) {
 function defaultUserConfigPath(env = process.env) {
   const xdg = env["XDG_CONFIG_HOME"];
   const base = xdg && xdg.length > 0 ? xdg : join2(homedir(), ".config");
-  return join2(base, "@e0ipso", "ai-knowledge-base", "config.json");
+  return join2(base, "ai-knowledge-base", "config.yaml");
 }
 
 // src/lib/stage2-drain.ts
@@ -531,7 +574,9 @@ async function drainStage2Queue(ctx) {
         runner: ctx.runner,
         now,
         timeoutMs,
-        maxAttempts
+        maxAttempts,
+        ...ctx.model !== void 0 ? { model: ctx.model } : {},
+        ...ctx.effort !== void 0 ? { effort: ctx.effort } : {}
       });
       processed.push(result);
       if (result.status === "done" || result.status === "skipped" || result.status === "missing-log") {
@@ -547,7 +592,18 @@ async function drainStage2Queue(ctx) {
   return { status: "completed", processed, remaining };
 }
 async function processEntry(args) {
-  const { entry, sessionsDir, logsDir, promptTemplate, runner, now, timeoutMs, maxAttempts } = args;
+  const {
+    entry,
+    sessionsDir,
+    logsDir,
+    promptTemplate,
+    runner,
+    now,
+    timeoutMs,
+    maxAttempts,
+    model,
+    effort
+  } = args;
   const sessionLogPath = join3(sessionsDir, entry.session_log);
   if (!existsSync5(sessionLogPath)) {
     return {
@@ -567,7 +623,9 @@ async function processEntry(args) {
     const out = await runner(prompt, "", Stage2OutputSchema, {
       timeoutMs,
       allowedTools: [],
-      logFile
+      logFile,
+      ...model !== void 0 ? { model } : {},
+      ...effort !== void 0 ? { effort } : {}
     });
     writeSessionLogFrontmatter(sessionLogPath, parsed, {
       stage_2_status: "done",
@@ -718,7 +776,8 @@ async function main() {
       maxEntries: settings.drainBound,
       maxAttempts: settings.maxAttempts,
       timeoutMs: settings.stage2Timeout,
-      lockTtlMs: settings.lockTtlMs
+      lockTtlMs: settings.lockTtlMs,
+      ...settings.stage2Model ? { model: settings.stage2Model.name, effort: settings.stage2Model.effort } : {}
     });
     if (summary.status === "locked") {
       return;

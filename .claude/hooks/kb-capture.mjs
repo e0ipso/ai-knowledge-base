@@ -1,6 +1,6 @@
 // src/lib/capture.ts
 import { createHash } from "crypto";
-import { existsSync as existsSync4, readFileSync as readFileSync3 } from "fs";
+import { existsSync as existsSync5, readFileSync as readFileSync3 } from "fs";
 import { join as join3 } from "path";
 
 // src/lib/dedup-cache.ts
@@ -48,6 +48,9 @@ var DedupCacheFileSchema = z.object({
   entries: z.array(DedupCacheEntrySchema)
 });
 var ConfidenceSchema = z.enum(["low", "medium", "high"]);
+var ModelFamilySchema = z.enum(["haiku", "sonnet", "opus"]);
+var EffortLevelSchema = z.enum(["low", "medium", "high", "xhigh", "max"]);
+var ModelChoiceSchema = z.object({ name: ModelFamilySchema, effort: EffortLevelSchema }).strict();
 var Stage2CandidateSchema = z.object({
   kind: z.enum(["practice", "map"]),
   tags: z.array(z.string()),
@@ -176,7 +179,10 @@ var SettingsSchema = z.object({
   indexBudgetTokens: z.number().int().positive().optional(),
   curationThreshold: z.number().int().positive().optional(),
   bootstrapTokenBudget: z.number().int().positive().optional(),
-  logsRetentionDays: z.number().int().positive().optional()
+  logsRetentionDays: z.number().int().positive().optional(),
+  stage2Model: ModelChoiceSchema.optional(),
+  curatorModel: ModelChoiceSchema.optional(),
+  bootstrapModel: ModelChoiceSchema.optional()
 }).strict();
 var BootstrapStateSchema = z.object({
   schema_version: z.literal(1),
@@ -332,9 +338,12 @@ function appendToQueue(file, entry) {
 `);
   renameSync2(tmp, file);
 }
+function hasQueueEntry(file, sessionId) {
+  return readQueue(file).entries.some((e) => e.session_id === sessionId);
+}
 
 // src/lib/session-log.ts
-import { mkdirSync, writeFileSync as writeFileSync3 } from "fs";
+import { existsSync as existsSync4, mkdirSync, readdirSync, writeFileSync as writeFileSync3 } from "fs";
 import { join as join2 } from "path";
 function renderSessionLog(input) {
   const lines = [
@@ -378,8 +387,16 @@ function writeSessionLog(sessionsDir, filename, contents) {
 function buildSessionLogFilename(capturedAt, sessionId) {
   const d = new Date(capturedAt);
   const stamp = `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}-${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}`;
-  const short = sessionId.replace(/[^a-z0-9]/gi, "").slice(0, 12) || "session";
-  return `${stamp}-${short}.md`;
+  return `${stamp}-${shortSessionId(sessionId)}.md`;
+}
+function findSessionLogBySessionId(sessionsDir, sessionId) {
+  if (!existsSync4(sessionsDir)) return null;
+  const suffix = `-${shortSessionId(sessionId)}.md`;
+  const matches = readdirSync(sessionsDir).filter((f) => f.endsWith(suffix)).sort();
+  return matches[0] ?? null;
+}
+function shortSessionId(sessionId) {
+  return sessionId.replace(/[^a-z0-9]/gi, "").slice(0, 12) || "session";
 }
 function pad(n) {
   return n.toString().padStart(2, "0");
@@ -441,7 +458,7 @@ function eventToTrigger(event) {
 async function captureSession(input, ctx) {
   const trigger = eventToTrigger(input.hook_event_name);
   const transcriptPath = input.transcript_path;
-  if (!transcriptPath || !existsSync4(transcriptPath)) {
+  if (!transcriptPath || !existsSync5(transcriptPath)) {
     return {
       status: "no-transcript",
       error: `transcript_path missing or absent: ${transcriptPath ?? "(none)"}`
@@ -470,7 +487,8 @@ async function captureSession(input, ctx) {
   }
   const capturedAt = (ctx.now?.() ?? /* @__PURE__ */ new Date()).toISOString();
   const sessionId = typeof input.session_id === "string" && input.session_id.length > 0 ? input.session_id : hash.slice(7, 19);
-  const filename = buildSessionLogFilename(capturedAt, sessionId);
+  const existingFilename = findSessionLogBySessionId(ctx.sessionsDir, sessionId);
+  const filename = existingFilename ?? buildSessionLogFilename(capturedAt, sessionId);
   const body = renderSessionLog({
     sessionId,
     capturedBy: trigger,
@@ -481,13 +499,16 @@ async function captureSession(input, ctx) {
   });
   const sessionLogPath = writeSessionLog(ctx.sessionsDir, filename, body);
   recordHash(dedupCacheFile, hash, nowMs);
-  appendToQueue(join3(ctx.sessionsDir, ".queue.json"), {
-    session_id: sessionId,
-    session_log: filename,
-    captured_by: trigger,
-    captured_at: capturedAt,
-    attempts: 0
-  });
+  const queueFile = join3(ctx.sessionsDir, ".queue.json");
+  if (!hasQueueEntry(queueFile, sessionId)) {
+    appendToQueue(queueFile, {
+      session_id: sessionId,
+      session_log: filename,
+      captured_by: trigger,
+      captured_at: capturedAt,
+      attempts: 0
+    });
+  }
   return {
     status: "written",
     sessionLogPath,
@@ -496,13 +517,13 @@ async function captureSession(input, ctx) {
 }
 
 // src/lib/paths.ts
-import { existsSync as existsSync5, readFileSync as readFileSync4, statSync } from "fs";
+import { existsSync as existsSync6, readFileSync as readFileSync4, statSync } from "fs";
 import { dirname, join as join4, resolve } from "path";
 import { fileURLToPath } from "url";
 function findRepoRoot(from = process.cwd()) {
   let cur = resolve(from);
   while (true) {
-    if (existsSync5(join4(cur, ".git")) || existsSync5(join4(cur, ".ai/knowledge-base/.state/installed-version"))) {
+    if (existsSync6(join4(cur, ".git")) || existsSync6(join4(cur, ".ai/knowledge-base/.state/installed-version"))) {
       return cur;
     }
     const parent = dirname(cur);
@@ -525,7 +546,7 @@ function repoPaths(root) {
     configDir,
     promptsDir,
     installedVersionFile: join4(stateDir, "installed-version"),
-    projectConfigFile: join4(kbDir, ".config.json"),
+    projectConfigFile: join4(kbDir, "config.yaml"),
     sessionsDir: join4(kbDir, "_sessions"),
     logsDir: join4(kbDir, "_logs"),
     nodesDir: join4(kbDir, "nodes"),

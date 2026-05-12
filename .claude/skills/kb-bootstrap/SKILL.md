@@ -10,7 +10,7 @@ You are doing a one-time bootstrap of this project's knowledge base from its exi
 
 ## Your task
 
-Survey the project's existing markdown documentation, extract candidate knowledge nodes, and write them as new node files directly under `nodes/`. The user reviews everything with `git diff` and accepts or rejects each node with `git commit` or `git restore <path>`. You will work judgmentally — exploring, sampling, following cross-references — not exhaustively. This is a one-pass operation, supervised.
+Survey the project's existing markdown documentation, extract candidate knowledge nodes, and write them as new node files directly under `nodes/`. The user reviews everything with `git diff` and accepts or rejects each node with `git commit` or `git restore <path>`. You will work judgmentally - exploring, sampling, following cross-references - not exhaustively. This is a one-pass operation, supervised.
 
 ## Inputs
 
@@ -41,25 +41,25 @@ Read the top-level entry points completely. They usually frame project vocabular
 
 Don't read every file end-to-end. Sample representative content and follow links between docs. If a top-level README mentions "see docs/architecture/auth.md for the authentication design," that's a high-signal pointer to follow.
 
-For large reference docs (e.g. method-by-method API listings), skim section headers and only read prose sections — skip auto-generated tables.
+For large reference docs (e.g. method-by-method API listings), skim section headers and only read prose sections - skip auto-generated tables.
 
 ### 4. Identify candidates as you read
 
 For each piece of content that looks like project knowledge, decide which kind:
 
-**Practice candidates** — imperative project guidance:
+**Practice candidates** - imperative project guidance:
 - Conventions ("always use X for Y").
 - Prohibitions ("don't do X").
 - Gotchas (warnings, "be careful with…").
 - Rationale ("we chose X because Y").
 - Tooling/workflow ("tests run with X").
 
-**Map candidates** — what exists:
+**Map candidates** - what exists:
 - Named features, modules, services and what they do.
 - Vocabulary specific to this project.
 - File-tree locations of major systems.
 
-When a piece of content has both aspects (e.g. "Use bravo_analytics.dispatcher — our service for tracking events"), split it: practice owns "use the dispatcher"; map owns "what the dispatcher is."
+When a piece of content has both aspects (e.g. "Use bravo_analytics.dispatcher - our service for tracking events"), split it: practice owns "use the dispatcher"; map owns "what the dispatcher is."
 
 Skip:
 - Auto-generated API reference.
@@ -70,7 +70,7 @@ Skip:
 
 ### 5. Write nodes
 
-For each candidate, write a node file at `.ai/knowledge-base/nodes/<kind>/<kind>-<slug>.md`. **Before writing, check whether the file already exists** — bootstrap is conservative and never overwrites an existing node. If you hit a collision, refine the title or skip the candidate and call it out in your final report.
+For each candidate, write a node file at `.ai/knowledge-base/nodes/<kind>/<kind>-<slug>.md`. **Before writing, check whether the file already exists** - bootstrap is conservative and never overwrites an existing node. If you hit a collision, refine the title or skip the candidate and call it out in your final report.
 
 Use the standard node frontmatter. Quote every string value, including the ISO timestamps, so YAML does not auto-parse them as Date objects (the schema rejects non-string timestamps):
 
@@ -96,7 +96,7 @@ summary: "≤140 char summary"
 
 # <Title>
 
-<Body in markdown — 1-4 short paragraphs.>
+<Body in markdown - 1-4 short paragraphs.>
 ```
 
 Default `confidence: medium` for bootstrap content. Existing docs may be stale or aspirational; the reviewer needs to assess each one with `git diff`. Use `confidence: high` only when the doc explicitly states the rule with rationale and the doc looks actively maintained.
@@ -133,7 +133,7 @@ When you're done, summarize for the user:
 - How many docs you read; which ones you skipped and why.
 - How many practice nodes you wrote.
 - How many map nodes you wrote.
-- Any collisions you skipped (file already existed) — the user may want to merge content manually.
+- Any collisions you skipped (file already existed) - the user may want to merge content manually.
 - Any cross-references you noticed but didn't follow (the user might want to direct you to those).
 - Any docs that looked stale or contradictory that the user should double-check.
 
@@ -143,7 +143,7 @@ Then tell the user to review with `git diff nodes/`, accept individual files wit
 
 - **Never overwrite an existing node in `nodes/`.** Bootstrap only writes files that don't already exist. If you'd collide, skip and report.
 - **Never auto-resolve perceived contradictions during bootstrap.** If you notice two docs that disagree, write only one as a node and surface the conflict in your final report so the user can decide. Do not write a second contradictory node.
-- **Don't hallucinate rationale.** Only include "because…" content that's actually present in the source. If the doc just says "use X," your node says "use X" — not "use X because of [made-up reason]."
+- **Don't hallucinate rationale.** Only include "because…" content that's actually present in the source. If the doc just says "use X," your node says "use X" - not "use X because of [made-up reason]."
 - **Don't try to read code files.** Stick to markdown documentation. The point of bootstrap is to extract what's already been written down.
 - **Tools allowed:** `Read`, `Glob`, `Grep`, `Write` (for nodes and the state file only), `Bash` (for `shasum`/`sha256sum`/`mkdir -p` only). Do not run other Bash commands.
 

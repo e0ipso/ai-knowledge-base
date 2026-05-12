@@ -16,7 +16,6 @@ settings.local.json
 .ai/knowledge-base/_logs/
 .ai/knowledge-base/.state/state.json
 .ai/knowledge-base/.state/bootstrap-state.json
-.ai/knowledge-base/.state/pending-conflicts.json
-review.xml
 # <<< @e0ipso/ai-knowledge-base <<<
+
 
