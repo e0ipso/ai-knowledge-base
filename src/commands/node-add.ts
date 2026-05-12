@@ -90,9 +90,9 @@ export async function runNodeAdd(opts: NodeAddOptions = {}): Promise<number> {
   // Refresh INDEX/GRAPH so the manual write doesn't leave a stale index. The
   // pre-commit hook will also do this via `index rebuild --stage` when
   // committing, but this keeps things consistent for read-only tooling.
-  const index = generateIndex(paths.nodesDir, { now: new Date(now) });
+  const index = generateIndex(paths.nodesDir);
   writeIndex(`${paths.kbDir}/INDEX.md`, index);
-  const graph = generateGraph(paths.nodesDir, { now: new Date(now) });
+  const graph = generateGraph(paths.nodesDir);
   writeGraph(`${paths.kbDir}/GRAPH.md`, graph);
 
   log.success(`Wrote node: ${filePath}`);

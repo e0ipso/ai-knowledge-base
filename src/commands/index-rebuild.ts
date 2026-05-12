@@ -41,8 +41,7 @@ export async function runIndexRebuild(opts: IndexRebuildOptions = {}): Promise<n
   mkdirSync(paths.kbDir, { recursive: true });
   const { settings, warnings } = resolveSettings({ projectFile: paths.projectConfigFile });
   for (const w of warnings) log.warn(w);
-  const genOpts: { budgetTokens?: number; now: Date } = {
-    now: new Date(),
+  const genOpts: { budgetTokens?: number } = {
     budgetTokens: settings.indexBudgetTokens,
   };
   if (opts.budgetTokens !== undefined) genOpts.budgetTokens = opts.budgetTokens;
@@ -69,7 +68,7 @@ export async function runIndexRebuild(opts: IndexRebuildOptions = {}): Promise<n
   }
 
   const index = generateIndex(paths.nodesDir, genOpts);
-  const graph = generateGraph(paths.nodesDir, { now: genOpts.now });
+  const graph = generateGraph(paths.nodesDir);
   writeIndex(indexFile, index);
   writeGraph(graphFile, graph);
 

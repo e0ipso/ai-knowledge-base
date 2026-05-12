@@ -67,7 +67,7 @@ describe('generateIndex', () => {
       },
       { kind: 'map', id: 'map-x', title: 'X map', summary: 'X summary' },
     ]);
-    const out = generateIndex(root, { now: new Date('2026-05-11T10:00:00Z') });
+    const out = generateIndex(root);
     expect(out.nodeCount).toBe(3);
     expect(out.content).toContain('## Practice (how we build)');
     expect(out.content).toContain('## Map (what exists)');

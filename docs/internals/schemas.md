@@ -140,7 +140,6 @@ Validated by `CuratorOutputSchema` (array of actions).
 
 ```yaml
 schema_version: 1
-generated_at: 2026-05-10T14:30:00Z
 nodes_hash: sha256:<hex>
 node_count: 47
 budget_tokens: 2000     # INDEX only

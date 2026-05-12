@@ -167,7 +167,6 @@ export type CuratorOutput = z.infer<typeof CuratorOutputSchema>;
 
 export const IndexFrontmatterSchema = z.object({
   schema_version: z.literal(1),
-  generated_at: z.string(),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative(),
   budget_tokens: z.number().int().positive(),
@@ -176,7 +175,6 @@ export type IndexFrontmatter = z.infer<typeof IndexFrontmatterSchema>;
 
 export const GraphFrontmatterSchema = z.object({
   schema_version: z.literal(1),
-  generated_at: z.string(),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative(),
 });

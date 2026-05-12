@@ -276,7 +276,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
   if (pending.length === 0) {
     // Always regenerate INDEX/GRAPH so a manual `node add` followed by an
     // empty curate run still refreshes the index.
-    regenerateIndexAndGraph(ctx, now());
+    regenerateIndexAndGraph(ctx);
     return {
       status: 'no-pending',
       batches: 0,
@@ -377,7 +377,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
     }
 
     markSessionsProcessed(pending, runId, now());
-    regenerateIndexAndGraph(ctx, now());
+    regenerateIndexAndGraph(ctx);
 
     return {
       status: 'completed',
@@ -535,13 +535,13 @@ function markSessionsProcessed(sessions: PendingSession[], runId: string, now: D
   }
 }
 
-function regenerateIndexAndGraph(ctx: CurateContext, now: Date): void {
+function regenerateIndexAndGraph(ctx: CurateContext): void {
   mkdirSync(ctx.kbDir, { recursive: true });
-  const indexOpts: { now: Date; budgetTokens?: number } = { now };
+  const indexOpts: { budgetTokens?: number } = {};
   if (ctx.indexBudgetTokens !== undefined) indexOpts.budgetTokens = ctx.indexBudgetTokens;
   const index = generateIndex(ctx.nodesDir, indexOpts);
   writeIndex(join(ctx.kbDir, 'INDEX.md'), index);
-  const graph = generateGraph(ctx.nodesDir, { now });
+  const graph = generateGraph(ctx.nodesDir);
   writeGraph(join(ctx.kbDir, 'GRAPH.md'), graph);
 }
 

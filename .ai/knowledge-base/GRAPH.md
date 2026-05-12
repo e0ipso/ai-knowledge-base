@@ -1,6 +1,5 @@
 ---
 schema_version: 1
-generated_at: '2026-05-12T14:50:51.836Z'
 nodes_hash: 'sha256:ddcdfa366b97c0de528654822a49de0de01595d0d27cf94c4c1cb3380e868b80'
 node_count: 28
 ---

@@ -576,7 +576,6 @@ Token-budgeted (default 2000 tokens), regenerated deterministically.
 ```markdown
 ---
 schema_version: 1
-generated_at: 2026-05-10T14:30:00Z
 nodes_hash: sha256:<hash>
 node_count: 47
 budget_tokens: 2000
@@ -584,7 +583,7 @@ budget_tokens: 2000
 
 # KB Index - <repo-name>
 
-_47 nodes • 42 currently valid • 5 superseded • last updated <ISO>_
+_47 nodes • 42 currently valid • 5 superseded_
 
 ## Practice (how we build)
 - **<title>** - <summary> [`nodes/practice/<slug>.md`] (tags: x, y)

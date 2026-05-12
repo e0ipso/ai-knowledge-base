@@ -10,7 +10,6 @@ const CHARS_PER_TOKEN = 4;
 
 export interface GenerateOptions {
   budgetTokens?: number;
-  now?: Date;
 }
 
 export interface GeneratedIndex {
@@ -75,7 +74,6 @@ function renderBullet(n: NodeFile): string {
  */
 export function generateIndex(nodesDir: string, opts: GenerateOptions = {}): GeneratedIndex {
   const budget = opts.budgetTokens ?? DEFAULT_BUDGET_TOKENS;
-  const now = opts.now ?? new Date();
   const nodes = readAllNodes(nodesDir);
   const { valid, superseded } = partition(nodes);
   const validByKind: Record<'practice' | 'map', NodeFile[]> = { practice: [], map: [] };
@@ -89,7 +87,7 @@ export function generateIndex(nodesDir: string, opts: GenerateOptions = {}): Gen
   const validCount = valid.length;
   const supersededCount = superseded.length;
 
-  const header = `# KB Index\n\n_${nodeCount} nodes • ${validCount} currently valid • ${supersededCount} superseded • last updated ${now.toISOString()}_\n`;
+  const header = `# KB Index\n\n_${nodeCount} nodes • ${validCount} currently valid • ${supersededCount} superseded_\n`;
 
   // Greedy budgeting: render all bullets, then trim oldest within each kind
   // (preserving at least MIN_PER_KIND) until we fit the budget. Hidden count
@@ -111,7 +109,6 @@ export function generateIndex(nodesDir: string, opts: GenerateOptions = {}): Gen
 
   const fm = IndexFrontmatterSchema.parse({
     schema_version: 1,
-    generated_at: now.toISOString(),
     nodes_hash: `sha256:${hash}`,
     node_count: nodeCount,
     budget_tokens: budget,
@@ -169,8 +166,7 @@ function renderBody(
 /**
  * Render GRAPH.md — full unfiltered edge listing. Deterministic.
  */
-export function generateGraph(nodesDir: string, opts: GenerateOptions = {}): GeneratedGraph {
-  const now = opts.now ?? new Date();
+export function generateGraph(nodesDir: string): GeneratedGraph {
   const nodes = readAllNodes(nodesDir);
   nodes.sort((a, b) => a.frontmatter.id.localeCompare(b.frontmatter.id));
   const hash = computeNodesHash(nodesDir);
@@ -202,7 +198,6 @@ export function generateGraph(nodesDir: string, opts: GenerateOptions = {}): Gen
 
   const fm = GraphFrontmatterSchema.parse({
     schema_version: 1,
-    generated_at: now.toISOString(),
     nodes_hash: `sha256:${hash}`,
     node_count: nodes.length,
   });
