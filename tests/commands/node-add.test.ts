@@ -20,7 +20,7 @@ function sandbox(): string {
   writeFileSync(
     join(root, '.ai/knowledge-base/.state/installed-version'),
     JSON.stringify({
-      schema_version: 2,
+      schema_version: 1,
       package: '@e0ipso/ai-knowledge-base',
       version: '0.0.0-test',
       installed_at: '2026-05-12T10:00:00Z',
@@ -70,7 +70,7 @@ describe('node add', () => {
     writeFileSync(
       join(cwd, '.ai/knowledge-base/nodes/practice/practice-use-foo.md'),
       matter.stringify('# Use Foo\nBody.\n', {
-        schema_version: 2,
+        schema_version: 1,
         id: 'practice-use-foo',
         title: 'Use Foo',
         kind: 'practice',

@@ -226,13 +226,13 @@ describe('readBootstrapState / writeBootstrapState', () => {
 
   it('returns an empty state when the file is missing', () => {
     const s = readBootstrapState(harness.bootstrapStateFile);
-    expect(s.schema_version).toBe(2);
+    expect(s.schema_version).toBe(1);
     expect(s.docs).toEqual({});
   });
 
   it('round-trips a written state', () => {
     writeBootstrapState(harness.bootstrapStateFile, {
-      schema_version: 2,
+      schema_version: 1,
       last_full_bootstrap_at: null,
       last_incremental_at: '2026-05-12T10:00:00Z',
       docs: {
@@ -290,7 +290,7 @@ describe('runBootstrapIncremental', () => {
     writeFileSync(
       join(harness.nodesDir, 'practice', 'practice-use-x.md'),
       matter.stringify('# old\n', {
-        schema_version: 2,
+        schema_version: 1,
         id: 'practice-use-x',
         title: 'Use X',
         kind: 'practice',
@@ -325,7 +325,7 @@ describe('runBootstrapIncremental', () => {
     writeFileSync(join(harness.sourceDir, 'a.md'), 'unchanged');
     const sha = sha256Hex('unchanged');
     writeBootstrapState(harness.bootstrapStateFile, {
-      schema_version: 2,
+      schema_version: 1,
       docs: {
         'docs/a.md': {
           content_sha256: sha,

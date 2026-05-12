@@ -124,7 +124,7 @@ export function sha256Hex(content: string): string {
  * or unparseable (so a first run starts fresh).
  */
 export function readBootstrapState(file: string): BootstrapState {
-  if (!existsSync(file)) return { schema_version: 2, docs: {} };
+  if (!existsSync(file)) return { schema_version: 1, docs: {} };
   try {
     const raw = JSON.parse(readFileSync(file, 'utf8')) as unknown;
     const parsed = BootstrapStateSchema.safeParse(raw);
@@ -132,7 +132,7 @@ export function readBootstrapState(file: string): BootstrapState {
   } catch {
     // fall through
   }
-  return { schema_version: 2, docs: {} };
+  return { schema_version: 1, docs: {} };
 }
 
 /**
@@ -546,7 +546,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
       };
     }
     const nextState: BootstrapState = {
-      schema_version: 2,
+      schema_version: 1,
       last_full_bootstrap_at: state.last_full_bootstrap_at ?? null,
       last_incremental_at: now().toISOString(),
       docs: nextDocs,
@@ -591,7 +591,7 @@ function writeBootstrapNode(args: WriteBootstrapNodeArgs): string | 'collision' 
   const id = ensureUniqueId(new Set([...existingIds, ...seenSlugs]), baseId);
   seenSlugs.add(id);
   const frontmatter: NodeFrontmatter = {
-    schema_version: 2,
+    schema_version: 1,
     id,
     title: candidate.title,
     kind: candidate.kind,

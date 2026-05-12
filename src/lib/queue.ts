@@ -2,14 +2,14 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { QueueFileSchema, type QueueEntry, type QueueFile } from './schemas.js';
 
 export function readQueue(file: string): QueueFile {
-  if (!existsSync(file)) return { schema_version: 2, entries: [] };
+  if (!existsSync(file)) return { schema_version: 1, entries: [] };
   try {
     const raw = JSON.parse(readFileSync(file, 'utf8')) as unknown;
     const parsed = QueueFileSchema.safeParse(raw);
     if (parsed.success) return parsed.data;
-    return { schema_version: 2, entries: [] };
+    return { schema_version: 1, entries: [] };
   } catch {
-    return { schema_version: 2, entries: [] };
+    return { schema_version: 1, entries: [] };
   }
 }
 

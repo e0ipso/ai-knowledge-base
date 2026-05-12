@@ -27,7 +27,7 @@ var CaptureTriggerSchema = z.enum(["stop", "session_end", "pre_compact", "manual
 var SecretScanStatusSchema = z.enum(["clean", "redacted", "blocked", "skipped"]);
 var ProposalStatusSchema = z.enum(["pending", "done", "failed", "skipped"]);
 var SessionLogFrontmatterSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   session_id: z.string(),
   captured_by: CaptureTriggerSchema,
   captured_at: z.string(),
@@ -51,7 +51,7 @@ var QueueEntrySchema = z.object({
   attempts: z.number().int().nonnegative()
 });
 var QueueFileSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   entries: z.array(QueueEntrySchema)
 });
 var DedupCacheEntrySchema = z.object({
@@ -59,7 +59,7 @@ var DedupCacheEntrySchema = z.object({
   expires_at: z.string()
 });
 var DedupCacheFileSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   entries: z.array(DedupCacheEntrySchema)
 });
 var ConfidenceSchema = z.enum(["low", "medium", "high"]);
@@ -87,13 +87,13 @@ var StateLockSchema = z.object({
   ttl_ms: z.number().int().positive()
 });
 var StateFileSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   lock: StateLockSchema.nullable().optional(),
   last_nudged_at: z.string().nullable().optional()
 });
 var NodeKindSchema = z.enum(["practice", "map"]);
 var NodeFrontmatterSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   id: z.string(),
   title: z.string(),
   kind: NodeKindSchema,
@@ -134,13 +134,13 @@ var CuratorActionSchema = z.object({
 });
 var CuratorOutputSchema = z.array(CuratorActionSchema);
 var IndexFrontmatterSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative(),
   budget_tokens: z.number().int().positive()
 });
 var GraphFrontmatterSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative()
 });
@@ -174,7 +174,7 @@ var ConflictReportSchema = z.object({
   proposed_node: CuratorProposedNodeSchema.nullable()
 });
 var PendingConflictsFileSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   conflicts: z.array(ConflictReportSchema)
 });
 var FailureReportSchema = z.object({
@@ -184,7 +184,7 @@ var FailureReportSchema = z.object({
   detail: z.string()
 });
 var SettingsSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   drainBound: z.number().int().positive().optional(),
   maxAttempts: z.number().int().positive().optional(),
   proposalTimeout: z.number().int().positive().optional(),
@@ -198,7 +198,7 @@ var SettingsSchema = z.object({
   bootstrapModel: ModelChoiceSchema.optional()
 }).strict();
 var BootstrapStateSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   last_full_bootstrap_at: z.string().nullable().optional(),
   last_incremental_at: z.string().nullable().optional(),
   docs: z.record(BootstrapDocEntrySchema)
@@ -232,14 +232,14 @@ import { existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as rea
 import { dirname } from "path";
 var DEFAULT_LOCK_TTL_MS = 30 * 60 * 1e3;
 function readState(file) {
-  if (!existsSync2(file)) return { schema_version: 2 };
+  if (!existsSync2(file)) return { schema_version: 1 };
   try {
     const raw = JSON.parse(readFileSync2(file, "utf8"));
     const parsed = StateFileSchema.safeParse(raw);
     if (parsed.success) return parsed.data;
-    return { schema_version: 2 };
+    return { schema_version: 1 };
   } catch {
-    return { schema_version: 2 };
+    return { schema_version: 1 };
   }
 }
 function writeState(file, state) {

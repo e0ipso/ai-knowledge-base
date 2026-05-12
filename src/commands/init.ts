@@ -22,7 +22,7 @@ export interface InitOptions {
 }
 
 interface InstalledVersion {
-  schema_version: 2;
+  schema_version: 1;
   package: string;
   version: string;
   installed_at: string;
@@ -455,7 +455,7 @@ async function installClaude(
 
 function writeInstalledVersion(file: string, stateDir: string, assistants: string[]): void {
   const installed: InstalledVersion = {
-    schema_version: 2,
+    schema_version: 1,
     package: '@e0ipso/ai-knowledge-base',
     version: packageVersion(),
     installed_at: new Date().toISOString(),

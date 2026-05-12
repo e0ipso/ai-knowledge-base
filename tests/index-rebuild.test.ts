@@ -12,7 +12,7 @@ function writeNode(sandbox: string, kind: 'practice' | 'map', id: string): void 
   const dir = join(sandbox, '.ai/knowledge-base/nodes', kind);
   mkdirSync(dir, { recursive: true });
   const fm = {
-    schema_version: 2,
+    schema_version: 1,
     id,
     title: id,
     kind,
@@ -112,7 +112,7 @@ describe('index rebuild', () => {
       badPath,
       [
         '---',
-        'schema_version: 2',
+        'schema_version: 1',
         'id: practice-unquoted',
         'title: "unquoted timestamps"',
         'kind: practice',

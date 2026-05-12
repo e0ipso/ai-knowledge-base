@@ -34,7 +34,7 @@ function makeHarness(): Harness {
 
 function seedSession(harness: Harness, sessionId: string, processed: boolean): void {
   const fm: Record<string, unknown> = {
-    schema_version: 2,
+    schema_version: 1,
     session_id: sessionId,
     captured_by: 'stop',
     captured_at: '2026-05-11T10:00:00Z',
@@ -56,7 +56,7 @@ function seedSession(harness: Harness, sessionId: string, processed: boolean): v
 
 function seedNode(harness: Harness, kind: 'practice' | 'map', id: string): void {
   const fm = {
-    schema_version: 2,
+    schema_version: 1,
     id,
     title: id,
     kind,
@@ -165,7 +165,7 @@ describe('buildSessionStartContext', () => {
   it('respects the hourly throttle (no nudge within 1 hour of last_nudged_at)', () => {
     for (let i = 0; i < DEFAULT_NUDGE_THRESHOLD; i += 1) seedSession(harness, `s-${i}`, false);
     writeState(harness.stateFile, {
-      schema_version: 2,
+      schema_version: 1,
       last_nudged_at: '2026-05-11T10:00:00Z',
     });
     const result = buildSessionStartContext({
@@ -182,7 +182,7 @@ describe('buildSessionStartContext', () => {
   it('re-nudges after the throttle elapses', () => {
     for (let i = 0; i < DEFAULT_NUDGE_THRESHOLD; i += 1) seedSession(harness, `s-${i}`, false);
     writeState(harness.stateFile, {
-      schema_version: 2,
+      schema_version: 1,
       last_nudged_at: '2026-05-11T10:00:00Z',
     });
     const result = buildSessionStartContext({
@@ -211,7 +211,7 @@ describe('buildSessionStartContext', () => {
   it('preserves an existing lock when persisting last_nudged_at', () => {
     for (let i = 0; i < DEFAULT_NUDGE_THRESHOLD; i += 1) seedSession(harness, `s-${i}`, false);
     writeState(harness.stateFile, {
-      schema_version: 2,
+      schema_version: 1,
       lock: {
         name: 'curator',
         pid: 1234,

@@ -10,7 +10,7 @@ export const ProposalStatusSchema = z.enum(['pending', 'done', 'failed', 'skippe
 export type ProposalStatus = z.infer<typeof ProposalStatusSchema>;
 
 export const SessionLogFrontmatterSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   session_id: z.string(),
   captured_by: CaptureTriggerSchema,
   captured_at: z.string(),
@@ -40,7 +40,7 @@ export const QueueEntrySchema = z.object({
 export type QueueEntry = z.infer<typeof QueueEntrySchema>;
 
 export const QueueFileSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   entries: z.array(QueueEntrySchema),
 });
 
@@ -52,7 +52,7 @@ export const DedupCacheEntrySchema = z.object({
 });
 
 export const DedupCacheFileSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   entries: z.array(DedupCacheEntrySchema),
 });
 
@@ -102,7 +102,7 @@ export const StateLockSchema = z.object({
 export type StateLock = z.infer<typeof StateLockSchema>;
 
 export const StateFileSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   lock: StateLockSchema.nullable().optional(),
   last_nudged_at: z.string().nullable().optional(),
 });
@@ -113,7 +113,7 @@ export const NodeKindSchema = z.enum(['practice', 'map']);
 export type NodeKind = z.infer<typeof NodeKindSchema>;
 
 export const NodeFrontmatterSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   id: z.string(),
   title: z.string(),
   kind: NodeKindSchema,
@@ -166,7 +166,7 @@ export const CuratorOutputSchema = z.array(CuratorActionSchema);
 export type CuratorOutput = z.infer<typeof CuratorOutputSchema>;
 
 export const IndexFrontmatterSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative(),
   budget_tokens: z.number().int().positive(),
@@ -174,7 +174,7 @@ export const IndexFrontmatterSchema = z.object({
 export type IndexFrontmatter = z.infer<typeof IndexFrontmatterSchema>;
 
 export const GraphFrontmatterSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative(),
 });
@@ -231,7 +231,7 @@ export const ConflictReportSchema = z.object({
 export type ConflictReport = z.infer<typeof ConflictReportSchema>;
 
 export const PendingConflictsFileSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   conflicts: z.array(ConflictReportSchema),
 });
 export type PendingConflictsFile = z.infer<typeof PendingConflictsFileSchema>;
@@ -265,7 +265,7 @@ export type FailureReport = z.infer<typeof FailureReportSchema>;
  */
 export const SettingsSchema = z
   .object({
-    schema_version: z.literal(2),
+    schema_version: z.literal(1),
     drainBound: z.number().int().positive().optional(),
     maxAttempts: z.number().int().positive().optional(),
     proposalTimeout: z.number().int().positive().optional(),
@@ -282,7 +282,7 @@ export const SettingsSchema = z
 export type SettingsFile = z.infer<typeof SettingsSchema>;
 
 export const BootstrapStateSchema = z.object({
-  schema_version: z.literal(2),
+  schema_version: z.literal(1),
   last_full_bootstrap_at: z.string().nullable().optional(),
   last_incremental_at: z.string().nullable().optional(),
   docs: z.record(BootstrapDocEntrySchema),

@@ -223,7 +223,7 @@ describe('captureSession', () => {
     // Simulate the drainer consuming the queue entry (file stays).
     writeFileSync(
       join(sessionsDir, '.queue.json'),
-      `${JSON.stringify({ schema_version: 2, entries: [] }, null, 2)}\n`
+      `${JSON.stringify({ schema_version: 1, entries: [] }, null, 2)}\n`
     );
 
     // New turn → new transcript hash → capture proceeds.

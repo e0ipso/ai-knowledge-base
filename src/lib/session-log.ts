@@ -20,7 +20,7 @@ export interface SessionLogInput {
 export function renderSessionLog(input: SessionLogInput): string {
   const lines = [
     '---',
-    'schema_version: 2',
+    'schema_version: 1',
     `session_id: ${yamlString(input.sessionId)}`,
     `captured_by: ${input.capturedBy}`,
     `captured_at: ${yamlString(input.capturedAt)}`,

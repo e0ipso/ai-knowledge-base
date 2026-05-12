@@ -22,7 +22,7 @@ function seedNodes(root: string, seeds: NodeSeed[]): void {
     mkdirSync(dir, { recursive: true });
     const body = `# ${s.title}\n\nBody.\n`;
     const fm = matter.stringify(body, {
-      schema_version: 2,
+      schema_version: 1,
       id: s.id,
       title: s.title,
       kind: s.kind,

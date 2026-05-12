@@ -300,7 +300,7 @@ function updateProposalBody(content: string, patch: FrontmatterPatch): string {
 function removeFromQueueHead(queueFile: string, sessionId: string): void {
   const queue = readQueue(queueFile);
   const next = {
-    schema_version: 2 as const,
+    schema_version: 1 as const,
     entries: queue.entries.filter(e => e.session_id !== sessionId),
   };
   atomicWriteJson(queueFile, next);

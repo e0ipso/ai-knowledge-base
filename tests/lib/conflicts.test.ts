@@ -41,7 +41,7 @@ function makeHarness(): Harness {
 
 function seedSession(harness: Harness, sessionId: string, candidates: ProposalCandidate[]): void {
   const fm = {
-    schema_version: 2,
+    schema_version: 1,
     session_id: sessionId,
     captured_by: 'stop',
     captured_at: '2026-05-12T10:00:00Z',
@@ -147,7 +147,7 @@ describe('curate command writes pending-conflicts.json + status surfaces it', ()
     writeFileSync(
       join(nodesDir, 'practice', 'practice-old-target.md'),
       matter.stringify('# old\nbody\n', {
-        schema_version: 2,
+        schema_version: 1,
         id: 'practice-old-target',
         title: 'Old',
         kind: 'practice',
@@ -167,7 +167,7 @@ describe('curate command writes pending-conflicts.json + status surfaces it', ()
     writeFileSync(
       join(sessionsDir, 'session-x.md'),
       matter.stringify('## Proposal', {
-        schema_version: 2,
+        schema_version: 1,
         session_id: 'x',
         captured_by: 'stop',
         captured_at: '2026-05-12T10:00:00Z',
@@ -211,7 +211,7 @@ describe('curate command writes pending-conflicts.json + status surfaces it', ()
       file,
       JSON.stringify(
         {
-          schema_version: 2,
+          schema_version: 1,
           conflicts: [
             {
               id: 'c1',

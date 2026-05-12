@@ -57,7 +57,7 @@ function seedSession(sandbox: string, sessionId: string): string {
     join(sessionsDir, '.queue.json'),
     JSON.stringify(
       {
-        schema_version: 2,
+        schema_version: 1,
         entries: [
           {
             session_id: sessionId,

@@ -42,7 +42,7 @@ describe('dedup-cache', () => {
       schema_version: number;
       entries: Array<{ hash: string; expires_at: string }>;
     };
-    expect(parsed.schema_version).toBe(2);
+    expect(parsed.schema_version).toBe(1);
     expect(parsed.entries).toHaveLength(1);
     expect(parsed.entries[0]?.hash).toBe('sha256:abc');
   });

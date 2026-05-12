@@ -133,7 +133,7 @@ export function projectConfigPath(kbDir: string): string {
  */
 export function defaultProjectConfigBody(): string {
   const body: SettingsFile = {
-    schema_version: 2,
+    schema_version: 1,
     drainBound: SETTINGS_DEFAULTS.drainBound,
     maxAttempts: SETTINGS_DEFAULTS.maxAttempts,
     proposalTimeout: SETTINGS_DEFAULTS.proposalTimeout,

@@ -16,14 +16,14 @@ describe('state.json lock', () => {
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
   it('returns schema_version stub when file is missing', () => {
-    expect(readState(file)).toEqual({ schema_version: 2 });
+    expect(readState(file)).toEqual({ schema_version: 1 });
   });
 
   it('acquires a fresh lock and writes it to disk', () => {
     const now = new Date('2026-05-11T10:00:00Z');
     expect(acquireLock(file, { name: 'proposal-drain', pid: 1234, now })).toBe(true);
     const onDisk = JSON.parse(readFileSync(file, 'utf8'));
-    expect(onDisk.schema_version).toBe(2);
+    expect(onDisk.schema_version).toBe(1);
     expect(onDisk.lock.name).toBe('proposal-drain');
     expect(onDisk.lock.pid).toBe(1234);
     expect(onDisk.lock.acquired_at).toBe('2026-05-11T10:00:00.000Z');
@@ -62,7 +62,7 @@ describe('state.json lock', () => {
 
   it('preserves last_nudged_at across lock cycles', () => {
     writeState(file, {
-      schema_version: 2,
+      schema_version: 1,
       last_nudged_at: '2026-05-11T09:00:00Z',
     });
     const now = new Date('2026-05-11T10:00:00Z');

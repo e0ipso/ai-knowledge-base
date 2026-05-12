@@ -66,7 +66,7 @@ describe('init', () => {
     const installed = JSON.parse(
       readFileSync(join(sandbox, '.ai/knowledge-base/.state/installed-version'), 'utf8')
     );
-    expect(installed.schema_version).toBe(2);
+    expect(installed.schema_version).toBe(1);
     expect(installed.package).toBe('@e0ipso/ai-knowledge-base');
     expect(typeof installed.version).toBe('string');
     expect(installed.version.length).toBeGreaterThan(0);
@@ -198,7 +198,7 @@ describe('init', () => {
     const body = yaml.load(
       readFileSync(join(sandbox, '.ai/knowledge-base/config.yaml'), 'utf8')
     ) as Record<string, unknown>;
-    expect(body['schema_version']).toBe(2);
+    expect(body['schema_version']).toBe(1);
     expect(body['drainBound']).toBe(5);
     expect(body['maxAttempts']).toBe(3);
     expect(body['proposalTimeout']).toBe(60000);
@@ -211,7 +211,7 @@ describe('init', () => {
   it('does not overwrite an existing config.yaml even with --force', async () => {
     await runCli(sandbox, ['init', '--assistants', 'claude']);
     const configFile = join(sandbox, '.ai/knowledge-base/config.yaml');
-    const customized = 'schema_version: 2\ndrainBound: 99\n';
+    const customized = 'schema_version: 1\ndrainBound: 99\n';
     writeFileSync(configFile, customized);
 
     const result = await runCli(sandbox, ['init', '--assistants', 'claude', '--force']);

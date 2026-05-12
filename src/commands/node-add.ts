@@ -68,7 +68,7 @@ export async function runNodeAdd(opts: NodeAddOptions = {}): Promise<number> {
   const now = (opts.now ?? new Date()).toISOString();
 
   const frontmatter: NodeFrontmatter = {
-    schema_version: 2,
+    schema_version: 1,
     id,
     title,
     kind,

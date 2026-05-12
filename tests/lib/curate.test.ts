@@ -47,7 +47,7 @@ function seedSession(
 ): string {
   const filename = `session-${sessionId}.md`;
   const fm = {
-    schema_version: 2,
+    schema_version: 1,
     session_id: sessionId,
     captured_by: 'stop',
     captured_at: capturedAt,
@@ -74,7 +74,7 @@ function seedExistingNode(
   const dir = join(harness.nodesDir, kind);
   mkdirSync(dir, { recursive: true });
   const fm = {
-    schema_version: 2,
+    schema_version: 1,
     id,
     title: `${id} title`,
     kind,
@@ -149,7 +149,7 @@ describe('listPendingSessions', () => {
     seedSession(harness, 'a', [makeCandidate('practice', 'A')], []);
     // pending session — not yet proposal done.
     const fm = {
-      schema_version: 2,
+      schema_version: 1,
       session_id: 'pending',
       captured_by: 'stop',
       captured_at: '2026-05-12T10:00:00Z',
