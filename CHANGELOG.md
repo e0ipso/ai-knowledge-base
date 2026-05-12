@@ -1,3 +1,14 @@
+## [1.1.0](https://github.com/e0ipso/ai-knowledge-base/compare/v1.0.0...v1.1.0) (2026-05-12)
+
+### Features
+
+* setup task manager and kb ([44e76b3](https://github.com/e0ipso/ai-knowledge-base/commit/44e76b3e3eaef774672e19b155028c5293d56bc0))
+* use lintstaged ([eaf40f2](https://github.com/e0ipso/ai-knowledge-base/commit/eaf40f2ab8128dd01d1a028dfcb867c86a62659b))
+
+### Bug Fixes
+
+* make config.yaml not JSON ([e38feae](https://github.com/e0ipso/ai-knowledge-base/commit/e38feaeede0db11d38f4a9d91918c22b5f228592))
+
 ## [1.0.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.2.0...v1.0.0) (2026-05-12)
 
 ### ⚠ BREAKING CHANGES
