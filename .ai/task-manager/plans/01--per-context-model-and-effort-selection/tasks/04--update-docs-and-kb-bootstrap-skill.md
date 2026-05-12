@@ -2,7 +2,7 @@
 id: 4
 group: "docs"
 dependencies: [1]
-status: "pending"
+status: "completed"
 created: 2026-05-12
 skills:
   - docs

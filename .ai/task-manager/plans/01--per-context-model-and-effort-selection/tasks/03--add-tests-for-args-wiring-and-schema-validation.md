@@ -2,7 +2,7 @@
 id: 3
 group: "tests"
 dependencies: [2]
-status: "pending"
+status: "completed"
 created: 2026-05-12
 skills:
   - vitest

@@ -214,21 +214,50 @@ No circular dependencies.
 **Validation Gates:**
 - Reference: `/config/hooks/POST_PHASE.md`
 
-### Phase 1: Infrastructure plumbing
+### ✅ Phase 1: Infrastructure plumbing
 **Parallel Tasks:**
-- Task 001: Add model/effort schema fields and headless runner seam
+- ✔️ Task 001: Add model/effort schema fields and headless runner seam
 
-### Phase 2: Wiring and docs
+### ✅ Phase 2: Wiring and docs
 **Parallel Tasks:**
-- Task 002: Wire three subprocess callers to read resolved model settings (depends on: 001)
-- Task 004: Update docs, example config, and kb-bootstrap skill for new model keys (depends on: 001)
+- ✔️ Task 002: Wire three subprocess callers to read resolved model settings (depends on: 001)
+- ✔️ Task 004: Update docs, example config, and kb-bootstrap skill for new model keys (depends on: 001)
 
-### Phase 3: Verification
+### ✅ Phase 3: Verification
 **Parallel Tasks:**
-- Task 003: Add tests for args wiring and schema validation (depends on: 002)
+- ✔️ Task 003: Add tests for args wiring and schema validation (depends on: 002)
 
 ### Post-phase Actions
 
 ### Execution Summary
 - Total Phases: 3
 - Total Tasks: 4
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-12
+
+### Results
+
+All four tasks landed across five commits on `feature/1--per-context-model-and-effort-selection`:
+
+- `feat(schema): per-context model and effort knobs` (Task 001): adds `ModelFamilySchema`, `EffortLevelSchema`, and three optional `ModelChoiceSchema` fields (`stage2Model`, `curatorModel`, `bootstrapModel`) to `SettingsSchema`; threads `model`/`effort` through `RunHeadlessOptions` and the Adapter `HeadlessOpts` so spawns append `--model`/`--effort` only when set.
+- `feat: wire per-context model/effort to callers` (Task 002): `EffectiveSettings` exposes the three keys; `resolveSettings` layers them; `Stage2Runner`, `CuratorRunner`, and `BootstrapRunner` accept the optional pair; the three subprocess sites (`kb-stage2-drain` hook, `curate` CLI, `bootstrap-incremental` CLI) forward whichever pair is set.
+- `docs: model/effort config keys and skill note` (Task 004): Model and effort selection subsection in `docs/cli-reference.md`, paragraph in `docs/internals/architecture.md`, commented-out example block in `.ai/knowledge-base/config.yaml`, and a Configuration section in the kb-bootstrap SKILL.md (source, built, and installed copies) instructing the agent to forward `bootstrapModel.name` to Task-tool sub-agents.
+- `test: cover model/effort wiring and validation` (Task 003): headless seam tests for `--model`/`--effort` argument assembly, SettingsSchema acceptance and rejection tests (invalid enums, half-set objects, unknown sub-keys), and per-caller wiring tests for stage-2 drain, curate, and bootstrap.
+
+Validation gates pass: `npm run lint`, `npm run typecheck`, and `npm test` (212 tests, 7 new). Self-validation against `npx ai-knowledge-base doctor` confirms the new keys load cleanly when absent, when set to valid values, when set to invalid values (rejected with `Invalid enum value. Expected 'haiku' | 'sonnet' | 'opus', received 'turbo'`), and when set with only one half of the inner object (rejected with `stage2Model.effort: Required`).
+
+### Noteworthy Events
+
+- `create-feature-branch.cjs` initially refused to run because the working tree on `main` carried substantial uncommitted work unrelated to this plan (KB refresh, curator verbose-mode feature, docs cross-links, task-manager scaffolding, runtime artifacts). Per user direction, those changes were committed as five separate atomic prep commits on `main` before the feature branch was created. The runtime artifacts `pending-conflicts.json` and `review.xml` were added to `.gitignore`.
+- The `pre-git-safety` user hook rejects any `git commit` whose command line matches `\bClaude\b`, `Co-Authored-By:`, or a 50/72 message-length rule. File paths under `.claude/skills/` therefore had to be staged before invoking `git commit` so the file paths did not appear in the commit's command line, and several commit subjects were rewritten to stay within 50 characters.
+- `EffectiveSettings` is derived from `SETTINGS_DEFAULTS`, not from `SettingsSchema`; layering the new optional model fields required extending `EffectiveSettings` explicitly and adding a `MODEL_CHOICE_KEYS` override loop in `applyOverrides`.
+- The kb-bootstrap SKILL.md exists in three locations (`src/templates-source/`, the built `templates/`, and the installed copy under `.claude/skills/`). All three were updated.
+
+### Necessary follow-ups
+
+- The lib-level `curate.test.ts` adds `c2` and `c3` sessions for the wiring test using a small per-call deduplication trick (the harness produces distinct timestamps); if future tests need more sessions in the same describe, the harness could grow a `seedSession(harness, id, ...)` overload that takes an explicit `capturedAt` (currently only `seedSession` in curate.test.ts supports that, not the one in stage2-drain.test.ts).
+- `bootstrapModel.effort` is documented as ignored on the `/kb-bootstrap` skill path because the `Task` tool exposes no `effort` parameter. If the Task tool grows that parameter, update the skill markdown and the docs to honor it.
+- No CHANGELOG entry was written by hand; semantic-release will pick the commits up from `feat:` and `docs:` prefixes.
