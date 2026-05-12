@@ -52,6 +52,7 @@
     "source=${localEnv:HOME}/.claude/settings.json,target=/home/node/.claude/settings.json,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.claude/skills,target=/home/node/.claude/skills,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.claude/hooks,target=/home/node/.claude/hooks,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.claude/commands,target=/home/node/.claude/commands,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.config/gh/hosts.yml,target=/home/node/.config/gh/hosts.yml,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.gitconfig,target=/home/node/.gitconfig,type=bind,consistency=cached",
     "source=${localEnv:SSH_AUTH_SOCK},target=/ssh-agent,type=bind"
