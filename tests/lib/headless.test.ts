@@ -72,7 +72,7 @@ describe('runHeadlessClaude', () => {
         result: JSON.stringify({ ok: true, n: 1 }),
       }),
     ]);
-    const logFile = join(dir, 'logs', 'stage-2', 'a.jsonl');
+    const logFile = join(dir, 'logs', 'proposal', 'a.jsonl');
     await runHeadlessClaude('prompt', '', Schema, { spawn, logFile });
     const lines = readFileSync(logFile, 'utf8').trim().split('\n');
     expect(lines).toHaveLength(2);

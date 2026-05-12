@@ -12,5 +12,5 @@ For contributors and adapter authors. **Day-to-day users do not need anything he
 - [Architecture](architecture.md) - code layout, state files, locking, determinism contract.
 - [Hooks](hooks.md) - what each hook does and when it fires.
 - [Schemas](schemas.md) - frontmatter and state-file shapes.
-- [Prompts](prompts.md) - editing the stage-2, curator, and bootstrap prompts.
+- [Prompts](prompts.md) - editing the proposal, curator, and bootstrap prompts.
 - [Manual test plan](manual-test-plan.md) - pre-release checks that resist automation.

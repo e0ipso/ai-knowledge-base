@@ -60,7 +60,7 @@ async function loadResolvedConfig(cwd: string): Promise<unknown> {
 /**
  * Runs secretlint against the provided text. Times out after `timeoutMs`
  * (default 1000 ms). On timeout or library failure, returns `blocked`
- * so stage-1 capture aborts per IMPLEMENTATION §5.1.
+ * so transcript capture aborts per IMPLEMENTATION §5.1.
  */
 export async function scanAndRedact(text: string, timeoutMs = 1000): Promise<SecretScanResult> {
   let timer: NodeJS.Timeout | undefined;

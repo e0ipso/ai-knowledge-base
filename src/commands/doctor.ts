@@ -327,7 +327,7 @@ const EXPECTED_HOOK_SCRIPTS: Record<string, string[]> = {
   Stop: ['.claude/hooks/kb-capture.mjs'],
   SessionEnd: ['.claude/hooks/kb-capture.mjs'],
   PreCompact: ['.claude/hooks/kb-capture.mjs'],
-  SessionStart: ['.claude/hooks/kb-stage2-drain.mjs', '.claude/hooks/kb-session-start.mjs'],
+  SessionStart: ['.claude/hooks/kb-proposal-drain.mjs', '.claude/hooks/kb-session-start.mjs'],
 };
 
 function checkClaudeHooks(settingsFile: string, hooksDir: string): CheckResult {
@@ -396,10 +396,10 @@ function checkClaudeSkills(skillsDir: string): CheckResult {
 }
 
 function checkPrompts(promptsDir: string): CheckResult {
-  const expected = ['stage-2-extract.md', 'curator.md', 'bootstrap-incremental.md'];
+  const expected = ['proposal-extract.md', 'curator.md', 'bootstrap-incremental.md'];
   const missing = expected.filter(p => !existsSync(join(promptsDir, p)));
   if (missing.length === 0) {
-    return { ok: true, detail: 'stage-2, curator, bootstrap-incremental' };
+    return { ok: true, detail: 'proposal-extract, curator, bootstrap-incremental' };
   }
   return {
     ok: false,

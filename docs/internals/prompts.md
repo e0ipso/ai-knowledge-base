@@ -6,19 +6,25 @@ nav_order: 4
 
 # Customizing prompts
 
-The three LLM pipelines (stage-2 extraction, curator, bootstrap-incremental) each load their prompt from a local override path, falling back to the bundled template. To customize, edit the file under `.ai/knowledge-base/.config/prompts/`. Delete it to revert.
+The three LLM pipelines (proposal extraction, curator, bootstrap-incremental) each load their prompt from a local override path, falling back to the bundled template. To customize, edit the file under `.ai/knowledge-base/.config/prompts/`. Delete it to revert.
 
 Bump the top-of-file `Version: N` comment on every behavior change; logs record the prompt content so historic decisions stay auditable.
 
+## Prompt versions
+
+- `proposal-extract.md` (v2): drives the async proposal-drain hook to convert a redacted transcript into structured practice and map candidates.
+- `curator.md` (v3): consumes a batch of proposal outputs and the referenced existing nodes, emits add/modify/contradict/drop actions applied directly to `nodes/`.
+- `bootstrap-incremental.md` (v2): converts a chunk of repo markdown into the same candidate shape as the proposal extractor, with provenance pointing back at source files.
+
 | Pipeline | Local override | Bundled fallback |
 |---|---|---|
-| Stage-2 extraction | `.config/prompts/stage-2-extract.md` | `templates/prompts/stage-2-extract.md` |
+| Proposal extraction | `.config/prompts/proposal-extract.md` | `templates/prompts/proposal-extract.md` |
 | Curator | `.config/prompts/curator.md` | `templates/prompts/curator.md` |
 | Bootstrap-incremental | `.config/prompts/bootstrap-incremental.md` | `templates/prompts/bootstrap-incremental.md` |
 
 For the agent-driven `/kb-bootstrap` skill, edit `.claude/skills/kb-bootstrap/SKILL.md` instead.
 
-## Stage-2 prompt
+## Proposal prompt
 
 The biggest quality lever in capture. Controls what the extractor treats as worth remembering.
 
@@ -29,7 +35,7 @@ The biggest quality lever in capture. Controls what the extractor treats as wort
 3. **What to skip** - typos, file reads, agent paraphrases, generic programming knowledge.
 4. **Ownership boundary** - how to split combined statements between practice and map.
 5. **Inline example** - a worked transcript with expected JSON.
-6. **Output schema** - must match `Stage2OutputSchema`.
+6. **Output schema** - must match `ProposalOutputSchema`.
 
 The drain replaces `[TRANSCRIPT PLACEHOLDER - substituted at runtime]` with the redacted slice. If the placeholder is removed, the transcript is appended at the end.
 
@@ -44,11 +50,11 @@ Mocked tests pin the schema; only real `claude -p` reveals prompt quality. Run t
 
 ### Schema
 
-Output shape must match `Stage2OutputSchema` in `src/lib/schemas.ts`. New fields mean extending the Zod schema. Bump `schema_version` on rename, removal, or semantic change; new optional fields don't bump.
+Output shape must match `ProposalOutputSchema` in `src/lib/schemas.ts`. New fields mean extending the Zod schema. Bump `schema_version` on rename, removal, or semantic change; new optional fields don't bump.
 
 ## Curator prompt
 
-Decides what happens to every stage-2 candidate: add, modify, contradict, or drop. Second-biggest quality lever.
+Decides what happens to every proposal candidate: add, modify, contradict, or drop. Second-biggest quality lever.
 
 ### Input
 
@@ -138,21 +144,21 @@ The chunk replaces `[CHUNK PLACEHOLDER - substituted at runtime]`. If removed, t
 
 Every LLM pipeline writes a stream-JSON trace under `.ai/knowledge-base/_logs/`. Gitignored.
 
-### Stage-2 - `_logs/stage-2/<session-id>__<ts>.jsonl`
+### Proposal - `_logs/proposal/<session-id>__<ts>.jsonl`
 
 | Line type | What it is |
 |---|---|
 | `system / init` | Records session id and resolved model. |
 | `assistant` | Intermediate streamed turns. |
 | `user` | Rare follow-ups. |
-| `result` | Final message. Parsed as JSON, validated against `Stage2OutputSchema`. |
+| `result` | Final message. Parsed as JSON, validated against `ProposalOutputSchema`. |
 
 Common failures:
 
 - **No final result** - `claude` was killed or timed out. Check timestamps. The entry retries; three failures mark it `skipped`.
 - **Schema mismatch** - model emitted extra prose or skipped a field. Inspect `result` text; tune the prompt if consistent.
 
-To force re-extraction of a skipped entry: set `stage_2_status: pending` in the session log, clear `stage_2_error`, and re-add the path to `_sessions/.queue.json`.
+To force re-extraction of a skipped entry: set `proposal_status: pending` in the session log, clear `proposal_error`, and re-add the path to `_sessions/.queue.json`.
 
 ### Curator - `_logs/curator/<run-id>__<ts>.jsonl`
 

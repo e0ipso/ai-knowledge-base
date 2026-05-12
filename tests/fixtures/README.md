@@ -6,13 +6,13 @@ These fixtures drive the integration and golden-file tests described in IMPLEMEN
 
 ### `routine-zero/`
 
-Lower-bound stage-2 calibration. A synthetic Claude Code session containing only routine work — bug fixes, refactors, file exploration, agent paraphrasing of user instructions. The stage-2 extraction prompt must produce `{"practice": [], "map": []}` on this input. Any output here is over-capture.
+Lower-bound proposal calibration. A synthetic Claude Code session containing only routine work (bug fixes, refactors, file exploration, agent paraphrasing of user instructions). The proposal extraction prompt must produce `{"practice": [], "map": []}` on this input. Any output here is over-capture.
 
 ### `bravo-insider/`
 
-Upper-bound stage-2 calibration. A synthetic session containing four teaching moments, three new-feature introductions, decision rationale, and several routine items that must be ignored. The stage-2 prompt should produce 4 practice candidates and 3 map candidates (see `expected.md`).
+Upper-bound proposal calibration. A synthetic session containing four teaching moments, three new-feature introductions, decision rationale, and several routine items that must be ignored. The proposal extraction prompt should produce 4 practice candidates and 3 map candidates (see `expected.md`).
 
-`existing-kb.md` is the fixture KB used to test curator decisions against the bravo-insider stage-2 output. It contains four existing nodes — one stale, one default-with-exception — chosen to exercise modify/contradict/add-with-relates_to behavior.
+`existing-kb.md` is the fixture KB used to test curator decisions against the bravo-insider proposal output. It contains four existing nodes (one stale, one default-with-exception) chosen to exercise modify/contradict/add-with-relates_to behavior.
 
 ## `bootstrap-docs/`
 

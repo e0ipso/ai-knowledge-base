@@ -12,7 +12,7 @@ import {
   runCurate,
   type CuratorRunner,
 } from '../../src/lib/curate.js';
-import type { CuratorAction, NodeFrontmatter, Stage2Candidate } from '../../src/lib/schemas.js';
+import type { CuratorAction, NodeFrontmatter, ProposalCandidate } from '../../src/lib/schemas.js';
 import { acquireLock, readState } from '../../src/lib/state.js';
 
 interface Harness {
@@ -41,26 +41,26 @@ function makeHarness(): Harness {
 function seedSession(
   harness: Harness,
   sessionId: string,
-  practice: Stage2Candidate[],
-  map: Stage2Candidate[],
+  practice: ProposalCandidate[],
+  map: ProposalCandidate[],
   capturedAt = '2026-05-12T10:00:00Z'
 ): string {
   const filename = `session-${sessionId}.md`;
   const fm = {
-    schema_version: 1,
+    schema_version: 2,
     session_id: sessionId,
     captured_by: 'stop',
     captured_at: capturedAt,
     transcript_hash: `sha256:${sessionId}`,
-    stage_2_status: 'done',
-    stage_2_completed_at: capturedAt,
-    stage_2_error: null,
-    stage_2_log: `_logs/stage-2/${sessionId}.jsonl`,
+    proposal_status: 'done',
+    proposal_completed_at: capturedAt,
+    proposal_error: null,
+    proposal_log: `_logs/proposal/${sessionId}.jsonl`,
     secret_scan_status: 'clean',
     topics: [],
     proposals: { practice, map },
   };
-  const body = matter.stringify('## Stage 2: structured summary\n', fm);
+  const body = matter.stringify('## Proposal\n', fm);
   writeFileSync(join(harness.sessionsDir, filename), body);
   return filename;
 }
@@ -74,7 +74,7 @@ function seedExistingNode(
   const dir = join(harness.nodesDir, kind);
   mkdirSync(dir, { recursive: true });
   const fm = {
-    schema_version: 1,
+    schema_version: 2,
     id,
     title: `${id} title`,
     kind,
@@ -93,7 +93,7 @@ function seedExistingNode(
   writeFileSync(join(dir, `${id}.md`), matter.stringify(body, fm));
 }
 
-function makeCandidate(kind: 'practice' | 'map', title: string): Stage2Candidate {
+function makeCandidate(kind: 'practice' | 'map', title: string): ProposalCandidate {
   return {
     kind,
     tags: ['t'],
@@ -145,19 +145,19 @@ describe('listPendingSessions', () => {
   beforeEach(() => (harness = makeHarness()));
   afterEach(() => rmSync(harness.root, { recursive: true, force: true }));
 
-  it('returns only stage_2_status=done sessions that have not yet been curated', () => {
+  it('returns only proposal_status=done sessions that have not yet been curated', () => {
     seedSession(harness, 'a', [makeCandidate('practice', 'A')], []);
-    // pending session — not yet stage-2 done.
+    // pending session — not yet proposal done.
     const fm = {
-      schema_version: 1,
+      schema_version: 2,
       session_id: 'pending',
       captured_by: 'stop',
       captured_at: '2026-05-12T10:00:00Z',
       transcript_hash: 'sha256:pending',
-      stage_2_status: 'pending',
-      stage_2_completed_at: null,
-      stage_2_error: null,
-      stage_2_log: null,
+      proposal_status: 'pending',
+      proposal_completed_at: null,
+      proposal_error: null,
+      proposal_log: null,
       secret_scan_status: 'clean',
       topics: [],
       proposals: { practice: [], map: [] },

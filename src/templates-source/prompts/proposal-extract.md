@@ -1,8 +1,8 @@
-# Stage-2 Extraction Prompt
+# Proposal Extraction Prompt
 
 <!--
-  Version: 1
-  Used by: kb-stage2-drain.mjs (via `claude -p`)
+  Version: 2
+  Used by: kb-proposal-drain.mjs (via `claude -p`)
   Owner contract: produces the structured `proposals.practice` and `proposals.map` arrays
   for a session log. Must emit one JSON object on stdout as the final message.
 -->

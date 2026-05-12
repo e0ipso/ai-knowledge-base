@@ -22,7 +22,7 @@ function makeHarness(): Harness {
 
 function writeNode(harness: Harness, id: string, derivedFrom: string[]): void {
   const fm = {
-    schema_version: 1,
+    schema_version: 2,
     id,
     title: id,
     kind: 'practice',

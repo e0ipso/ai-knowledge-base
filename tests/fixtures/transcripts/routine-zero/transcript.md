@@ -1,6 +1,6 @@
 # Fixture: Session Transcript — Routine work, zero captures expected
 
-This is a synthetic Claude Code session containing only routine work. The stage-2 extraction prompt should produce `{"practice": [], "map": []}` against this transcript. If it produces anything, the prompt is over-capturing.
+This is a synthetic Claude Code session containing only routine work. The proposal extraction prompt should produce `{"practice": [], "map": []}` against this transcript. If it produces anything, the prompt is over-capturing.
 
 The session deliberately contains:
 

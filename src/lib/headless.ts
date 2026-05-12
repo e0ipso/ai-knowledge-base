@@ -169,7 +169,7 @@ export async function runHeadlessClaude<T>(
 
   const validated = schema.safeParse(parsedJson);
   if (!validated.success) {
-    throw new Error(`stage-2 output did not match schema: ${validated.error.message}`);
+    throw new Error(`proposal output did not match schema: ${validated.error.message}`);
   }
   return validated.data;
 }

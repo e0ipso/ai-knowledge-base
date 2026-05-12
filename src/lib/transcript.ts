@@ -71,8 +71,8 @@ export function parseTranscriptJsonl(text: string): RoleTaggedTranscript {
 
 /**
  * Renders the role-tagged transcript in the `[USER]: ...` / `[AGENT]: ...`
- * format consumed by the stage-2 extraction prompt and stored in the
- * session log under the "Stage 1: redacted transcript slice" section.
+ * format consumed by the proposal extraction prompt and stored in the
+ * session log under the "Transcript" section.
  */
 export function renderRoleTagged(t: RoleTaggedTranscript): string {
   return t.interleaved

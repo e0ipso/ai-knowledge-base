@@ -181,7 +181,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 
 function writePendingConflicts(file: string, conflicts: ConflictReport[]): void {
   mkdirSync(join(file, '..'), { recursive: true });
-  const payload: PendingConflictsFile = { schema_version: 1, conflicts };
+  const payload: PendingConflictsFile = { schema_version: 2, conflicts };
   writeFileSync(file, `${JSON.stringify(payload, null, 2)}\n`);
 }
 

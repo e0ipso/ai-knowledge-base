@@ -5,14 +5,14 @@ import yaml from 'js-yaml';
 import { SettingsSchema, type ModelChoice, type SettingsFile } from './schemas.js';
 
 /**
- * Documented defaults. These mirror the constants used by `stage2-drain.ts`,
+ * Documented defaults. These mirror the constants used by `proposal-drain.ts`,
  * `curate.ts`, `bootstrap.ts`, `index-gen.ts`, and `session-start.ts`. Changing
  * a default here changes the value used when no `config.yaml` overrides it.
  */
 export const SETTINGS_DEFAULTS = {
   drainBound: 5,
   maxAttempts: 3,
-  stage2Timeout: 60_000,
+  proposalTimeout: 60_000,
   lockTtlMs: 30 * 60 * 1000,
   indexBudgetTokens: 2000,
   curationThreshold: 5,
@@ -23,12 +23,12 @@ export const SETTINGS_DEFAULTS = {
 export type EffectiveSettings = {
   -readonly [K in keyof typeof SETTINGS_DEFAULTS]: (typeof SETTINGS_DEFAULTS)[K];
 } & {
-  stage2Model?: ModelChoice;
+  proposalModel?: ModelChoice;
   curatorModel?: ModelChoice;
   bootstrapModel?: ModelChoice;
 };
 
-const MODEL_CHOICE_KEYS = ['stage2Model', 'curatorModel', 'bootstrapModel'] as const;
+const MODEL_CHOICE_KEYS = ['proposalModel', 'curatorModel', 'bootstrapModel'] as const;
 
 export type ResolveSettingsResult = {
   settings: EffectiveSettings;
@@ -133,10 +133,10 @@ export function projectConfigPath(kbDir: string): string {
  */
 export function defaultProjectConfigBody(): string {
   const body: SettingsFile = {
-    schema_version: 1,
+    schema_version: 2,
     drainBound: SETTINGS_DEFAULTS.drainBound,
     maxAttempts: SETTINGS_DEFAULTS.maxAttempts,
-    stage2Timeout: SETTINGS_DEFAULTS.stage2Timeout,
+    proposalTimeout: SETTINGS_DEFAULTS.proposalTimeout,
     lockTtlMs: SETTINGS_DEFAULTS.lockTtlMs,
     indexBudgetTokens: SETTINGS_DEFAULTS.indexBudgetTokens,
     curationThreshold: SETTINGS_DEFAULTS.curationThreshold,

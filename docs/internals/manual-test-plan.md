@@ -25,7 +25,7 @@ npx @e0ipso/ai-knowledge-base doctor
 
 ## 1. Platform smoke
 
-For each OS, set up a clean sandbox and trigger one `Stop` capture. Confirm `_sessions/` contains one new file with `secret_scan_status: clean` and `stage_2_status: pending`.
+For each OS, set up a clean sandbox and trigger one `Stop` capture. Confirm `_sessions/` contains one new file with `secret_scan_status: clean` and `proposal_status: pending`.
 
 - [ ] macOS (latest)
 - [ ] Linux (Ubuntu 22.04+)
@@ -61,18 +61,18 @@ Quality judgment.
 
 1. [ ] Fresh sandbox.
 2. [ ] 10-15 messages of substantive conversation about an invented project. End the session.
-3. [ ] `_sessions/` shows one `stage_2_status: pending` log.
-4. [ ] Open a new session. Wait 30-90s. `_logs/stage-2/` has a new `.jsonl`. Log flips to `stage_2_status: done`.
+3. [ ] `_sessions/` shows one `proposal_status: pending` log.
+4. [ ] Open a new session. Wait 30-90s. `_logs/proposal/` has a new `.jsonl`. Log flips to `proposal_status: done`.
 5. [ ] `curate` writes 1-4 nodes under `nodes/` and regenerates `INDEX.md`. Are these the **right** facts to remember? (Target: ≥80% acceptance.)
 6. [ ] `git diff nodes/` shows the new files. `git add` the ones you want, `git commit`. The pre-commit hook regenerates and stages a fresh `INDEX.md`/`GRAPH.md` into the same commit. `git restore nodes/<unwanted>.md` to drop the rest.
 7. [ ] One more session. Ask Claude "what do you know about this project?" The response references something committed.
 
-If curator output is clearly noise, bump the stage-2 prompt's `Version:` and tighten "what to skip".
+If curator output is clearly noise, bump the proposal prompt's `Version:` and tighten "what to skip".
 
 ## 5. `init --upgrade` against an older install
 
 1. [ ] Install the last published version. Commit.
-2. [ ] Edit `stage-2-extract.md` (add a sentinel) and add a custom key to `config.yaml`.
+2. [ ] Edit `proposal-extract.md` (add a sentinel) and add a custom key to `config.yaml`.
 3. [ ] Install the candidate build.
 4. [ ] `init --upgrade --dry-run`. Read the changelist.
 5. [ ] `init --upgrade`. Confirm:
@@ -84,7 +84,7 @@ If curator output is clearly noise, bump the stage-2 prompt's `Version:` and tig
 
 ## 6. `logs prune` on real logs
 
-- [ ] After §4, both `_logs/stage-2/` and `_logs/curator/` have 1-3 JSONL files.
+- [ ] After §4, both `_logs/proposal/` and `_logs/curator/` have 1-3 JSONL files.
 - [ ] Backdate one: `touch -d "60 days ago" <file>`.
 - [ ] `logs prune --dry-run` lists the backdated file. Recent files aren't listed.
 - [ ] `logs prune` deletes only the backdated file.
@@ -134,7 +134,7 @@ Automated tests cover these:
 
 - Frontmatter Zod parsing (`tests/lib/schemas.test.ts`)
 - `nodes_hash`, INDEX/GRAPH determinism (`tests/lib/index-gen.test.ts`)
-- Pipeline logic with mocked subprocess (`tests/lib/{stage2-drain,curate,bootstrap}.test.ts`)
+- Pipeline logic with mocked subprocess (`tests/lib/{proposal-drain,curate,bootstrap}.test.ts`)
 - CLI argument parsing (per-command integration tests)
 - Logs-prune duration parsing (`tests/lib/logs-prune.test.ts`)
 

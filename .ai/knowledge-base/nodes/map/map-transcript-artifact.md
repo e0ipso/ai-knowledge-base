@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: map-transcript-artifact
 title: 'Transcript: raw session capture in the KB pipeline'
 kind: map
@@ -17,13 +17,10 @@ derived_from:
 relates_to:
   - map-proposal-artifact
   - map-sessions-directory
-  - practice-rename-stage-vocab-to-transcript-proposal
 depends_on: []
 confidence: high
 summary: >-
   The 'Transcript' is the raw role-tagged session log fed into the KB extraction
-  pipeline (formerly 'Stage 1').
+  pipeline.
 ---
 In the project's knowledge-base pipeline, the 'Transcript' artifact is the role-tagged session log (lines prefixed `[USER]:` / `[AGENT]:`) captured from an AI coding session. It is the input to the Proposal extraction step. Stored under `_sessions/` and referenced by `## Transcript` section headers in session logs.
-
-Formerly called 'Stage 1'; see `practice-rename-stage-vocab-to-transcript-proposal`.

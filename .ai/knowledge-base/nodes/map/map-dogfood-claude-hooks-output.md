@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: map-dogfood-claude-hooks-output
 title: '.claude/hooks/*.mjs: this repo''s own init output (dogfooding)'
 kind: map

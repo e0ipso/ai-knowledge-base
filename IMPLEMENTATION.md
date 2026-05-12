@@ -13,7 +13,7 @@ Two separately versioned, separately distributed pieces:
 │  • CLI: init, curate, status, doctor, ...       │
 │  • Hook scripts (compiled JS in templates/)    │
 │  • Skill definitions (.claude/skills/...)      │
-│  • Stage-2 extractor & curator prompts         │
+│  • Proposal extractor & curator prompts        │
 └────────────────────────────────────────────────┘
                        │
                        │ writes to / reads from
@@ -36,7 +36,7 @@ Two separately versioned, separately distributed pieces:
               └──────────────────┘
 ```
 
-LLM-driven steps (stage-2 extraction, curation) execute as subprocess invocations of `claude -p` against the user's existing Claude Code installation, not as in-process SDK calls. See §5.2 and §6 for details.
+LLM-driven steps (proposal extraction, curation) execute as subprocess invocations of `claude -p` against the user's existing Claude Code installation, not as in-process SDK calls. See §5.2 and §6 for details.
 
 Contract between the two pieces: directory layout + frontmatter schemas (§4). Either side can be replaced or upgraded independently as long as the contract holds.
 
@@ -69,7 +69,7 @@ In-session UX (Claude Code skills installed by `init` under `.claude/skills/<nam
 | `kb-show <topic-or-slug>` | Read a specific node into context. |
 | `kb-add` | Manually capture a node from inside a session; writes directly to `nodes/<kind>/<id>.md`. |
 | `kb-bootstrap [path]` | Agent-driven first-time bootstrap from existing markdown docs. Writes nodes directly to `nodes/<kind>/` and updates `bootstrap-state.json`. |
-| `kb-propose-from-session` | Force a stage-2 extraction immediately, without waiting for `Stop`. |
+| `kb-propose-from-session` | Force a proposal extraction immediately, without waiting for `Stop`. |
 
 ## 3. Directory layout
 
@@ -77,8 +77,8 @@ In-session UX (Claude Code skills installed by `init` under `.claude/skills/<nam
 <consuming-repo>/
 ├── .claude/
 │   ├── hooks/
-│   │   ├── kb-capture.mjs          # Stop, SessionEnd, PreCompact (stage 1 only)
-│   │   ├── kb-stage2-drain.mjs     # SessionStart (async): drain stage-2 queue
+│   │   ├── kb-capture.mjs          # Stop, SessionEnd, PreCompact (transcript only)
+│   │   ├── kb-proposal-drain.mjs   # SessionStart (async): drain proposal queue
 │   │   └── kb-session-start.mjs    # SessionStart (sync): inject INDEX, threshold nudge
 │   ├── skills/
 │   │   ├── kb-add/SKILL.md
@@ -94,10 +94,10 @@ In-session UX (Claude Code skills installed by `init` under `.claude/skills/<nam
 │   │   │   ├── practice/           # how we build things
 │   │   │   └── map/                # what exists in the project
 │   │   ├── _sessions/              # raw + structured session logs (gitignored by default)
-│   │   │   ├── .queue.json         # stage-2 work queue
+│   │   │   ├── .queue.json         # proposal work queue
 │   │   │   └── .dedup-cache.json   # SHA-256 dedup window
 │   │   ├── _logs/                  # stream-json traces of LLM runs (gitignored)
-│   │   │   ├── stage-2/
+│   │   │   ├── proposal/
 │   │   │   │   └── <session-id>__<timestamp>.jsonl
 │   │   │   ├── curator/
 │   │   │   │   └── <run-id>__<timestamp>.jsonl
@@ -163,22 +163,22 @@ session_id: 2026-05-10-1430-schema-org
 captured_by: stop                # stop | session_end | pre_compact | manual
 captured_at: 2026-05-10T14:30:00Z
 transcript_hash: sha256:...      # for dedup
-stage_2_status: pending          # pending | done | failed | skipped
-stage_2_completed_at: null
-stage_2_error: null
-stage_2_log: null                # path to _logs/stage-2/...jsonl when done
+proposal_status: pending         # pending | done | failed | skipped
+proposal_completed_at: null
+proposal_error: null
+proposal_log: null               # path to _logs/proposal/...jsonl when done
 secret_scan_status: clean        # clean | redacted | blocked | skipped
-topics: []                       # populated by stage 2
-proposals:                       # populated by stage 2
+topics: []                       # populated by proposal worker
+proposals:                       # populated by proposal worker
   practice: []                   # candidates for practice nodes
   map: []                        # candidates for map nodes
 ---
 
-## Stage 1: redacted transcript slice
+## Transcript
 ...
 
-## Stage 2: structured summary
-(populated by stage-2 worker)
+## Proposal
+(populated by proposal worker)
 ```
 
 ### 4.3 Pending conflicts (`.ai/knowledge-base/.state/pending-conflicts.json`)
@@ -216,41 +216,41 @@ Stop / SessionEnd / PreCompact
         │
         ▼ (synchronous, fast, deterministic; ≤1s deadline)
 ┌────────────────────────────┐
-│ Stage 1                    │
+│ Transcript capture         │
 │ • SHA-256 dedup window     │
 │ • Secretlint scan + redact │
 │ • Write _sessions/<id>.md  │
 │ • Append to .queue.json    │
-│ • stage_2_status: pending  │
+│ • proposal_status: pending │
 └────────────────────────────┘
 
 Next session:
         │
         ▼
-┌────────────────────────────────┐
-│ kb-stage2-drain.mjs            │
-│ (SessionStart, async: true)    │
-│ • Reads .queue.json            │
-│ • For each entry: spawns a     │
-│   `claude -p` subprocess with  │
-│   stage-2 prompt & stream-json │
-│   --verbose output             │
-│ • Pipes stream into            │
-│   _logs/stage-2/...jsonl       │
-│ • Parses final result, updates │
-│   session log, removes entry   │
-└────────────────────────────────┘
+┌─────────────────────────────────┐
+│ kb-proposal-drain.mjs           │
+│ (SessionStart, async: true)     │
+│ • Reads .queue.json             │
+│ • For each entry: spawns a      │
+│   `claude -p` subprocess with   │
+│   proposal prompt & stream-json │
+│   --verbose output              │
+│ • Pipes stream into             │
+│   _logs/proposal/...jsonl       │
+│ • Parses final result, updates  │
+│   session log, removes entry    │
+└─────────────────────────────────┘
 ```
 
-### 5.1 Stage 1: deterministic, fast, blocking-safe
+### 5.1 Transcript capture: deterministic, fast, blocking-safe
 
 - **Dedup.** SHA-256 of the transcript slice. 5-minute rolling cache in `_sessions/.dedup-cache.json`. If hash matches, exit silently.
 - **Secret-scan pass.** Programmatic call to `@secretlint/core`'s `lintSource()` using the recommended preset config. Findings (each with `range: [start, end]`) → redact with `[REDACTED:<rule-id>]` placeholders. On exception or timeout (>1 second), abort with `secret_scan_status: blocked`.
-- **Write the session log.** Valid frontmatter + `## Stage 1: redacted transcript slice`. `stage_2_status: pending`.
+- **Write the session log.** Valid frontmatter + `## Transcript`. `proposal_status: pending`.
 - **Append to queue.** Atomic write to `_sessions/.queue.json` (read, append, write to temp, rename).
-- **Hard deadline:** stage 1 must complete within 1 second on any trigger.
+- **Hard deadline:** transcript capture must complete within 1 second on any trigger.
 
-### 5.2 Stage 2: async hook + headless `claude -p` subprocess
+### 5.2 Proposal generation: async hook + headless `claude -p` subprocess
 
 The drain hook is registered as `async: true` in `.claude/settings.json`, so it runs in parallel with the rest of session start without blocking the user. Stdout from async hooks is not injected into the parent session's context - that's fine; status surfaces via `ai-knowledge-base status` and inline on subsequent sessions.
 
@@ -258,7 +258,7 @@ For each entry in `.queue.json`, the drain spawns a fresh Claude Code process:
 
 ```
 execa('claude', [
-  '-p', '<stage-2 prompt body>',
+  '-p', '<proposal prompt body>',
   '--allowedTools', '',                          // no tools needed for pure extraction
   '--output-format', 'stream-json',
   '--verbose',
@@ -270,17 +270,17 @@ execa('claude', [
 
 Behavior:
 
-- Output is **stream-json with verbose**, written line by line to `.ai/knowledge-base/_logs/stage-2/<session-id>__<wallclock-timestamp>.jsonl`. Each line is a JSON message (assistant text, tool calls, final result).
-- The drain consumes the stream as it arrives, identifies the final `result` message, and validates its content against the stage-2 Zod schema.
-- On success: the session log is updated with `stage_2_status: done`, `stage_2_log` set to the log filename, `proposals` populated.
-- On failure (parse error, schema mismatch, non-zero exit): `stage_2_status: failed`, `stage_2_error` recorded, queue entry retained for retry. After 3 failed attempts, marked `skipped` and removed from queue.
-- The `KB_BUILDER_INTERNAL=1` env var is checked by all of our own hooks (`kb-capture`, `kb-stage2-drain`, `kb-session-start`); if set, they exit immediately. This prevents the spawned `claude -p` process from triggering recursive stage-2/capture work on its own startup.
+- Output is **stream-json with verbose**, written line by line to `.ai/knowledge-base/_logs/proposal/<session-id>__<wallclock-timestamp>.jsonl`. Each line is a JSON message (assistant text, tool calls, final result).
+- The drain consumes the stream as it arrives, identifies the final `result` message, and validates its content against the proposal Zod schema.
+- On success: the session log is updated with `proposal_status: done`, `proposal_log` set to the log filename, `proposals` populated.
+- On failure (parse error, schema mismatch, non-zero exit): `proposal_status: failed`, `proposal_error` recorded, queue entry retained for retry. After 3 failed attempts, marked `skipped` and removed from queue.
+- The `KB_BUILDER_INTERNAL=1` env var is checked by all of our own hooks (`kb-capture`, `kb-proposal-drain`, `kb-session-start`); if set, they exit immediately. This prevents the spawned `claude -p` process from triggering recursive proposal/capture work on its own startup.
 - Concurrency on drain: the drain acquires a lock under `.ai/knowledge-base/.state/state.json` (PID + 30-min TTL). If two SessionStart events fire concurrently (two terminals, same repo), the second waits or skips.
 - Drain bound: by default the drain processes at most 5 queue entries per invocation; the rest are deferred to subsequent sessions. Configurable in settings.
 
 Authentication: the spawned `claude -p` inherits the user's Claude Code authentication (OAuth or API key). No separate setup. We deliberately do **not** use `--bare`, because `--bare` requires `ANTHROPIC_API_KEY` and would not work for users on Claude.ai subscriptions. The `KB_BUILDER_INTERNAL` env-var guard substitutes for `--bare`'s hook-suppression behavior.
 
-### 5.3 Stage-2 extraction prompt
+### 5.3 Proposal extraction prompt
 
 The prompt runs in two passes per session log, each emitting structured output. Both passes operate only on **user turns** in the transcript (pass 1 strictly; pass 2 may also draw from agent turns for named-thing introductions). Without role-awareness, agent paraphrasing of user instructions generates spurious capture.
 
@@ -348,11 +348,11 @@ The two outputs reference each other via `relates_to` populated post-hoc by the 
 - Refactors with no architectural change.
 - Anything derivable from general programming knowledge.
 
-The full prompt template lives in `templates/prompts/stage-2-extract.md` and is the single most important quality lever in capture.
+The full prompt template lives in `templates/prompts/proposal-extract.md` and is the single most important quality lever in capture.
 
 ## 6. Curate pipeline
 
-The curator is a graph-merge problem on top of stage-2 outputs. It also runs as a `claude -p` subprocess with stream-json verbose logging.
+The curator is a graph-merge problem on top of proposal outputs. It also runs as a `claude -p` subprocess with stream-json verbose logging.
 
 ### 6.1 Trigger and lock
 
@@ -362,9 +362,9 @@ Acquires `.ai/knowledge-base/.state/state.json` lock with PID + 30-minute TTL. C
 
 ### 6.2 Inputs
 
-- All session logs with `stage_2_status: done` not yet referenced by any existing proposal.
-- Existing nodes referenced by stage-2 outputs via `supports_existing_node` or `contradicts_existing_node`.
-- The current `INDEX.md` (for awareness of nodes the stage-2 outputs didn't link to).
+- All session logs with `proposal_status: done` not yet referenced by any existing proposal.
+- Existing nodes referenced by proposal outputs via `supports_existing_node` or `contradicts_existing_node`.
+- The current `INDEX.md` (for awareness of nodes the proposal outputs didn't link to).
 
 ### 6.3 Subprocess invocation
 
@@ -386,7 +386,7 @@ Output written to `.ai/knowledge-base/_logs/curator/<run-id>__<wallclock-timesta
 
 If pending log count exceeds a token budget (default ~50K tokens of inputs per call, conservatively measured), the curator chunks pending logs into batches of ~10 logs each. Per batch:
 
-1. Load only existing nodes referenced in that batch's stage-2 outputs.
+1. Load only existing nodes referenced in that batch's proposal outputs.
 2. Spawn a `claude -p` subprocess on the batch.
 3. Collect proposals into an in-memory accumulator.
 
@@ -403,7 +403,7 @@ Per batch, the curator receives:
 [INDEX SUMMARY]
   <current INDEX.md content, capped to budget>
 
-[STAGE-2 OUTPUTS]
+[PROPOSAL OUTPUTS]
   Session: <session_id>
     practice candidates: [...]
     map candidates: [...]
@@ -411,7 +411,7 @@ Per batch, the curator receives:
     ...
 ```
 
-It produces one of four actions per stage-2 candidate:
+It produces one of four actions per proposal candidate:
 
 ```json
 {
@@ -438,7 +438,7 @@ Anti-patterns the prompt avoids:
 - Suggesting a `suggested_resolution` value (the wrapper ignores it; resolution is the user's call).
 - Crossing the practice/map boundary.
 
-The full curator prompt lives in `templates/prompts/curator.md` and is the most important quality lever in curation (parallel to stage-2 in capture).
+The full curator prompt lives in `templates/prompts/curator.md` and is the most important quality lever in curation (parallel to proposal extraction in capture).
 
 ### 6.6 Contradiction handling
 
@@ -552,14 +552,14 @@ The bootstrap-incremental prompt is in `templates/prompts/bootstrap-incremental.
 
 Two hooks fire on `SessionStart`, with different sync/async modes:
 
-1. **`kb-stage2-drain.mjs`** - `async: true`. Drains the stage-2 queue (§5.2) without blocking session start.
+1. **`kb-proposal-drain.mjs`** - `async: true`. Drains the proposal queue (§5.2) without blocking session start.
 2. **`kb-session-start.mjs`** - sync. Handles injection and nudge:
    - Read `INDEX.md`. If missing, generate a stub ("KB is empty").
    - Read `.ai/knowledge-base/.state/state.json` for `last_nudged_at`.
-   - Count session logs with `stage_2_status: done` not yet referenced by any proposal. If count ≥ threshold AND now − `last_nudged_at` ≥ 1 hour, append nudge line and update `last_nudged_at`.
+   - Count session logs with `proposal_status: done` not yet referenced by any proposal. If count ≥ threshold AND now − `last_nudged_at` ≥ 1 hour, append nudge line and update `last_nudged_at`.
    - Emit INDEX content + optional nudge as injected context.
 
-Both hooks check `KB_BUILDER_INTERNAL` env var and exit immediately if set, preventing recursion when stage-2 spawns its own `claude -p`.
+Both hooks check `KB_BUILDER_INTERNAL` env var and exit immediately if set, preventing recursion when the proposal drain spawns its own `claude -p`.
 
 ### 7.1 Stale INDEX handling
 
@@ -733,9 +733,9 @@ export interface Adapter {
 
 **Why.** Earlier five-category scheme caused boundary ambiguity. Two clean kinds matching the two extraction passes eliminate miscategorization.
 
-### 11.3 Async hook + `claude -p` subprocess for stage 2
+### 11.3 Async hook + `claude -p` subprocess for proposal generation
 
-**Decision.** The drain hook is `async: true`, doesn't block session start. Inside it, each queue entry spawns a `claude -p` subprocess with `--output-format stream-json --verbose`, with output captured to `_logs/stage-2/`. Recursive triggering is prevented by `KB_BUILDER_INTERNAL=1` env var.
+**Decision.** The drain hook is `async: true`, doesn't block session start. Inside it, each queue entry spawns a `claude -p` subprocess with `--output-format stream-json --verbose`, with output captured to `_logs/proposal/`. Recursive triggering is prevented by `KB_BUILDER_INTERNAL=1` env var.
 
 **Why.** Solves session unblocking, SDK-package-name churn, and cross-platform process semantics in one move. `async: true` is Anthropic's blessed mechanism (released Jan 2026); `claude -p` is the most stable Claude Code surface.
 
@@ -743,7 +743,7 @@ export interface Adapter {
 
 ### 11.4 Verbose stream-json logging
 
-**Decision.** Both stage-2 and curator runs produce stream-json verbose output, written to `.ai/knowledge-base/_logs/{stage-2,curator}/<id>__<timestamp>.jsonl`. Logs are gitignored.
+**Decision.** Both proposal and curator runs produce stream-json verbose output, written to `.ai/knowledge-base/_logs/{proposal,curator}/<id>__<timestamp>.jsonl`. Logs are gitignored.
 
 **Why.** When the model does something unexpected, the user needs to see exactly what it saw and produced. Stream-json captures every step (assistant text, tool calls, results). Per-run files with id+timestamp prevent collisions on re-runs.
 
@@ -777,9 +777,9 @@ export interface Adapter {
 
 ### 11.9 Two-stage capture
 
-**Decision.** Stage 1 deterministic and self-sufficient; stage 2 LLM, deferred and retryable.
+**Decision.** Transcript capture is deterministic and self-sufficient; proposal generation is LLM-driven, deferred and retryable.
 
-**Why.** If the LLM fails, raw redacted transcripts still exist. Stage 2 can be re-run and improved without losing data.
+**Why.** If the LLM fails, raw redacted transcripts still exist. Proposal generation can be re-run and improved without losing data.
 
 ### 11.10 Human-in-the-loop curation via git
 
@@ -823,7 +823,7 @@ export interface Adapter {
 
 **Why.** Without role-awareness, agent paraphrasing of user instructions generates spurious capture.
 
-### 11.17 Pass-ownership boundary in stage 2
+### 11.17 Pass-ownership boundary in proposal generation
 
 **Decision.** Imperative content (do/don't/why) belongs to pass 1; nominative content (named entities) belongs to pass 2. They reference each other via curator-populated `relates_to` edges.
 
@@ -869,9 +869,9 @@ Each phase shippable on its own.
 
 **M0 - Project skeleton + secret scanning + docs foundation.** npm package, TS+ESM build, `init` command that copies stub `.ai/knowledge-base/` and `.claude/`, scaffolds the husky + lint-staged + secretlint commit-time scan, writes `.ai/knowledge-base/.state/installed-version`. `ai-knowledge-base doctor` checks secretlint resolves in node_modules, Node version, and `claude` CLI availability. Documentation foundation ships here too: minimal top-level `README.md`, `CONTRIBUTING.md` skeleton, in-KB `README.md` template that `init` copies, and the Jekyll/Just-the-Docs site skeleton (Home + Getting Started shell, deployed to GitHub Pages). No KB functionality yet, but the security guarantee and documentation scaffolding are in place from day 1.
 
-**M1 - Stage 1 capture for all three triggers.** `Stop`, `SessionEnd`, and `PreCompact` hooks ship together. Dedup, secretlint redaction, write session logs, append to `.queue.json`. Stress-test PreCompact on long sessions during this phase.
+**M1 - Transcript capture for all three triggers.** `Stop`, `SessionEnd`, and `PreCompact` hooks ship together. Dedup, secretlint redaction, write session logs, append to `.queue.json`. Stress-test PreCompact on long sessions during this phase.
 
-**M2 - Stage 2 drain.** `kb-stage2-drain.mjs` async SessionStart hook. Adapter's `runHeadless` implementation invoking `claude -p --output-format stream-json --verbose`. Stream-json log writing under `_logs/stage-2/`. Two-pass extraction prompt with role-aware rules. Tests with a mocked subprocess against fixture transcripts.
+**M2 - Proposal drain.** `kb-proposal-drain.mjs` async SessionStart hook. Adapter's `runHeadless` implementation invoking `claude -p --output-format stream-json --verbose`. Stream-json log writing under `_logs/proposal/`. Two-pass extraction prompt with role-aware rules. Tests with a mocked subprocess against fixture transcripts.
 
 **M3 - Curate pipeline + manual-add.** `/kb-curate` slash command, curator prompt with batching and contradiction handling, direct writes to `nodes/`, conflict side-channel at `.state/pending-conflicts.json`. Validity windows and supersedes/superseded_by wired in. Lock file with PID + TTL. `_logs/curator/` writing. Inline INDEX regen happens here, plus the `index rebuild --stage` flag and the `.lintstagedrc.cjs` entry that runs it on every commit so INDEX/GRAPH stay in lockstep with `nodes/`. Review is git: `git diff nodes/` to inspect, `git commit` to accept, `git restore` to reject. Manual-add path (`ai-knowledge-base node add` and `/kb-add`) ships in this phase since it shares the node-write infrastructure.
 
@@ -884,7 +884,7 @@ Each phase shippable on its own.
 ## 13. Testing strategy
 
 - **Unit tests** (`vitest`): frontmatter parsers, schema validators, INDEX generator (golden files), `nodes_hash` computation, dedup cache, secretlint redaction & finding-to-range conversion, queue file atomic write, lock TTL, stale-INDEX detection, role-tagged transcript splitting, stream-json line parser.
-- **Integration smoke tests with mocked subprocess:** stage-2 extractor against fixture transcripts (covering teaching moments, project-map introductions, role-aware filtering, ownership boundary cases); curator against fixture session-log + node sets (covering add/modify/contradict/drop, add-collision and missing-target failures, conflict side-channel population, batching, dedup).
+- **Integration smoke tests with mocked subprocess:** proposal extractor against fixture transcripts (covering teaching moments, project-map introductions, role-aware filtering, ownership boundary cases); curator against fixture session-log + node sets (covering add/modify/contradict/drop, add-collision and missing-target failures, conflict side-channel population, batching, dedup).
 - **Real-`claude` end-to-end suite:** a separate test suite (run on demand, not in CI by default) exercising one full capture → drain → curate → consume cycle against the actual `claude -p` CLI with a controlled fixture transcript. Catches drift in CLI behavior or prompt regressions that mocks miss.
 - **Manual testing checklist** in `docs/manual-test-plan.md`: PreCompact timing, hook installation on Windows, secretlint redaction on each platform, real session capture quality, log file rotation behavior.
 
@@ -892,11 +892,11 @@ Each phase shippable on its own.
 
 1. **Settings file.** `.ai/knowledge-base/config.yaml` (committed) for token budget, threshold, drain bound, bootstrap-incremental token budget. (Secretlint config lives in the repo-root `.secretlintrc.json`, not here.) User-level overrides at `~/.config/ai-knowledge-base/config.yaml`. Project settings win.
 
-2. **Stage-2 timeout.** Per-entry subprocess timeout (default 60s). On timeout, mark `failed` and continue.
+2. **Proposal timeout.** Per-entry subprocess timeout (default 60s). On timeout, mark `failed` and continue.
 
 3. **Tokenizer fallback.** If `@anthropic-ai/tokenizer` is unavailable, fall back to 4-chars-per-token heuristic. Documented in `ai-knowledge-base doctor`.
 
-4. **Log retention.** `_logs/` grows unbounded across all subdirectories (`stage-2/`, `curator/`, `bootstrap-incremental/`). v1.5: `ai-knowledge-base logs prune --older-than <duration>`.
+4. **Log retention.** `_logs/` grows unbounded across all subdirectories (`proposal/`, `curator/`, `bootstrap-incremental/`). v1.5: `ai-knowledge-base logs prune --older-than <duration>`.
 
 5. **Bootstrap-incremental overlap detection.** v1 always emits `addition` proposals; reviewer rejects duplicates. v2 may add curator-style modify/contradict logic. Decision deferred until real usage shows whether this matters.
 
@@ -946,7 +946,7 @@ Bootstrap
   ├── First-time bootstrap        /kb-bootstrap agent-driven walkthrough
   └── Incremental bootstrap       ai-knowledge-base bootstrap-incremental CLI usage
 Customization
-  ├── Editing the prompts         stage-2, curator, and bootstrap prompt customization
+  ├── Editing the prompts         proposal, curator, and bootstrap prompt customization
   └── Settings reference          config.yaml and user-level overrides
 Reference
   ├── CLI commands                Every ai-knowledge-base subcommand
@@ -978,7 +978,7 @@ Documentation grows with the code, not all at the end. Per-phase doc work:
 |---|---|
 | M0 | Top-level README; CONTRIBUTING.md; in-KB README template; docs site skeleton (Home + empty Getting Started shell); GitHub Pages deployment configured |
 | M1 | Reference > Hook events; Reference > CLI command coverage for `init`, `doctor`, `status`; Getting Started > Installation page completed |
-| M2 | Customization > Editing the stage-2 prompt; Reference > Settings (token budget, drain bound, threshold); Troubleshooting > Reading `_logs/stage-2/` |
+| M2 | Customization > Editing the proposal prompt; Reference > Settings (token budget, drain bound, threshold); Troubleshooting > Reading `_logs/proposal/` |
 | M3 | Reference > Skills; Reference > CLI for `curate`, `node add`, `index rebuild --stage`; Review-via-git workflow page; Customization > Editing the curator prompt; Troubleshooting > Reading `_logs/curator/` and resolving `pending-conflicts.json`; Getting Started > First capture → curate (end-to-end walkthrough) |
 | M3.5 | Bootstrap > First-time bootstrap (`/kb-bootstrap` agent-driven walkthrough); Bootstrap > Incremental bootstrap (CLI usage, glob filters, dry-run, collision reporting); Customization > Editing the bootstrap-incremental prompt; Reference > `bootstrap-state.json` schema; Reference > CLI for `bootstrap-incremental` |
 | M4 | Core Concepts > How it works; Core Concepts > Knowledge model; Reference > Frontmatter schemas; INDEX/GRAPH explanation |

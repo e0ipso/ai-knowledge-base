@@ -1,9 +1,9 @@
 # Curator Prompt
 
 <!--
-  Version: 2
+  Version: 3
   Used by: ai-knowledge-base curate (via `claude -p`)
-  Owner contract: receives a batch of stage-2 outputs and the referenced existing
+  Owner contract: receives a batch of proposal outputs and the referenced existing
   nodes, produces actions (add/modify/contradict/drop). The wrapper applies the
   actions directly to nodes/ - there is no `_proposed/` directory and no
   `proposal:` frontmatter block. Contradictions are surfaced to the user
@@ -15,11 +15,11 @@ You are the curator of a project knowledge base. Your job is to decide what happ
 
 You are working with three inputs:
 
-1. **A batch of stage-2 outputs.** These are candidate practice and map nodes extracted from recent sessions. Each candidate has a kind, tags, title, summary, body, confidence, and optional pointers to existing nodes it might support or contradict.
+1. **A batch of proposal outputs.** These are candidate practice and map nodes extracted from recent sessions. Each candidate has a kind, tags, title, summary, body, confidence, and optional pointers to existing nodes it might support or contradict.
 
-2. **Existing nodes referenced by the candidates.** Full content of any KB nodes that stage-2 flagged as related.
+2. **Existing nodes referenced by the candidates.** Full content of any KB nodes that the proposal pass flagged as related.
 
-3. **The current KB index.** A token-budgeted summary of all currently-valid nodes, so you have awareness of nodes the stage-2 outputs didn't explicitly link to.
+3. **The current KB index.** A token-budgeted summary of all currently-valid nodes, so you have awareness of nodes the proposal outputs didn't explicitly link to.
 
 For each candidate, you decide on one of four actions: **add**, **modify**, **contradict**, or **drop**.
 
@@ -135,7 +135,7 @@ The `proposed_node` object for add/modify/contradict has these fields:
 ## Final instructions
 
 1. Read every candidate in the batch.
-2. For each one, find the most relevant existing node (if any). Use stage-2's `supports_existing_node`/`contradicts_existing_node` hints, but also scan the index - stage-2 doesn't always know what exists.
+2. For each one, find the most relevant existing node (if any). Use the proposal's `supports_existing_node`/`contradicts_existing_node` hints, but also scan the index - the proposal pass doesn't always know what exists.
 3. Decide on add / modify / contradict / drop based on the rules above.
 4. Build the `proposed_node` carefully - accurate summaries and complete bodies matter; the reviewer's time is the bottleneck.
 5. Populate `relates_to` when the proposal sits alongside an existing node as an exception, sibling, or extension. This is how the reviewer sees the connection.

@@ -30,7 +30,7 @@ describe('settings', () => {
 
   it('layers user overrides on top of defaults', () => {
     const userFile = join(sandbox, 'user.yaml');
-    writeFileSync(userFile, 'schema_version: 1\ndrainBound: 99\nindexBudgetTokens: 4096\n');
+    writeFileSync(userFile, 'schema_version: 2\ndrainBound: 99\nindexBudgetTokens: 4096\n');
     const result = resolveSettings({
       projectFile: join(sandbox, 'missing.yaml'),
       userFile,
@@ -43,15 +43,15 @@ describe('settings', () => {
   it('layers project overrides on top of user overrides', () => {
     const userFile = join(sandbox, 'user.yaml');
     const projectFile = join(sandbox, 'project.yaml');
-    writeFileSync(userFile, 'schema_version: 1\ndrainBound: 10\n');
-    writeFileSync(projectFile, 'schema_version: 1\ndrainBound: 3\n');
+    writeFileSync(userFile, 'schema_version: 2\ndrainBound: 10\n');
+    writeFileSync(projectFile, 'schema_version: 2\ndrainBound: 3\n');
     const result = resolveSettings({ projectFile, userFile });
     expect(result.settings.drainBound).toBe(3);
   });
 
   it('emits a warning and treats invalid YAML as absent', () => {
     const projectFile = join(sandbox, 'project.yaml');
-    writeFileSync(projectFile, 'schema_version: 1\ndrainBound: [unterminated\n');
+    writeFileSync(projectFile, 'schema_version: 2\ndrainBound: [unterminated\n');
     const result = resolveSettings({
       projectFile,
       userFile: join(sandbox, 'missing.yaml'),
@@ -63,7 +63,7 @@ describe('settings', () => {
 
   it('emits a warning and treats schema mismatch as absent', () => {
     const projectFile = join(sandbox, 'project.yaml');
-    writeFileSync(projectFile, 'schema_version: 1\ndrainBound: -5\n');
+    writeFileSync(projectFile, 'schema_version: 2\ndrainBound: -5\n');
     const result = resolveSettings({
       projectFile,
       userFile: join(sandbox, 'missing.yaml'),
@@ -75,7 +75,7 @@ describe('settings', () => {
 
   it('rejects unknown keys (strict schema)', () => {
     const projectFile = join(sandbox, 'project.yaml');
-    writeFileSync(projectFile, 'schema_version: 1\nmystery: 1\n');
+    writeFileSync(projectFile, 'schema_version: 2\nmystery: 1\n');
     const result = resolveSettings({
       projectFile,
       userFile: join(sandbox, 'missing.yaml'),
@@ -116,23 +116,23 @@ describe('settings', () => {
   it('accepts a complete model choice and treats all three keys as optional', () => {
     expect(
       SettingsSchema.safeParse({
-        schema_version: 1,
-        stage2Model: { name: 'haiku', effort: 'low' },
+        schema_version: 2,
+        proposalModel: { name: 'haiku', effort: 'low' },
       }).success
     ).toBe(true);
-    expect(SettingsSchema.safeParse({ schema_version: 1 }).success).toBe(true);
+    expect(SettingsSchema.safeParse({ schema_version: 2 }).success).toBe(true);
   });
 
   it('rejects invalid or half-set model choices', () => {
     const invalid = [
-      { stage2Model: { name: 'turbo', effort: 'low' } },
-      { stage2Model: { name: 'haiku', effort: 'turbo' } },
-      { stage2Model: { name: 'haiku' } },
-      { stage2Model: { effort: 'low' } },
-      { stage2Model: { name: 'haiku', effort: 'low', extra: true } },
+      { proposalModel: { name: 'turbo', effort: 'low' } },
+      { proposalModel: { name: 'haiku', effort: 'turbo' } },
+      { proposalModel: { name: 'haiku' } },
+      { proposalModel: { effort: 'low' } },
+      { proposalModel: { name: 'haiku', effort: 'low', extra: true } },
     ];
     for (const payload of invalid) {
-      const result = SettingsSchema.safeParse({ schema_version: 1, ...payload });
+      const result = SettingsSchema.safeParse({ schema_version: 2, ...payload });
       expect(result.success).toBe(false);
     }
   });
@@ -140,13 +140,13 @@ describe('settings', () => {
   it('rejects the same shapes on curatorModel and bootstrapModel', () => {
     expect(
       SettingsSchema.safeParse({
-        schema_version: 1,
+        schema_version: 2,
         curatorModel: { name: 'haiku' },
       }).success
     ).toBe(false);
     expect(
       SettingsSchema.safeParse({
-        schema_version: 1,
+        schema_version: 2,
         bootstrapModel: { name: 'sonnet', effort: 'turbo' },
       }).success
     ).toBe(false);

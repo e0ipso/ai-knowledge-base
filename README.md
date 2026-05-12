@@ -28,7 +28,7 @@ npx @e0ipso/ai-knowledge-base bootstrap-incremental --from docs/
 
 ## How it works (one paragraph)
 
-Two cooperating pieces. The **builder tool** (this npm package) installs hooks under `.claude/` and a knowledge directory under `.ai/knowledge-base/`. Hooks capture redacted session slices, an async stage-2 extractor turns them into structured candidates, and the curator writes new knowledge nodes directly under `nodes/`. You review the diff and commit (or restore) like any other code change; a pre-commit hook keeps `INDEX.md`/`GRAPH.md` in lockstep. A `SessionStart` hook injects the current `INDEX.md` into every new AI session. The KB itself is plain markdown - readable, diffable, reviewable like code.
+Two cooperating pieces. The **builder tool** (this npm package) installs hooks under `.claude/` and a knowledge directory under `.ai/knowledge-base/`. Hooks capture redacted session slices, an async proposal extractor turns them into structured candidates, and the curator writes new knowledge nodes directly under `nodes/`. You review the diff and commit (or restore) like any other code change; a pre-commit hook keeps `INDEX.md`/`GRAPH.md` in lockstep. A `SessionStart` hook injects the current `INDEX.md` into every new AI session. The KB itself is plain markdown - readable, diffable, reviewable like code.
 
 ## Documentation
 

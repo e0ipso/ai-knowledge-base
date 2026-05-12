@@ -19,7 +19,7 @@ export default defineConfig([
     // of the consumer's package.json `type` field.
     entry: {
       'kb-capture': 'src/hooks/kb-capture.ts',
-      'kb-stage2-drain': 'src/hooks/kb-stage2-drain.ts',
+      'kb-proposal-drain': 'src/hooks/kb-proposal-drain.ts',
       'kb-session-start': 'src/hooks/kb-session-start.ts',
     },
     outDir: 'dist/hooks',

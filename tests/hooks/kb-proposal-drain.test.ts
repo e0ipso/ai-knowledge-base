@@ -9,7 +9,7 @@ import { cleanSandbox, makeSandbox, runCli } from '../helpers.js';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '../..');
-const hookPath = join(repoRoot, 'dist/hooks/kb-stage2-drain.mjs');
+const hookPath = join(repoRoot, 'dist/hooks/kb-proposal-drain.mjs');
 
 interface SpawnResult {
   stdout: string;
@@ -57,7 +57,7 @@ function seedSession(sandbox: string, sessionId: string): string {
     join(sessionsDir, '.queue.json'),
     JSON.stringify(
       {
-        schema_version: 1,
+        schema_version: 2,
         entries: [
           {
             session_id: sessionId,
@@ -94,7 +94,7 @@ function writeFakeClaude(sandbox: string, resultJson: string): string {
   return binDir;
 }
 
-describe('kb-stage2-drain hook (spawned)', () => {
+describe('kb-proposal-drain hook (spawned)', () => {
   let sandbox: string;
   beforeEach(async () => {
     sandbox = makeSandbox();
@@ -106,7 +106,7 @@ describe('kb-stage2-drain hook (spawned)', () => {
   });
   afterEach(() => cleanSandbox(sandbox));
 
-  it('compiled hook bundle exists at dist/hooks/kb-stage2-drain.mjs', () => {
+  it('compiled hook bundle exists at dist/hooks/kb-proposal-drain.mjs', () => {
     expect(existsSync(hookPath)).toBe(true);
   });
 
@@ -148,7 +148,7 @@ describe('kb-stage2-drain hook (spawned)', () => {
     expect(hookResult.exitCode).toBe(0);
 
     const after = matter(readFileSync(join(sandbox, '.ai/knowledge-base/_sessions', file), 'utf8'));
-    expect(after.data['stage_2_status']).toBe('done');
+    expect(after.data['proposal_status']).toBe('done');
     const proposals = after.data['proposals'] as { practice: unknown[]; map: unknown[] };
     expect(proposals.practice).toHaveLength(1);
 
@@ -157,7 +157,7 @@ describe('kb-stage2-drain hook (spawned)', () => {
     );
     expect(queueAfter.entries).toHaveLength(0);
 
-    const logFile = after.data['stage_2_log'] as string;
+    const logFile = after.data['proposal_log'] as string;
     expect(existsSync(join(sandbox, '.ai/knowledge-base', logFile))).toBe(true);
   });
 

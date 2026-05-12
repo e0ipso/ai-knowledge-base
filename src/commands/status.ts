@@ -43,7 +43,7 @@ export async function runStatus(): Promise<void> {
   log.plain(`  Map nodes:      ${nodeCounts.map}`);
   log.plain('');
   log.plain('Pending work');
-  log.plain(`  Stage-2 queue:           ${queue.entries?.length ?? 0}`);
+  log.plain(`  Proposal queue:          ${queue.entries?.length ?? 0}`);
   log.plain(`  Session logs (pending):  ${sessionStats.pending}`);
   log.plain(`  Session logs (done):     ${sessionStats.done}`);
   log.plain(`  Session logs (failed):   ${sessionStats.failed}`);
@@ -62,8 +62,8 @@ function scanSessions(dir: string): { pending: number; done: number; failed: num
     if (!name.endsWith('.md')) continue;
     const file = join(dir, name);
     try {
-      const fm = matter(readFileSync(file, 'utf8')).data as { stage_2_status?: string };
-      switch (fm.stage_2_status) {
+      const fm = matter(readFileSync(file, 'utf8')).data as { proposal_status?: string };
+      switch (fm.proposal_status) {
         case 'done':
           out.done += 1;
           break;

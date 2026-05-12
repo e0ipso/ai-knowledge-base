@@ -5,14 +5,14 @@ import { StateFileSchema, type StateFile, type StateLock } from './schemas.js';
 export const DEFAULT_LOCK_TTL_MS = 30 * 60 * 1000;
 
 export function readState(file: string): StateFile {
-  if (!existsSync(file)) return { schema_version: 1 };
+  if (!existsSync(file)) return { schema_version: 2 };
   try {
     const raw = JSON.parse(readFileSync(file, 'utf8')) as unknown;
     const parsed = StateFileSchema.safeParse(raw);
     if (parsed.success) return parsed.data;
-    return { schema_version: 1 };
+    return { schema_version: 2 };
   } catch {
-    return { schema_version: 1 };
+    return { schema_version: 2 };
   }
 }
 

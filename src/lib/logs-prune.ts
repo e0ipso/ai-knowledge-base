@@ -1,7 +1,7 @@
 import { existsSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 
-export const LOG_BUCKETS = ['stage-2', 'curator', 'bootstrap-incremental'] as const;
+export const LOG_BUCKETS = ['proposal', 'curator', 'bootstrap-incremental'] as const;
 export type LogBucket = (typeof LOG_BUCKETS)[number];
 
 export interface BucketReport {

@@ -10,17 +10,17 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from "fs";
 import { z } from "zod";
 var CaptureTriggerSchema = z.enum(["stop", "session_end", "pre_compact", "manual"]);
 var SecretScanStatusSchema = z.enum(["clean", "redacted", "blocked", "skipped"]);
-var Stage2StatusSchema = z.enum(["pending", "done", "failed", "skipped"]);
+var ProposalStatusSchema = z.enum(["pending", "done", "failed", "skipped"]);
 var SessionLogFrontmatterSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   session_id: z.string(),
   captured_by: CaptureTriggerSchema,
   captured_at: z.string(),
   transcript_hash: z.string(),
-  stage_2_status: Stage2StatusSchema,
-  stage_2_completed_at: z.string().nullable(),
-  stage_2_error: z.string().nullable(),
-  stage_2_log: z.string().nullable(),
+  proposal_status: ProposalStatusSchema,
+  proposal_completed_at: z.string().nullable(),
+  proposal_error: z.string().nullable(),
+  proposal_log: z.string().nullable(),
   secret_scan_status: SecretScanStatusSchema,
   topics: z.array(z.string()),
   proposals: z.object({
@@ -36,7 +36,7 @@ var QueueEntrySchema = z.object({
   attempts: z.number().int().nonnegative()
 });
 var QueueFileSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   entries: z.array(QueueEntrySchema)
 });
 var DedupCacheEntrySchema = z.object({
@@ -44,14 +44,14 @@ var DedupCacheEntrySchema = z.object({
   expires_at: z.string()
 });
 var DedupCacheFileSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   entries: z.array(DedupCacheEntrySchema)
 });
 var ConfidenceSchema = z.enum(["low", "medium", "high"]);
 var ModelFamilySchema = z.enum(["haiku", "sonnet", "opus"]);
 var EffortLevelSchema = z.enum(["low", "medium", "high", "xhigh", "max"]);
 var ModelChoiceSchema = z.object({ name: ModelFamilySchema, effort: EffortLevelSchema }).strict();
-var Stage2CandidateSchema = z.object({
+var ProposalCandidateSchema = z.object({
   kind: z.enum(["practice", "map"]),
   tags: z.array(z.string()),
   title: z.string(),
@@ -61,9 +61,9 @@ var Stage2CandidateSchema = z.object({
   supports_existing_node: z.string().nullable(),
   contradicts_existing_node: z.string().nullable()
 });
-var Stage2OutputSchema = z.object({
-  practice: z.array(Stage2CandidateSchema),
-  map: z.array(Stage2CandidateSchema)
+var ProposalOutputSchema = z.object({
+  practice: z.array(ProposalCandidateSchema),
+  map: z.array(ProposalCandidateSchema)
 });
 var StateLockSchema = z.object({
   name: z.string(),
@@ -72,13 +72,13 @@ var StateLockSchema = z.object({
   ttl_ms: z.number().int().positive()
 });
 var StateFileSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   lock: StateLockSchema.nullable().optional(),
   last_nudged_at: z.string().nullable().optional()
 });
 var NodeKindSchema = z.enum(["practice", "map"]);
 var NodeFrontmatterSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   id: z.string(),
   title: z.string(),
   kind: NodeKindSchema,
@@ -119,15 +119,13 @@ var CuratorActionSchema = z.object({
 });
 var CuratorOutputSchema = z.array(CuratorActionSchema);
 var IndexFrontmatterSchema = z.object({
-  schema_version: z.literal(1),
-  generated_at: z.string(),
+  schema_version: z.literal(2),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative(),
   budget_tokens: z.number().int().positive()
 });
 var GraphFrontmatterSchema = z.object({
-  schema_version: z.literal(1),
-  generated_at: z.string(),
+  schema_version: z.literal(2),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative()
 });
@@ -161,7 +159,7 @@ var ConflictReportSchema = z.object({
   proposed_node: CuratorProposedNodeSchema.nullable()
 });
 var PendingConflictsFileSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   conflicts: z.array(ConflictReportSchema)
 });
 var FailureReportSchema = z.object({
@@ -171,21 +169,21 @@ var FailureReportSchema = z.object({
   detail: z.string()
 });
 var SettingsSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   drainBound: z.number().int().positive().optional(),
   maxAttempts: z.number().int().positive().optional(),
-  stage2Timeout: z.number().int().positive().optional(),
+  proposalTimeout: z.number().int().positive().optional(),
   lockTtlMs: z.number().int().positive().optional(),
   indexBudgetTokens: z.number().int().positive().optional(),
   curationThreshold: z.number().int().positive().optional(),
   bootstrapTokenBudget: z.number().int().positive().optional(),
   logsRetentionDays: z.number().int().positive().optional(),
-  stage2Model: ModelChoiceSchema.optional(),
+  proposalModel: ModelChoiceSchema.optional(),
   curatorModel: ModelChoiceSchema.optional(),
   bootstrapModel: ModelChoiceSchema.optional()
 }).strict();
 var BootstrapStateSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   last_full_bootstrap_at: z.string().nullable().optional(),
   last_incremental_at: z.string().nullable().optional(),
   docs: z.record(BootstrapDocEntrySchema)
@@ -218,7 +216,7 @@ function recordHash(cacheFile, hash, nowMs = Date.now()) {
   const entries = pruneExpired(loadEntries(cacheFile), nowMs).filter((e) => e.hash !== hash);
   entries.push({ hash, expires_at: new Date(nowMs + DEDUP_TTL_MS).toISOString() });
   const tmp = `${cacheFile}.tmp`;
-  writeFileSync(tmp, `${JSON.stringify({ schema_version: 1, entries }, null, 2)}
+  writeFileSync(tmp, `${JSON.stringify({ schema_version: 2, entries }, null, 2)}
 `);
   renameSync(tmp, cacheFile);
 }
@@ -320,14 +318,14 @@ async function scanAndRedact(text, timeoutMs = 1e3) {
 // src/lib/queue.ts
 import { existsSync as existsSync3, readFileSync as readFileSync2, renameSync as renameSync2, writeFileSync as writeFileSync2 } from "fs";
 function readQueue(file) {
-  if (!existsSync3(file)) return { schema_version: 1, entries: [] };
+  if (!existsSync3(file)) return { schema_version: 2, entries: [] };
   try {
     const raw = JSON.parse(readFileSync2(file, "utf8"));
     const parsed = QueueFileSchema.safeParse(raw);
     if (parsed.success) return parsed.data;
-    return { schema_version: 1, entries: [] };
+    return { schema_version: 2, entries: [] };
   } catch {
-    return { schema_version: 1, entries: [] };
+    return { schema_version: 2, entries: [] };
   }
 }
 function appendToQueue(file, entry) {
@@ -348,15 +346,15 @@ import { join as join2 } from "path";
 function renderSessionLog(input) {
   const lines = [
     "---",
-    "schema_version: 1",
+    "schema_version: 2",
     `session_id: ${yamlString(input.sessionId)}`,
     `captured_by: ${input.capturedBy}`,
     `captured_at: ${yamlString(input.capturedAt)}`,
     `transcript_hash: ${yamlString(input.transcriptHash)}`,
-    "stage_2_status: pending",
-    "stage_2_completed_at: null",
-    "stage_2_error: null",
-    "stage_2_log: null",
+    "proposal_status: pending",
+    "proposal_completed_at: null",
+    "proposal_error: null",
+    "proposal_log: null",
     `secret_scan_status: ${input.secretScanStatus}`,
     "topics: []",
     "proposals:",
@@ -364,13 +362,13 @@ function renderSessionLog(input) {
     "  map: []",
     "---",
     "",
-    "## Stage 1: redacted transcript slice",
+    "## Transcript",
     "",
     input.body.trimEnd(),
     "",
-    "## Stage 2: structured summary",
+    "## Proposal",
     "",
-    "(populated by stage-2 worker)",
+    "(populated by proposal worker)",
     ""
   ];
   return lines.join("\n");
@@ -587,7 +585,7 @@ async function main() {
     const result = await captureSession(input, { sessionsDir: paths.sessionsDir });
     if (result.status === "secret-scan-blocked") {
       process.stderr.write(
-        `${PACKAGE_TAG} secret scan blocked stage-1 capture: ${result.error ?? "unknown error"}
+        `${PACKAGE_TAG} secret scan blocked transcript capture: ${result.error ?? "unknown error"}
 `
       );
     }

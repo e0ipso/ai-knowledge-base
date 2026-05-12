@@ -2,7 +2,7 @@
 id: 4
 group: "kb"
 dependencies: []
-status: "pending"
+status: "completed"
 created: 2026-05-12
 skills:
   - docs

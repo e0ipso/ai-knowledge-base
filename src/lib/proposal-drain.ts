@@ -3,10 +3,10 @@ import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ZodSchema } from 'zod';
 import {
-  Stage2OutputSchema,
+  ProposalOutputSchema,
   type EffortLevel,
   type ModelFamily,
-  type Stage2Output,
+  type ProposalOutput,
   type QueueEntry,
 } from './schemas.js';
 import { appendToQueue, readQueue } from './queue.js';
@@ -15,9 +15,9 @@ import { acquireLock, releaseLock } from './state.js';
 export const DEFAULT_MAX_ENTRIES = 5;
 export const DEFAULT_MAX_ATTEMPTS = 3;
 export const DEFAULT_TIMEOUT_MS = 60_000;
-export const STAGE2_LOCK_NAME = 'stage2-drain';
+export const PROPOSAL_LOCK_NAME = 'proposal-drain';
 
-export type Stage2Runner = <T>(
+export type ProposalRunner = <T>(
   promptBody: string,
   stdin: string,
   schema: ZodSchema<T>,
@@ -35,7 +35,7 @@ export interface DrainContext {
   logsDir: string;
   stateFile: string;
   promptTemplate: string;
-  runner: Stage2Runner;
+  runner: ProposalRunner;
   now?: () => Date;
   maxEntries?: number;
   maxAttempts?: number;
@@ -63,15 +63,15 @@ export interface DrainSummary {
   reason?: string;
 }
 
-const TRANSCRIPT_PLACEHOLDER = '[TRANSCRIPT PLACEHOLDER — substituted at runtime]';
+const TRANSCRIPT_PLACEHOLDER = '[TRANSCRIPT PLACEHOLDER - substituted at runtime]';
 
 /**
- * Drains the stage-2 queue. Acquires a lock on `state.json`, iterates up to
+ * Drains the proposal queue. Acquires a lock on `state.json`, iterates up to
  * `maxEntries` queue items, invokes the runner for each, and updates the
- * session log frontmatter with the outcome. Persistent failures (≥ maxAttempts)
+ * session log frontmatter with the outcome. Persistent failures (>= maxAttempts)
  * mark the session log as `skipped` and remove the entry from the queue.
  */
-export async function drainStage2Queue(ctx: DrainContext): Promise<DrainSummary> {
+export async function drainProposalQueue(ctx: DrainContext): Promise<DrainSummary> {
   const now = ctx.now ?? (() => new Date());
   const queueFile = join(ctx.sessionsDir, '.queue.json');
   const maxEntries = ctx.maxEntries ?? DEFAULT_MAX_ENTRIES;
@@ -80,7 +80,7 @@ export async function drainStage2Queue(ctx: DrainContext): Promise<DrainSummary>
   const pid = ctx.pid ?? process.pid;
 
   const lockHeld = acquireLock(ctx.stateFile, {
-    name: STAGE2_LOCK_NAME,
+    name: PROPOSAL_LOCK_NAME,
     pid,
     now: now(),
     ...(ctx.lockTtlMs !== undefined ? { ttlMs: ctx.lockTtlMs } : {}),
@@ -121,7 +121,7 @@ export async function drainStage2Queue(ctx: DrainContext): Promise<DrainSummary>
       }
     }
   } finally {
-    releaseLock(ctx.stateFile, STAGE2_LOCK_NAME, pid);
+    releaseLock(ctx.stateFile, PROPOSAL_LOCK_NAME, pid);
   }
 
   const remaining = readQueue(queueFile).entries.length;
@@ -133,7 +133,7 @@ interface ProcessEntryArgs {
   sessionsDir: string;
   logsDir: string;
   promptTemplate: string;
-  runner: Stage2Runner;
+  runner: ProposalRunner;
   now: () => Date;
   timeoutMs: number;
   maxAttempts: number;
@@ -165,14 +165,14 @@ async function processEntry(args: ProcessEntryArgs): Promise<DrainEntryResult> {
   }
 
   const parsed = matter(readFileSync(sessionLogPath, 'utf8'));
-  const transcript = extractStage1Transcript(parsed.content);
-  const prompt = buildStage2Prompt(promptTemplate, transcript);
+  const transcript = extractTranscript(parsed.content);
+  const prompt = buildProposalPrompt(promptTemplate, transcript);
   const attemptIndex = entry.attempts + 1;
   const startedAt = now();
-  const logFile = stage2LogPath(logsDir, entry.session_id, startedAt);
+  const logFile = proposalLogPath(logsDir, entry.session_id, startedAt);
 
   try {
-    const out = await runner(prompt, '', Stage2OutputSchema, {
+    const out = await runner(prompt, '', ProposalOutputSchema, {
       timeoutMs,
       allowedTools: [],
       logFile,
@@ -180,10 +180,10 @@ async function processEntry(args: ProcessEntryArgs): Promise<DrainEntryResult> {
       ...(effort !== undefined ? { effort } : {}),
     });
     writeSessionLogFrontmatter(sessionLogPath, parsed, {
-      stage_2_status: 'done',
-      stage_2_completed_at: now().toISOString(),
-      stage_2_error: null,
-      stage_2_log: relativeLogPath(sessionsDir, logFile),
+      proposal_status: 'done',
+      proposal_completed_at: now().toISOString(),
+      proposal_error: null,
+      proposal_log: relativeLogPath(sessionsDir, logFile),
       topics: collectTopics(out),
       proposals: { practice: out.practice, map: out.map },
     });
@@ -197,10 +197,10 @@ async function processEntry(args: ProcessEntryArgs): Promise<DrainEntryResult> {
     const message = err instanceof Error ? err.message : String(err);
     const exhausted = attemptIndex >= maxAttempts;
     writeSessionLogFrontmatter(sessionLogPath, parsed, {
-      stage_2_status: exhausted ? 'skipped' : 'failed',
-      stage_2_completed_at: exhausted ? now().toISOString() : null,
-      stage_2_error: message,
-      stage_2_log: relativeLogPath(sessionsDir, logFile),
+      proposal_status: exhausted ? 'skipped' : 'failed',
+      proposal_completed_at: exhausted ? now().toISOString() : null,
+      proposal_error: message,
+      proposal_log: relativeLogPath(sessionsDir, logFile),
     });
     return {
       sessionId: entry.session_id,
@@ -212,27 +212,27 @@ async function processEntry(args: ProcessEntryArgs): Promise<DrainEntryResult> {
   }
 }
 
-function extractStage1Transcript(body: string): string {
-  const startMatch = body.match(/## Stage 1: redacted transcript slice\s*\n+/);
+function extractTranscript(body: string): string {
+  const startMatch = body.match(/## Transcript\s*\n+/);
   if (!startMatch || startMatch.index === undefined) return body.trim();
   const start = startMatch.index + startMatch[0].length;
   const rest = body.slice(start);
-  const endMatch = rest.match(/\n## Stage 2:/);
+  const endMatch = rest.match(/\n## Proposal/);
   if (!endMatch) return rest.trim();
   return rest.slice(0, endMatch.index).trim();
 }
 
-function buildStage2Prompt(template: string, transcript: string): string {
+function buildProposalPrompt(template: string, transcript: string): string {
   if (template.includes(TRANSCRIPT_PLACEHOLDER)) {
     return template.replace(TRANSCRIPT_PLACEHOLDER, transcript);
   }
   return `${template.trimEnd()}\n\n${transcript}\n`;
 }
 
-function stage2LogPath(logsDir: string, sessionId: string, when: Date): string {
+export function proposalLogPath(logsDir: string, sessionId: string, when: Date): string {
   const stamp = isoToCompactStamp(when);
   const safe = sessionId.replace(/[^a-z0-9-]/gi, '').slice(0, 24) || 'session';
-  return join(logsDir, 'stage-2', `${safe}__${stamp}.jsonl`);
+  return join(logsDir, 'proposal', `${safe}__${stamp}.jsonl`);
 }
 
 function isoToCompactStamp(d: Date): string {
@@ -253,7 +253,7 @@ function relativeLogPath(sessionsDir: string, logFile: string): string {
   return rel;
 }
 
-function collectTopics(out: Stage2Output): string[] {
+function collectTopics(out: ProposalOutput): string[] {
   const all = new Set<string>();
   for (const c of out.practice) for (const t of c.tags) all.add(t);
   for (const c of out.map) for (const t of c.tags) all.add(t);
@@ -261,10 +261,10 @@ function collectTopics(out: Stage2Output): string[] {
 }
 
 interface FrontmatterPatch {
-  stage_2_status: 'done' | 'failed' | 'skipped';
-  stage_2_completed_at: string | null;
-  stage_2_error: string | null;
-  stage_2_log: string | null;
+  proposal_status: 'done' | 'failed' | 'skipped';
+  proposal_completed_at: string | null;
+  proposal_error: string | null;
+  proposal_log: string | null;
   topics?: string[];
   proposals?: { practice: unknown[]; map: unknown[] };
 }
@@ -275,32 +275,32 @@ function writeSessionLogFrontmatter(
   patch: FrontmatterPatch
 ): void {
   const data = { ...(parsed.data as Record<string, unknown>) };
-  data['stage_2_status'] = patch.stage_2_status;
-  data['stage_2_completed_at'] = patch.stage_2_completed_at;
-  data['stage_2_error'] = patch.stage_2_error;
-  data['stage_2_log'] = patch.stage_2_log;
+  data['proposal_status'] = patch.proposal_status;
+  data['proposal_completed_at'] = patch.proposal_completed_at;
+  data['proposal_error'] = patch.proposal_error;
+  data['proposal_log'] = patch.proposal_log;
   if (patch.topics) data['topics'] = patch.topics;
   if (patch.proposals) data['proposals'] = patch.proposals;
-  const body = updateStage2Body(parsed.content, patch);
+  const body = updateProposalBody(parsed.content, patch);
   const serialized = matter.stringify(body, data);
   writeFileSync(file, serialized);
 }
 
-function updateStage2Body(content: string, patch: FrontmatterPatch): string {
-  if (patch.stage_2_status !== 'done') return content;
-  // Replace the "(populated by stage-2 worker)" placeholder with a brief
+function updateProposalBody(content: string, patch: FrontmatterPatch): string {
+  if (patch.proposal_status !== 'done') return content;
+  // Replace the "(populated by proposal worker)" placeholder with a brief
   // summary so a human browsing the session log can see what the extractor
   // produced without opening the stream-json log.
   return content.replace(
-    /\(populated by stage-2 worker\)/,
-    `_Extraction complete — see proposals in frontmatter._`
+    /\(populated by proposal worker\)/,
+    `_Extraction complete; see proposals in frontmatter._`
   );
 }
 
 function removeFromQueueHead(queueFile: string, sessionId: string): void {
   const queue = readQueue(queueFile);
   const next = {
-    schema_version: 1 as const,
+    schema_version: 2 as const,
     entries: queue.entries.filter(e => e.session_id !== sessionId),
   };
   atomicWriteJson(queueFile, next);

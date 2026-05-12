@@ -22,7 +22,7 @@ export interface InitOptions {
 }
 
 interface InstalledVersion {
-  schema_version: 1;
+  schema_version: 2;
   package: string;
   version: string;
   installed_at: string;
@@ -343,7 +343,7 @@ const EXPECTED_HOOK_COMMANDS: Array<{ event: string; command: string; async?: bo
   { event: 'PreCompact', command: 'KB_BUILDER_HOOK=PreCompact node .claude/hooks/kb-capture.mjs' },
   {
     event: 'SessionStart',
-    command: 'KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-stage2-drain.mjs',
+    command: 'KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-proposal-drain.mjs',
     async: true,
   },
   {
@@ -446,7 +446,7 @@ async function installClaude(
     { event: 'PreCompact', scriptPath: '.claude/hooks/kb-capture.mjs' },
     {
       event: 'SessionStart',
-      scriptPath: '.claude/hooks/kb-stage2-drain.mjs',
+      scriptPath: '.claude/hooks/kb-proposal-drain.mjs',
       async: true,
     },
     { event: 'SessionStart', scriptPath: '.claude/hooks/kb-session-start.mjs' },
@@ -455,7 +455,7 @@ async function installClaude(
 
 function writeInstalledVersion(file: string, stateDir: string, assistants: string[]): void {
   const installed: InstalledVersion = {
-    schema_version: 1,
+    schema_version: 2,
     package: '@e0ipso/ai-knowledge-base',
     version: packageVersion(),
     installed_at: new Date().toISOString(),

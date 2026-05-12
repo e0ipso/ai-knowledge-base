@@ -13,7 +13,7 @@ nav_order: 2
 | Script | Event(s) | Mode |
 |---|---|---|
 | `kb-capture.mjs` | `Stop`, `SessionEnd`, `PreCompact` | sync, ≤1s |
-| `kb-stage2-drain.mjs` | `SessionStart` | async |
+| `kb-proposal-drain.mjs` | `SessionStart` | async |
 | `kb-session-start.mjs` | `SessionStart` | sync, ≤1s |
 
 The two `SessionStart` entries are independent; a failure in one doesn't block the other.
@@ -46,17 +46,17 @@ Never invokes the LLM. 1s deadline. A missed deadline exits silently; the next t
 | Secretlint fails to load or crashes | Log to stderr, no session log written. |
 | 1s deadline exceeded | Exit silently; next trigger retries. |
 
-## `kb-stage2-drain.mjs` (extraction)
+## `kb-proposal-drain.mjs` (extraction)
 
 Per `SessionStart`:
 
 1. Recursion guard.
-2. Acquire the `stage2-drain` lock (PID + 30-min TTL). Stale locks reclaimed.
+2. Acquire the `proposal-drain` lock (PID + 30-min TTL). Stale locks reclaimed.
 3. Load the prompt (local override first, bundled fallback).
 4. Process up to `drainBound` entries (default 5). Rest deferred.
-5. Per entry: spawn `claude -p --output-format stream-json --verbose`, stream to `_logs/stage-2/<session-id>__<ts>.jsonl`, parse the final `result`, validate against `Stage2OutputSchema`.
-6. On success: update frontmatter with `stage_2_status: done`, populated `proposals.{practice,map}`, deduped `topics`.
-7. On failure: rotate to back of queue with `attempts++`. After `maxAttempts` (default 3), mark `stage_2_status: skipped`.
+5. Per entry: spawn `claude -p --output-format stream-json --verbose`, stream to `_logs/proposal/<session-id>__<ts>.jsonl`, parse the final `result`, validate against `ProposalOutputSchema`.
+6. On success: update frontmatter with `proposal_status: done`, populated `proposals.{practice,map}`, deduped `topics`.
+7. On failure: rotate to back of queue with `attempts++`. After `maxAttempts` (default 3), mark `proposal_status: skipped`.
 
 ## `kb-session-start.mjs` (consume)
 
@@ -83,7 +83,7 @@ After `init`, `.claude/settings.json` carries one block per event:
       { "hooks": [{ "type": "command", "command": "KB_BUILDER_HOOK=Stop node .claude/hooks/kb-capture.mjs" }] }
     ],
     "SessionStart": [
-      { "hooks": [{ "type": "command", "command": "KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-stage2-drain.mjs", "async": true }] },
+      { "hooks": [{ "type": "command", "command": "KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-proposal-drain.mjs", "async": true }] },
       { "hooks": [{ "type": "command", "command": "KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-session-start.mjs" }] }
     ]
   }

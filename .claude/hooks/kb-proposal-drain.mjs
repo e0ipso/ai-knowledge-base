@@ -1,4 +1,4 @@
-// src/hooks/kb-stage2-drain.ts
+// src/hooks/kb-proposal-drain.ts
 import { existsSync as existsSync6, readFileSync as readFileSync6 } from "fs";
 import { join as join4 } from "path";
 
@@ -106,7 +106,7 @@ async function runHeadlessClaude(promptBody, stdin, schema, opts = {}) {
   }
   const validated = schema.safeParse(parsedJson);
   if (!validated.success) {
-    throw new Error(`stage-2 output did not match schema: ${validated.error.message}`);
+    throw new Error(`proposal output did not match schema: ${validated.error.message}`);
   }
   return validated.data;
 }
@@ -216,17 +216,17 @@ import yaml from "js-yaml";
 import { z } from "zod";
 var CaptureTriggerSchema = z.enum(["stop", "session_end", "pre_compact", "manual"]);
 var SecretScanStatusSchema = z.enum(["clean", "redacted", "blocked", "skipped"]);
-var Stage2StatusSchema = z.enum(["pending", "done", "failed", "skipped"]);
+var ProposalStatusSchema = z.enum(["pending", "done", "failed", "skipped"]);
 var SessionLogFrontmatterSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   session_id: z.string(),
   captured_by: CaptureTriggerSchema,
   captured_at: z.string(),
   transcript_hash: z.string(),
-  stage_2_status: Stage2StatusSchema,
-  stage_2_completed_at: z.string().nullable(),
-  stage_2_error: z.string().nullable(),
-  stage_2_log: z.string().nullable(),
+  proposal_status: ProposalStatusSchema,
+  proposal_completed_at: z.string().nullable(),
+  proposal_error: z.string().nullable(),
+  proposal_log: z.string().nullable(),
   secret_scan_status: SecretScanStatusSchema,
   topics: z.array(z.string()),
   proposals: z.object({
@@ -242,7 +242,7 @@ var QueueEntrySchema = z.object({
   attempts: z.number().int().nonnegative()
 });
 var QueueFileSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   entries: z.array(QueueEntrySchema)
 });
 var DedupCacheEntrySchema = z.object({
@@ -250,14 +250,14 @@ var DedupCacheEntrySchema = z.object({
   expires_at: z.string()
 });
 var DedupCacheFileSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   entries: z.array(DedupCacheEntrySchema)
 });
 var ConfidenceSchema = z.enum(["low", "medium", "high"]);
 var ModelFamilySchema = z.enum(["haiku", "sonnet", "opus"]);
 var EffortLevelSchema = z.enum(["low", "medium", "high", "xhigh", "max"]);
 var ModelChoiceSchema = z.object({ name: ModelFamilySchema, effort: EffortLevelSchema }).strict();
-var Stage2CandidateSchema = z.object({
+var ProposalCandidateSchema = z.object({
   kind: z.enum(["practice", "map"]),
   tags: z.array(z.string()),
   title: z.string(),
@@ -267,9 +267,9 @@ var Stage2CandidateSchema = z.object({
   supports_existing_node: z.string().nullable(),
   contradicts_existing_node: z.string().nullable()
 });
-var Stage2OutputSchema = z.object({
-  practice: z.array(Stage2CandidateSchema),
-  map: z.array(Stage2CandidateSchema)
+var ProposalOutputSchema = z.object({
+  practice: z.array(ProposalCandidateSchema),
+  map: z.array(ProposalCandidateSchema)
 });
 var StateLockSchema = z.object({
   name: z.string(),
@@ -278,13 +278,13 @@ var StateLockSchema = z.object({
   ttl_ms: z.number().int().positive()
 });
 var StateFileSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   lock: StateLockSchema.nullable().optional(),
   last_nudged_at: z.string().nullable().optional()
 });
 var NodeKindSchema = z.enum(["practice", "map"]);
 var NodeFrontmatterSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   id: z.string(),
   title: z.string(),
   kind: NodeKindSchema,
@@ -325,15 +325,13 @@ var CuratorActionSchema = z.object({
 });
 var CuratorOutputSchema = z.array(CuratorActionSchema);
 var IndexFrontmatterSchema = z.object({
-  schema_version: z.literal(1),
-  generated_at: z.string(),
+  schema_version: z.literal(2),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative(),
   budget_tokens: z.number().int().positive()
 });
 var GraphFrontmatterSchema = z.object({
-  schema_version: z.literal(1),
-  generated_at: z.string(),
+  schema_version: z.literal(2),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative()
 });
@@ -367,7 +365,7 @@ var ConflictReportSchema = z.object({
   proposed_node: CuratorProposedNodeSchema.nullable()
 });
 var PendingConflictsFileSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   conflicts: z.array(ConflictReportSchema)
 });
 var FailureReportSchema = z.object({
@@ -377,21 +375,21 @@ var FailureReportSchema = z.object({
   detail: z.string()
 });
 var SettingsSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   drainBound: z.number().int().positive().optional(),
   maxAttempts: z.number().int().positive().optional(),
-  stage2Timeout: z.number().int().positive().optional(),
+  proposalTimeout: z.number().int().positive().optional(),
   lockTtlMs: z.number().int().positive().optional(),
   indexBudgetTokens: z.number().int().positive().optional(),
   curationThreshold: z.number().int().positive().optional(),
   bootstrapTokenBudget: z.number().int().positive().optional(),
   logsRetentionDays: z.number().int().positive().optional(),
-  stage2Model: ModelChoiceSchema.optional(),
+  proposalModel: ModelChoiceSchema.optional(),
   curatorModel: ModelChoiceSchema.optional(),
   bootstrapModel: ModelChoiceSchema.optional()
 }).strict();
 var BootstrapStateSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   last_full_bootstrap_at: z.string().nullable().optional(),
   last_incremental_at: z.string().nullable().optional(),
   docs: z.record(BootstrapDocEntrySchema)
@@ -401,14 +399,14 @@ var BootstrapStateSchema = z.object({
 var SETTINGS_DEFAULTS = {
   drainBound: 5,
   maxAttempts: 3,
-  stage2Timeout: 6e4,
+  proposalTimeout: 6e4,
   lockTtlMs: 30 * 60 * 1e3,
   indexBudgetTokens: 2e3,
   curationThreshold: 5,
   bootstrapTokenBudget: 1e4,
   logsRetentionDays: 30
 };
-var MODEL_CHOICE_KEYS = ["stage2Model", "curatorModel", "bootstrapModel"];
+var MODEL_CHOICE_KEYS = ["proposalModel", "curatorModel", "bootstrapModel"];
 function resolveSettings(opts = {}) {
   const projectFile = opts.projectFile ?? null;
   const userFile = opts.userFile ?? defaultUserConfigPath();
@@ -467,7 +465,7 @@ function defaultUserConfigPath(env = process.env) {
   return join2(base, "ai-knowledge-base", "config.yaml");
 }
 
-// src/lib/stage2-drain.ts
+// src/lib/proposal-drain.ts
 import matter from "gray-matter";
 import { existsSync as existsSync5, readFileSync as readFileSync5, renameSync as renameSync3, writeFileSync as writeFileSync3 } from "fs";
 import { join as join3 } from "path";
@@ -475,14 +473,14 @@ import { join as join3 } from "path";
 // src/lib/queue.ts
 import { existsSync as existsSync3, readFileSync as readFileSync3, renameSync, writeFileSync } from "fs";
 function readQueue(file) {
-  if (!existsSync3(file)) return { schema_version: 1, entries: [] };
+  if (!existsSync3(file)) return { schema_version: 2, entries: [] };
   try {
     const raw = JSON.parse(readFileSync3(file, "utf8"));
     const parsed = QueueFileSchema.safeParse(raw);
     if (parsed.success) return parsed.data;
-    return { schema_version: 1, entries: [] };
+    return { schema_version: 2, entries: [] };
   } catch {
-    return { schema_version: 1, entries: [] };
+    return { schema_version: 2, entries: [] };
   }
 }
 
@@ -491,14 +489,14 @@ import { existsSync as existsSync4, mkdirSync as mkdirSync2, readFileSync as rea
 import { dirname as dirname3 } from "path";
 var DEFAULT_LOCK_TTL_MS = 30 * 60 * 1e3;
 function readState(file) {
-  if (!existsSync4(file)) return { schema_version: 1 };
+  if (!existsSync4(file)) return { schema_version: 2 };
   try {
     const raw = JSON.parse(readFileSync4(file, "utf8"));
     const parsed = StateFileSchema.safeParse(raw);
     if (parsed.success) return parsed.data;
-    return { schema_version: 1 };
+    return { schema_version: 2 };
   } catch {
-    return { schema_version: 1 };
+    return { schema_version: 2 };
   }
 }
 function writeState(file, state) {
@@ -538,13 +536,13 @@ function releaseLock(file, name, pid) {
   writeState(file, next);
 }
 
-// src/lib/stage2-drain.ts
+// src/lib/proposal-drain.ts
 var DEFAULT_MAX_ENTRIES = 5;
 var DEFAULT_MAX_ATTEMPTS = 3;
 var DEFAULT_TIMEOUT_MS2 = 6e4;
-var STAGE2_LOCK_NAME = "stage2-drain";
-var TRANSCRIPT_PLACEHOLDER = "[TRANSCRIPT PLACEHOLDER \u2014 substituted at runtime]";
-async function drainStage2Queue(ctx) {
+var PROPOSAL_LOCK_NAME = "proposal-drain";
+var TRANSCRIPT_PLACEHOLDER = "[TRANSCRIPT PLACEHOLDER - substituted at runtime]";
+async function drainProposalQueue(ctx) {
   const now = ctx.now ?? (() => /* @__PURE__ */ new Date());
   const queueFile = join3(ctx.sessionsDir, ".queue.json");
   const maxEntries = ctx.maxEntries ?? DEFAULT_MAX_ENTRIES;
@@ -552,7 +550,7 @@ async function drainStage2Queue(ctx) {
   const timeoutMs = ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS2;
   const pid = ctx.pid ?? process.pid;
   const lockHeld = acquireLock(ctx.stateFile, {
-    name: STAGE2_LOCK_NAME,
+    name: PROPOSAL_LOCK_NAME,
     pid,
     now: now(),
     ...ctx.lockTtlMs !== void 0 ? { ttlMs: ctx.lockTtlMs } : {}
@@ -586,7 +584,7 @@ async function drainStage2Queue(ctx) {
       }
     }
   } finally {
-    releaseLock(ctx.stateFile, STAGE2_LOCK_NAME, pid);
+    releaseLock(ctx.stateFile, PROPOSAL_LOCK_NAME, pid);
   }
   const remaining = readQueue(queueFile).entries.length;
   return { status: "completed", processed, remaining };
@@ -614,13 +612,13 @@ async function processEntry(args) {
     };
   }
   const parsed = matter(readFileSync5(sessionLogPath, "utf8"));
-  const transcript = extractStage1Transcript(parsed.content);
-  const prompt = buildStage2Prompt(promptTemplate, transcript);
+  const transcript = extractTranscript(parsed.content);
+  const prompt = buildProposalPrompt(promptTemplate, transcript);
   const attemptIndex = entry.attempts + 1;
   const startedAt = now();
-  const logFile = stage2LogPath(logsDir, entry.session_id, startedAt);
+  const logFile = proposalLogPath(logsDir, entry.session_id, startedAt);
   try {
-    const out = await runner(prompt, "", Stage2OutputSchema, {
+    const out = await runner(prompt, "", ProposalOutputSchema, {
       timeoutMs,
       allowedTools: [],
       logFile,
@@ -628,10 +626,10 @@ async function processEntry(args) {
       ...effort !== void 0 ? { effort } : {}
     });
     writeSessionLogFrontmatter(sessionLogPath, parsed, {
-      stage_2_status: "done",
-      stage_2_completed_at: now().toISOString(),
-      stage_2_error: null,
-      stage_2_log: relativeLogPath(sessionsDir, logFile),
+      proposal_status: "done",
+      proposal_completed_at: now().toISOString(),
+      proposal_error: null,
+      proposal_log: relativeLogPath(sessionsDir, logFile),
       topics: collectTopics(out),
       proposals: { practice: out.practice, map: out.map }
     });
@@ -645,10 +643,10 @@ async function processEntry(args) {
     const message = err instanceof Error ? err.message : String(err);
     const exhausted = attemptIndex >= maxAttempts;
     writeSessionLogFrontmatter(sessionLogPath, parsed, {
-      stage_2_status: exhausted ? "skipped" : "failed",
-      stage_2_completed_at: exhausted ? now().toISOString() : null,
-      stage_2_error: message,
-      stage_2_log: relativeLogPath(sessionsDir, logFile)
+      proposal_status: exhausted ? "skipped" : "failed",
+      proposal_completed_at: exhausted ? now().toISOString() : null,
+      proposal_error: message,
+      proposal_log: relativeLogPath(sessionsDir, logFile)
     });
     return {
       sessionId: entry.session_id,
@@ -659,16 +657,16 @@ async function processEntry(args) {
     };
   }
 }
-function extractStage1Transcript(body) {
-  const startMatch = body.match(/## Stage 1: redacted transcript slice\s*\n+/);
+function extractTranscript(body) {
+  const startMatch = body.match(/## Transcript\s*\n+/);
   if (!startMatch || startMatch.index === void 0) return body.trim();
   const start = startMatch.index + startMatch[0].length;
   const rest = body.slice(start);
-  const endMatch = rest.match(/\n## Stage 2:/);
+  const endMatch = rest.match(/\n## Proposal/);
   if (!endMatch) return rest.trim();
   return rest.slice(0, endMatch.index).trim();
 }
-function buildStage2Prompt(template, transcript) {
+function buildProposalPrompt(template, transcript) {
   if (template.includes(TRANSCRIPT_PLACEHOLDER)) {
     return template.replace(TRANSCRIPT_PLACEHOLDER, transcript);
   }
@@ -677,10 +675,10 @@ function buildStage2Prompt(template, transcript) {
 ${transcript}
 `;
 }
-function stage2LogPath(logsDir, sessionId, when) {
+function proposalLogPath(logsDir, sessionId, when) {
   const stamp = isoToCompactStamp(when);
   const safe = sessionId.replace(/[^a-z0-9-]/gi, "").slice(0, 24) || "session";
-  return join3(logsDir, "stage-2", `${safe}__${stamp}.jsonl`);
+  return join3(logsDir, "proposal", `${safe}__${stamp}.jsonl`);
 }
 function isoToCompactStamp(d) {
   const pad = (n) => n.toString().padStart(2, "0");
@@ -699,27 +697,27 @@ function collectTopics(out) {
 }
 function writeSessionLogFrontmatter(file, parsed, patch) {
   const data = { ...parsed.data };
-  data["stage_2_status"] = patch.stage_2_status;
-  data["stage_2_completed_at"] = patch.stage_2_completed_at;
-  data["stage_2_error"] = patch.stage_2_error;
-  data["stage_2_log"] = patch.stage_2_log;
+  data["proposal_status"] = patch.proposal_status;
+  data["proposal_completed_at"] = patch.proposal_completed_at;
+  data["proposal_error"] = patch.proposal_error;
+  data["proposal_log"] = patch.proposal_log;
   if (patch.topics) data["topics"] = patch.topics;
   if (patch.proposals) data["proposals"] = patch.proposals;
-  const body = updateStage2Body(parsed.content, patch);
+  const body = updateProposalBody(parsed.content, patch);
   const serialized = matter.stringify(body, data);
   writeFileSync3(file, serialized);
 }
-function updateStage2Body(content, patch) {
-  if (patch.stage_2_status !== "done") return content;
+function updateProposalBody(content, patch) {
+  if (patch.proposal_status !== "done") return content;
   return content.replace(
-    /\(populated by stage-2 worker\)/,
-    `_Extraction complete \u2014 see proposals in frontmatter._`
+    /\(populated by proposal worker\)/,
+    `_Extraction complete; see proposals in frontmatter._`
   );
 }
 function removeFromQueueHead(queueFile, sessionId) {
   const queue = readQueue(queueFile);
   const next = {
-    schema_version: 1,
+    schema_version: 2,
     entries: queue.entries.filter((e) => e.session_id !== sessionId)
   };
   atomicWriteJson(queueFile, next);
@@ -741,7 +739,7 @@ function atomicWriteJson(file, data) {
   renameSync3(tmp, file);
 }
 
-// src/hooks/kb-stage2-drain.ts
+// src/hooks/kb-proposal-drain.ts
 var PACKAGE_TAG = "[ai-knowledge-base]";
 async function main() {
   if (process.env["KB_BUILDER_INTERNAL"] === "1") return;
@@ -758,16 +756,16 @@ async function main() {
   const root = findRepoRoot(startCwd);
   const paths = repoPaths(root);
   if (!existsSync6(paths.installedVersionFile)) return;
-  const promptTemplate = loadStage2Prompt(paths.promptsDir);
+  const promptTemplate = loadProposalPrompt(paths.promptsDir);
   if (!promptTemplate) {
-    process.stderr.write(`${PACKAGE_TAG} stage-2 prompt template not found; skipping drain
+    process.stderr.write(`${PACKAGE_TAG} proposal prompt template not found; skipping drain
 `);
     return;
   }
   const runner = async (prompt, stdin, schema, opts) => runHeadlessClaude(prompt, stdin, schema, opts);
   try {
     const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
-    const summary = await drainStage2Queue({
+    const summary = await drainProposalQueue({
       sessionsDir: paths.sessionsDir,
       logsDir: paths.logsDir,
       stateFile: join4(paths.stateDir, "state.json"),
@@ -775,9 +773,9 @@ async function main() {
       runner,
       maxEntries: settings.drainBound,
       maxAttempts: settings.maxAttempts,
-      timeoutMs: settings.stage2Timeout,
+      timeoutMs: settings.proposalTimeout,
       lockTtlMs: settings.lockTtlMs,
-      ...settings.stage2Model ? { model: settings.stage2Model.name, effort: settings.stage2Model.effort } : {}
+      ...settings.proposalModel ? { model: settings.proposalModel.name, effort: settings.proposalModel.effort } : {}
     });
     if (summary.status === "locked") {
       return;
@@ -785,21 +783,21 @@ async function main() {
     const failed = summary.processed.filter((p) => p.status === "failed" || p.status === "skipped");
     if (failed.length > 0) {
       process.stderr.write(
-        `${PACKAGE_TAG} stage-2 drain: ${failed.length} session(s) failed or skipped; see _logs/stage-2/
+        `${PACKAGE_TAG} proposal drain: ${failed.length} session(s) failed or skipped; see _logs/proposal/
 `
       );
     }
   } catch (err) {
     process.stderr.write(
-      `${PACKAGE_TAG} stage-2 drain error: ${err instanceof Error ? err.message : String(err)}
+      `${PACKAGE_TAG} proposal drain error: ${err instanceof Error ? err.message : String(err)}
 `
     );
   }
 }
-function loadStage2Prompt(promptsDir) {
-  const override = join4(promptsDir, "stage-2-extract.md");
+function loadProposalPrompt(promptsDir) {
+  const override = join4(promptsDir, "proposal-extract.md");
   if (existsSync6(override)) return readFileSync6(override, "utf8");
-  const bundled = join4(packageTemplatesDir(), "prompts/stage-2-extract.md");
+  const bundled = join4(packageTemplatesDir(), "prompts/proposal-extract.md");
   if (existsSync6(bundled)) return readFileSync6(bundled, "utf8");
   return null;
 }

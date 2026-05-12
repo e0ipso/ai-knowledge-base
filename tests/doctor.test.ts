@@ -45,7 +45,7 @@ describe('doctor', () => {
       join(dir, 'practice-unquoted.md'),
       [
         '---',
-        'schema_version: 1',
+        'schema_version: 2',
         'id: practice-unquoted',
         'title: "unquoted timestamps"',
         'kind: practice',
@@ -81,7 +81,7 @@ describe('doctor', () => {
     await runCli(sandbox, ['init', '--assistants', 'claude']);
     writeFileSync(
       join(sandbox, '.ai/knowledge-base/config.yaml'),
-      'schema_version: 1\ndrainBound: -1\n'
+      'schema_version: 2\ndrainBound: -1\n'
     );
     const result = await runCli(sandbox, ['doctor']);
     expect(result.exitCode).toBe(1);
@@ -112,7 +112,7 @@ describe('status', () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Practice nodes: 0');
     expect(result.stdout).toContain('Map nodes:      0');
-    expect(result.stdout).toContain('Stage-2 queue:           0');
+    expect(result.stdout).toContain('Proposal queue:          0');
     expect(result.stdout).toContain('Curator conflicts:       0');
   });
 });

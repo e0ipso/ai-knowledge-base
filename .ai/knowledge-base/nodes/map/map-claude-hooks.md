@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: map-claude-hooks
 title: "The three Claude Code hooks registered by init"
 kind: map
@@ -15,7 +15,7 @@ derived_from:
 relates_to: [practice-hooks-meet-1s-deadline, practice-recursion-guard-env-var]
 depends_on: []
 confidence: high
-summary: "init registers three hook scripts in .claude/settings.json: kb-capture (Stop/SessionEnd/PreCompact), kb-stage2-drain (SessionStart async), kb-session-start (SessionStart sync)."
+summary: "init registers three hook scripts in .claude/settings.json: kb-capture (Stop/SessionEnd/PreCompact), kb-proposal-drain (SessionStart async), kb-session-start (SessionStart sync)."
 ---
 
 # The three Claude Code hooks registered by init
@@ -25,11 +25,11 @@ summary: "init registers three hook scripts in .claude/settings.json: kb-capture
 | Script | Events | Mode |
 |---|---|---|
 | `kb-capture.mjs` | `Stop`, `SessionEnd`, `PreCompact` | sync, ≤1s |
-| `kb-stage2-drain.mjs` | `SessionStart` | async (`async: true`) |
+| `kb-proposal-drain.mjs` | `SessionStart` | async (`async: true`) |
 | `kb-session-start.mjs` | `SessionStart` | sync, ≤1s |
 
 The two `SessionStart` entries are independent; a failure in one does not block the other.
 
 - **Capture** reads the transcript, dedupes against a 5-minute SHA-256 window, runs secretlint with the recommended preset, and writes `_sessions/<ts>-<id>.md`. The `KB_BUILDER_HOOK=<event>` env var distinguishes Stop / SessionEnd / PreCompact triggers.
-- **Drain** is async: it spawns `claude -p` per pending session log (up to `drainBound`, default 5), streams `_logs/stage-2/*.jsonl`, and updates the log to `stage_2_status: done` or rotates with `attempts++` on failure.
+- **Drain** is async: it spawns `claude -p` per pending session log (up to `drainBound`, default 5), streams `_logs/proposal/*.jsonl`, and updates the log to `proposal_status: done` or rotates with `attempts++` on failure.
 - **Consume** loads `INDEX.md`, checks `nodes_hash` for drift, emits a curate nudge if pending logs exceed `curationThreshold` (default 5) and last nudge was over an hour ago.

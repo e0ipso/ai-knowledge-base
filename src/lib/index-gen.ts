@@ -108,7 +108,7 @@ export function generateIndex(nodesDir: string, opts: GenerateOptions = {}): Gen
   }
 
   const fm = IndexFrontmatterSchema.parse({
-    schema_version: 1,
+    schema_version: 2,
     nodes_hash: `sha256:${hash}`,
     node_count: nodeCount,
     budget_tokens: budget,
@@ -197,7 +197,7 @@ export function generateGraph(nodesDir: string): GeneratedGraph {
   }
 
   const fm = GraphFrontmatterSchema.parse({
-    schema_version: 1,
+    schema_version: 2,
     nodes_hash: `sha256:${hash}`,
     node_count: nodes.length,
   });

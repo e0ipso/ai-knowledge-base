@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: practice-hooks-meet-1s-deadline
 title: "Sync hooks must finish in under 1 second"
 kind: practice
@@ -24,4 +24,4 @@ summary: "kb-capture and kb-session-start are sync hooks with a 1s wall-clock de
 
 A missed deadline exits silently / exits 0 so session startup is never blocked; the next trigger retries on its own. Diagnostic: `time node .claude/hooks/kb-capture.mjs < /dev/null` should be under 200ms cold. Over 1s usually means secretlint is loading from a slow filesystem, or the consumer hasn't run `npm install`.
 
-Only `kb-stage2-drain.mjs` runs as `async: true`, freeing it from the deadline at the cost of having its stdout dropped (status surfaces via `ai-knowledge-base status` and the SessionStart consume path).
+Only `kb-proposal-drain.mjs` runs as `async: true`, freeing it from the deadline at the cost of having its stdout dropped (status surfaces via `ai-knowledge-base status` and the SessionStart consume path).

@@ -21,8 +21,8 @@ import {
   type NodeFrontmatter,
   type NodeKind,
   SessionLogFrontmatterSchema,
-  Stage2CandidateSchema,
-  type Stage2Candidate,
+  ProposalCandidateSchema,
+  type ProposalCandidate,
 } from './schemas.js';
 import { acquireLock, releaseLock } from './state.js';
 import { ulid } from './ulid.js';
@@ -95,8 +95,8 @@ export interface PendingSession {
   sessionId: string;
   capturedAt: string;
   topics: string[];
-  practiceCandidates: Stage2Candidate[];
-  mapCandidates: Stage2Candidate[];
+  practiceCandidates: ProposalCandidate[];
+  mapCandidates: ProposalCandidate[];
 }
 
 interface SessionMatterData {
@@ -105,7 +105,7 @@ interface SessionMatterData {
 }
 
 /**
- * Reads `_sessions/` and returns every log with `stage_2_status: done` that
+ * Reads `_sessions/` and returns every log with `proposal_status: done` that
  * has not yet been processed by curate. Used by both the curate command and
  * `ai-knowledge-base status` (eventually) for reporting.
  */
@@ -119,7 +119,7 @@ export function listPendingSessions(sessionsDir: string): PendingSession[] {
     const fmCheck = SessionLogFrontmatterSchema.safeParse(parsed.data);
     if (!fmCheck.success) continue;
     const fm = fmCheck.data;
-    if (fm.stage_2_status !== 'done') continue;
+    if (fm.proposal_status !== 'done') continue;
     const data = parsed.data as SessionMatterData;
     if (typeof data.curator_processed_at === 'string') continue;
     const practice = parseCandidateArray(data.proposals?.practice);
@@ -138,11 +138,11 @@ export function listPendingSessions(sessionsDir: string): PendingSession[] {
   return out;
 }
 
-function parseCandidateArray(value: unknown): Stage2Candidate[] {
+function parseCandidateArray(value: unknown): ProposalCandidate[] {
   if (!Array.isArray(value)) return [];
-  const out: Stage2Candidate[] = [];
+  const out: ProposalCandidate[] = [];
   for (const entry of value) {
-    const parsed = Stage2CandidateSchema.safeParse(entry);
+    const parsed = ProposalCandidateSchema.safeParse(entry);
     if (parsed.success) out.push(parsed.data);
   }
   return out;
@@ -202,8 +202,8 @@ export interface CuratorBatchPayload {
     session_id: string;
     captured_at: string;
     derived_from: string;
-    practice_candidates: Stage2Candidate[];
-    map_candidates: Stage2Candidate[];
+    practice_candidates: ProposalCandidate[];
+    map_candidates: ProposalCandidate[];
   }>;
 }
 
@@ -261,7 +261,7 @@ function buildBatchPrompt(template: string, payload: CuratorBatchPayload): strin
 
 /**
  * Runs one curate invocation across all pending sessions. Acquires the
- * `curator` lock on `state.json`, iterates the batched stage-2 outputs, asks
+ * `curator` lock on `state.json`, iterates the batched proposal outputs, asks
  * the runner for actions, materializes proposals on disk, and regenerates
  * INDEX/GRAPH from the (unchanged) nodes/ tree. Returns a summary.
  */
@@ -479,7 +479,7 @@ function buildNodeFrontmatter(
   now: Date
 ): NodeFrontmatter {
   return {
-    schema_version: 1,
+    schema_version: 2,
     id,
     title: proposedNode.title,
     kind: proposedNode.kind,

@@ -19,7 +19,7 @@ function seedNode(dir: string, kind: 'practice' | 'map', id: string, body = '# b
   mkdirSync(join(dir, kind), { recursive: true });
   const fm = [
     '---',
-    'schema_version: 1',
+    'schema_version: 2',
     `id: ${id}`,
     `title: "${id} title"`,
     `kind: ${kind}`,
@@ -81,7 +81,7 @@ describe('nodes helpers', () => {
       unquotedPath,
       [
         '---',
-        'schema_version: 1',
+        'schema_version: 2',
         'id: practice-unquoted',
         'title: "unquoted timestamps"',
         'kind: practice',
@@ -151,7 +151,7 @@ describe('nodes helpers', () => {
 
   it('writeNodeFile validates frontmatter and atomically writes nodes/<kind>/<id>.md', () => {
     const fm: NodeFrontmatter = {
-      schema_version: 1,
+      schema_version: 2,
       id: 'practice-write-test',
       title: 'Write test',
       kind: 'practice',

@@ -14,7 +14,7 @@ src/
 ├── commands/                    # User-facing CLI implementations
 ├── hooks/                       # Compiled-to-.mjs hook scripts
 │   ├── kb-capture.ts            # capture     (Stop/SessionEnd/PreCompact)
-│   ├── kb-stage2-drain.ts       # extraction  (SessionStart, async)
+│   ├── kb-proposal-drain.ts     # extraction  (SessionStart, async)
 │   └── kb-session-start.ts      # consume     (SessionStart, sync)
 ├── lib/                         # Reusable building blocks
 ├── adapters/                    # Adapter interface
@@ -28,7 +28,7 @@ src/
 - **Deterministic**: `init`, `doctor`, `status`, `node add`, `index rebuild`. No LLM.
 - **LLM-invoking**: `curate`, `bootstrap-incremental`. Spawn `claude -p` via `runHeadlessClaude`, parse stream-JSON, validate with Zod. All subprocesses set `KB_BUILDER_INTERNAL=1`.
 
-Each of the three `claude -p` subprocess sites reads its own `{ name, effort }` config object before spawning: `stage2Model` (the Stage-2 drain hook), `curatorModel` (the `curate` CLI), and `bootstrapModel` (the `bootstrap-incremental` CLI). When the object is set, `runHeadlessClaude` appends `--model <name>` and `--effort <effort>`; when it is absent, neither flag is passed and the user's `claude` CLI default applies. The `/kb-bootstrap` skill is agent-driven (its sub-agent runs via the `Task` tool, not `claude -p`); it honors `bootstrapModel.name` on a best-effort basis but ignores `bootstrapModel.effort` because the `Task` tool exposes no `effort` parameter.
+Each of the three `claude -p` subprocess sites reads its own `{ name, effort }` config object before spawning: `proposalModel` (the proposal drain hook), `curatorModel` (the `curate` CLI), and `bootstrapModel` (the `bootstrap-incremental` CLI). When the object is set, `runHeadlessClaude` appends `--model <name>` and `--effort <effort>`; when it is absent, neither flag is passed and the user's `claude` CLI default applies. The `/kb-bootstrap` skill is agent-driven (its sub-agent runs via the `Task` tool, not `claude -p`); it honors `bootstrapModel.name` on a best-effort basis but ignores `bootstrapModel.effort` because the `Task` tool exposes no `effort` parameter.
 
 ## Pipelines
 
@@ -41,7 +41,7 @@ flowchart TB
     end
 
     subgraph extract[Extract candidates]
-        SS1[SessionStart] --> KB2[kb-stage2-drain.mjs<br/>async, claude -p]
+        SS1[SessionStart] --> KB2[kb-proposal-drain.mjs<br/>async, claude -p]
         Q --> KB2
         KB2 --> SLD[_sessions/&lt;log&gt;.md<br/>done + candidates]
     end
@@ -73,9 +73,9 @@ flowchart TB
 | File | Owner | Purpose |
 |---|---|---|
 | `_sessions/<log>.md` | capture, extract, curate | Per-session checkpoint. |
-| `_sessions/.queue.json` | capture, extract | Stage-1 → stage-2 handoff. |
+| `_sessions/.queue.json` | capture, extract | Transcript to proposal handoff. |
 | `_sessions/.dedup-cache.json` | capture | 5-min SHA-256 window. |
-| `_logs/{stage-2,curator,bootstrap-incremental}/*.jsonl` | LLM pipelines | Stream-JSON traces. Gitignored. |
+| `_logs/{proposal,curator,bootstrap-incremental}/*.jsonl` | LLM pipelines | Stream-JSON traces. Gitignored. |
 | `nodes/{practice,map}/` | curator, node-add, bootstrap, human reviewer | Canonical knowledge. Reviewed via `git diff` and accepted via `git commit`. |
 | `INDEX.md` / `GRAPH.md` | curator, index-rebuild (incl. lint-staged `--stage`) | Deterministic outputs derived from `nodes/`. Regenerated and staged on every commit. |
 | `.state/installed-version` | init | Package version + selected assistants. Committed. |
@@ -88,7 +88,7 @@ flowchart TB
 
 `state.json` holds one lock at a time (`name`, `pid`, `acquired_at`, `ttl_ms`). 30-min TTL; stale locks are reclaimed.
 
-- `stage2-drain`: prevents concurrent SessionStart drains racing on the queue.
+- `proposal-drain`: prevents concurrent SessionStart drains racing on the queue.
 - `curator`: prevents duplicate proposals from concurrent curate runs.
 - `bootstrap-incremental`: same, for bootstrap.
 
@@ -130,7 +130,7 @@ Adding an adapter: implement the methods, dispatch from `init.ts`.
 
 | Goal | Path |
 |---|---|
-| Change extraction | `templates-source/prompts/stage-2-extract.md` |
+| Change extraction | `templates-source/prompts/proposal-extract.md` |
 | Change curator | `templates-source/prompts/curator.md` (logic in `src/lib/curate.ts`) |
 | Change bootstrap | `templates-source/prompts/bootstrap-incremental.md` or skill body |
 | New CLI subcommand | `src/commands/<name>.ts` + wire in `src/cli.ts` + doc in `cli-reference.md` |

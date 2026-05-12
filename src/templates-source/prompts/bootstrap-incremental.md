@@ -1,7 +1,7 @@
 # Bootstrap-Incremental Extraction Prompt
 
 <!--
-  Version: 1
+  Version: 2
   Used by: ai-knowledge-base bootstrap-incremental (via `claude -p`)
   Owner contract: receives a chunk of markdown documentation (one or more whole
   files concatenated, bounded by token budget), produces candidate practice and
@@ -84,7 +84,7 @@ Documentation may be stale or aspirational. Default `confidence: medium` unless:
 
 ## Ownership boundary
 
-Same as stage-2 extraction: practice owns imperative knowledge; map owns named-entity definitions. Split combined content across the two passes.
+Same as proposal extraction: practice owns imperative knowledge; map owns named-entity definitions. Split combined content across the two passes.
 
 ## Rules
 

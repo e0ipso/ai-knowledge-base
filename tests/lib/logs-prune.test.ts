@@ -70,8 +70,8 @@ describe('pruneLogs', () => {
   }
 
   it('deletes files older than the cutoff in each bucket', () => {
-    const old1 = makeLog('stage-2', 'old.jsonl', 40 * DAY_MS);
-    const fresh1 = makeLog('stage-2', 'fresh.jsonl', 1 * DAY_MS);
+    const old1 = makeLog('proposal', 'old.jsonl', 40 * DAY_MS);
+    const fresh1 = makeLog('proposal', 'fresh.jsonl', 1 * DAY_MS);
     const old2 = makeLog('curator', 'old.jsonl', 90 * DAY_MS);
     const old3 = makeLog('bootstrap-incremental', 'old.jsonl', 50 * DAY_MS);
 
@@ -86,13 +86,13 @@ describe('pruneLogs', () => {
     expect(existsSync(old2)).toBe(false);
     expect(existsSync(old3)).toBe(false);
 
-    const stage2 = result.buckets.find(b => b.bucket === 'stage-2');
-    expect(stage2?.filesDeleted).toBe(1);
-    expect(stage2?.filesScanned).toBe(2);
+    const proposal = result.buckets.find(b => b.bucket === 'proposal');
+    expect(proposal?.filesDeleted).toBe(1);
+    expect(proposal?.filesScanned).toBe(2);
   });
 
   it('respects --dry-run: deletes nothing but reports counts', () => {
-    const old1 = makeLog('stage-2', 'old.jsonl', 40 * DAY_MS, 'aaaa');
+    const old1 = makeLog('proposal', 'old.jsonl', 40 * DAY_MS, 'aaaa');
 
     const result = pruneLogs({
       logsDir: sandbox,
@@ -107,8 +107,8 @@ describe('pruneLogs', () => {
   });
 
   it('skips non-.jsonl files', () => {
-    const other = join(sandbox, 'stage-2', 'README.md');
-    mkdirSync(join(sandbox, 'stage-2'), { recursive: true });
+    const other = join(sandbox, 'proposal', 'README.md');
+    mkdirSync(join(sandbox, 'proposal'), { recursive: true });
     writeFileSync(other, 'x');
     const past = new Date(Date.now() - 90 * DAY_MS);
     utimesSync(other, past, past);

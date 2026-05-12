@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: map-project-documentation-layout
 title: Project documentation layout
 kind: map

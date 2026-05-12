@@ -1,6 +1,6 @@
-# Expected stage-2 output for transcript-bravo-insider.md
+# Expected proposal output for transcript-bravo-insider.md
 
-This is what the stage-2 prompt should produce when run on the fixture transcript. Used to validate prompt correctness and as a target for integration tests.
+This is what the proposal extraction prompt should produce when run on the fixture transcript. Used to validate prompt correctness and as a target for integration tests.
 
 ## Expected JSON
 
@@ -101,9 +101,9 @@ The `bravo_seo.schema_emitter` map node is `confidence: medium` because the user
 
 ## Curator follow-up checks against existing-kb.md
 
-When this stage-2 output flows into the curator with the four existing nodes from the fixture KB, the curator should:
+When this proposal output flows into the curator with the four existing nodes from the fixture KB, the curator should:
 
-1. **Practice DI node:** stage-2 says "constructor injection." Existing `practice-controller-dependency-injection` covers it. → **modify** (the new candidate adds the explicit "see CardFeedController" pointer and is consistent with the existing node, but doesn't add real new content) OR **drop** (essentially the same). Lean drop.
+1. **Practice DI node:** proposal says "constructor injection." Existing `practice-controller-dependency-injection` covers it. → **modify** (the new candidate adds the explicit "see CardFeedController" pointer and is consistent with the existing node, but doesn't add real new content) OR **drop** (essentially the same). Lean drop.
 
 2. **Practice analytics dispatcher node:** existing `practice-analytics-direct-ga` says "use vanilla GA." Direct contradiction. → **contradict**. The new node says "use the dispatcher (we moved off GA)" and the existing node says "use GA directly." Cannot both be true. Resolution will be `supersede`.
 

@@ -26,7 +26,7 @@ describe('queue', () => {
   afterEach(() => cleanSandbox(sandbox));
 
   it('readQueue returns empty when missing', () => {
-    expect(readQueue(queueFile)).toEqual({ schema_version: 1, entries: [] });
+    expect(readQueue(queueFile)).toEqual({ schema_version: 2, entries: [] });
   });
 
   it('appends entries cumulatively', () => {

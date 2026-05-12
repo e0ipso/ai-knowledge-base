@@ -83,9 +83,9 @@ Delete old run logs under `_logs/`. `--older-than` accepts forms like `30d`, `2w
 Project-level settings live in `.ai/knowledge-base/config.yaml` (committed). A user-level file at `~/.config/ai-knowledge-base/config.yaml` can set personal defaults; the project file wins.
 
 ```yaml
-schema_version: 1
+schema_version: 2
 drainBound: 5
-stage2Timeout: 60000
+proposalTimeout: 60000
 indexBudgetTokens: 2000
 curationThreshold: 5
 bootstrapTokenBudget: 10000
@@ -95,7 +95,7 @@ logsRetentionDays: 30
 | Key | Default | What it does |
 |---|---|---|
 | `drainBound` | `5` | Max background extractions processed per session start. |
-| `stage2Timeout` | `60000` | Per-entry extraction timeout (ms). |
+| `proposalTimeout` | `60000` | Per-entry extraction timeout (ms). |
 | `indexBudgetTokens` | `2000` | Token budget for `INDEX.md`. |
 | `curationThreshold` | `5` | Pending logs that trigger the curate nudge. |
 | `bootstrapTokenBudget` | `10000` | Per-batch budget for `bootstrap-incremental`. |
@@ -108,7 +108,7 @@ CLI flags override settings per run.
 Three optional config keys pick the `claude` model family and effort level for each `claude -p` subprocess. Each takes a `{ name, effort }` object; both sub-keys are required when the object is present. When a key is unset, the spawn omits both flags and the user's `claude` CLI default is used.
 
 ```yaml
-stage2Model:
+proposalModel:
   name: haiku
   effort: low
 curatorModel:
@@ -121,8 +121,8 @@ bootstrapModel:
 
 | Key | Sub-key | Accepted values | Effect |
 |---|---|---|---|
-| `stage2Model` | `name` | `haiku`, `sonnet`, `opus` | Passed as `--model` on Stage-2 drain spawns. |
-| `stage2Model` | `effort` | `low`, `medium`, `high`, `xhigh`, `max` | Passed as `--effort` on Stage-2 drain spawns. |
+| `proposalModel` | `name` | `haiku`, `sonnet`, `opus` | Passed as `--model` on proposal drain spawns. |
+| `proposalModel` | `effort` | `low`, `medium`, `high`, `xhigh`, `max` | Passed as `--effort` on proposal drain spawns. |
 | `curatorModel` | `name` | `haiku`, `sonnet`, `opus` | Passed as `--model` on `curate` spawns. |
 | `curatorModel` | `effort` | `low`, `medium`, `high`, `xhigh`, `max` | Passed as `--effort` on `curate` spawns. |
 | `bootstrapModel` | `name` | `haiku`, `sonnet`, `opus` | Passed as `--model` on `bootstrap-incremental` spawns. |

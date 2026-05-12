@@ -6,19 +6,19 @@ export type CaptureTrigger = z.infer<typeof CaptureTriggerSchema>;
 export const SecretScanStatusSchema = z.enum(['clean', 'redacted', 'blocked', 'skipped']);
 export type SecretScanStatus = z.infer<typeof SecretScanStatusSchema>;
 
-export const Stage2StatusSchema = z.enum(['pending', 'done', 'failed', 'skipped']);
-export type Stage2Status = z.infer<typeof Stage2StatusSchema>;
+export const ProposalStatusSchema = z.enum(['pending', 'done', 'failed', 'skipped']);
+export type ProposalStatus = z.infer<typeof ProposalStatusSchema>;
 
 export const SessionLogFrontmatterSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   session_id: z.string(),
   captured_by: CaptureTriggerSchema,
   captured_at: z.string(),
   transcript_hash: z.string(),
-  stage_2_status: Stage2StatusSchema,
-  stage_2_completed_at: z.string().nullable(),
-  stage_2_error: z.string().nullable(),
-  stage_2_log: z.string().nullable(),
+  proposal_status: ProposalStatusSchema,
+  proposal_completed_at: z.string().nullable(),
+  proposal_error: z.string().nullable(),
+  proposal_log: z.string().nullable(),
   secret_scan_status: SecretScanStatusSchema,
   topics: z.array(z.string()),
   proposals: z.object({
@@ -40,7 +40,7 @@ export const QueueEntrySchema = z.object({
 export type QueueEntry = z.infer<typeof QueueEntrySchema>;
 
 export const QueueFileSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   entries: z.array(QueueEntrySchema),
 });
 
@@ -52,7 +52,7 @@ export const DedupCacheEntrySchema = z.object({
 });
 
 export const DedupCacheFileSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   entries: z.array(DedupCacheEntrySchema),
 });
 
@@ -72,7 +72,7 @@ export const ModelChoiceSchema = z
   .strict();
 export type ModelChoice = z.infer<typeof ModelChoiceSchema>;
 
-export const Stage2CandidateSchema = z.object({
+export const ProposalCandidateSchema = z.object({
   kind: z.enum(['practice', 'map']),
   tags: z.array(z.string()),
   title: z.string(),
@@ -83,14 +83,14 @@ export const Stage2CandidateSchema = z.object({
   contradicts_existing_node: z.string().nullable(),
 });
 
-export type Stage2Candidate = z.infer<typeof Stage2CandidateSchema>;
+export type ProposalCandidate = z.infer<typeof ProposalCandidateSchema>;
 
-export const Stage2OutputSchema = z.object({
-  practice: z.array(Stage2CandidateSchema),
-  map: z.array(Stage2CandidateSchema),
+export const ProposalOutputSchema = z.object({
+  practice: z.array(ProposalCandidateSchema),
+  map: z.array(ProposalCandidateSchema),
 });
 
-export type Stage2Output = z.infer<typeof Stage2OutputSchema>;
+export type ProposalOutput = z.infer<typeof ProposalOutputSchema>;
 
 export const StateLockSchema = z.object({
   name: z.string(),
@@ -102,7 +102,7 @@ export const StateLockSchema = z.object({
 export type StateLock = z.infer<typeof StateLockSchema>;
 
 export const StateFileSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   lock: StateLockSchema.nullable().optional(),
   last_nudged_at: z.string().nullable().optional(),
 });
@@ -113,7 +113,7 @@ export const NodeKindSchema = z.enum(['practice', 'map']);
 export type NodeKind = z.infer<typeof NodeKindSchema>;
 
 export const NodeFrontmatterSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   id: z.string(),
   title: z.string(),
   kind: NodeKindSchema,
@@ -132,7 +132,7 @@ export const NodeFrontmatterSchema = z.object({
 export type NodeFrontmatter = z.infer<typeof NodeFrontmatterSchema>;
 
 /**
- * Curator output schema: one entry per stage-2 candidate. Drops and
+ * Curator output schema: one entry per proposal candidate. Drops and
  * contradicts may omit `proposed_node`; add/modify include it.
  */
 export const CuratorProposedNodeSchema = z.object({
@@ -166,7 +166,7 @@ export const CuratorOutputSchema = z.array(CuratorActionSchema);
 export type CuratorOutput = z.infer<typeof CuratorOutputSchema>;
 
 export const IndexFrontmatterSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative(),
   budget_tokens: z.number().int().positive(),
@@ -174,7 +174,7 @@ export const IndexFrontmatterSchema = z.object({
 export type IndexFrontmatter = z.infer<typeof IndexFrontmatterSchema>;
 
 export const GraphFrontmatterSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative(),
 });
@@ -182,7 +182,7 @@ export type GraphFrontmatter = z.infer<typeof GraphFrontmatterSchema>;
 
 /**
  * Candidate emitted by the bootstrap-incremental prompt. Same shape as the
- * stage-2 candidate plus `derived_from` (the source-doc paths the chunk
+ * proposal candidate plus `derived_from` (the source-doc paths the chunk
  * provided). `supports_existing_node` and `contradicts_existing_node` are
  * always null in bootstrap output (the prompt forces this) but kept in the
  * schema to match the shared candidate shape.
@@ -231,7 +231,7 @@ export const ConflictReportSchema = z.object({
 export type ConflictReport = z.infer<typeof ConflictReportSchema>;
 
 export const PendingConflictsFileSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   conflicts: z.array(ConflictReportSchema),
 });
 export type PendingConflictsFile = z.infer<typeof PendingConflictsFileSchema>;
@@ -257,7 +257,7 @@ export type FailureReport = z.infer<typeof FailureReportSchema>;
  * documented defaults under user-level overrides under project-level overrides.
  * The `schema_version` field is the only required key when a file is present.
  *
- * Model and effort selection: `stage2Model`, `curatorModel`, and `bootstrapModel`
+ * Model and effort selection: `proposalModel`, `curatorModel`, and `bootstrapModel`
  * each take a `{ name, effort }` object that steers the corresponding `claude -p`
  * subprocess. `name` is one of `haiku`, `sonnet`, `opus`. `effort` is one of
  * `low`, `medium`, `high`, `xhigh`, `max`. When a key is unset the spawn omits
@@ -265,16 +265,16 @@ export type FailureReport = z.infer<typeof FailureReportSchema>;
  */
 export const SettingsSchema = z
   .object({
-    schema_version: z.literal(1),
+    schema_version: z.literal(2),
     drainBound: z.number().int().positive().optional(),
     maxAttempts: z.number().int().positive().optional(),
-    stage2Timeout: z.number().int().positive().optional(),
+    proposalTimeout: z.number().int().positive().optional(),
     lockTtlMs: z.number().int().positive().optional(),
     indexBudgetTokens: z.number().int().positive().optional(),
     curationThreshold: z.number().int().positive().optional(),
     bootstrapTokenBudget: z.number().int().positive().optional(),
     logsRetentionDays: z.number().int().positive().optional(),
-    stage2Model: ModelChoiceSchema.optional(),
+    proposalModel: ModelChoiceSchema.optional(),
     curatorModel: ModelChoiceSchema.optional(),
     bootstrapModel: ModelChoiceSchema.optional(),
   })
@@ -282,7 +282,7 @@ export const SettingsSchema = z
 export type SettingsFile = z.infer<typeof SettingsSchema>;
 
 export const BootstrapStateSchema = z.object({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   last_full_bootstrap_at: z.string().nullable().optional(),
   last_incremental_at: z.string().nullable().optional(),
   docs: z.record(BootstrapDocEntrySchema),

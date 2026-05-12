@@ -27,7 +27,7 @@ export interface SessionStartResult {
   indexMissing: boolean;
   /** True if INDEX.md exists but its nodes_hash does not match nodes/. */
   indexStale: boolean;
-  /** Number of pending session logs (stage_2 done, not curated). */
+  /** Number of pending session logs (proposal done, not curated). */
   pendingSessions: number;
 }
 
@@ -128,9 +128,10 @@ function normalizeNodesHash(value: string): string {
 }
 
 /**
- * Counts session logs that are stage-2-done but not yet curated. Mirrors the
- * filter used by `listPendingSessions` in `src/lib/curate.ts`. Kept here so
- * the consume hook does not have to load the entire curate module.
+ * Counts session logs whose proposal is done but which have not yet been
+ * curated. Mirrors the filter used by `listPendingSessions` in
+ * `src/lib/curate.ts`. Kept here so the consume hook does not have to load
+ * the entire curate module.
  */
 export function countPendingSessions(sessionsDir: string): number {
   if (!existsSync(sessionsDir)) return 0;
@@ -142,7 +143,7 @@ export function countPendingSessions(sessionsDir: string): number {
       const parsed = matter(readFileSync(file, 'utf8'));
       const fm = SessionLogFrontmatterSchema.safeParse(parsed.data);
       if (!fm.success) continue;
-      if (fm.data.stage_2_status !== 'done') continue;
+      if (fm.data.proposal_status !== 'done') continue;
       const data = parsed.data as { curator_processed_at?: unknown };
       if (typeof data.curator_processed_at === 'string') continue;
       count += 1;

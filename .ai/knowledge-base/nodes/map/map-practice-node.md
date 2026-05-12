@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: map-practice-node
 title: "Practice node: how-we-build, imperative guidance"
 kind: map
@@ -25,4 +25,4 @@ A **practice** node captures "how we build things": conventions ("when adding X,
 
 Stored at `.ai/knowledge-base/nodes/practice/<id>.md`. The id slug is `practice-<slug>`. Frontmatter shape is defined by `NodeFrontmatterSchema` in `src/lib/schemas.ts`.
 
-The stage-2 extractor splits combined statements: "use `bravo_analytics.dispatcher`, our event-tracking service" becomes one practice (use the dispatcher) plus one map (what the dispatcher is). Imperative content belongs to practice; nominative content belongs to map. The boundary is enforced by the prompt; do not cross it in hand-authored or curator-proposed nodes.
+The proposal extractor splits combined statements: "use `bravo_analytics.dispatcher`, our event-tracking service" becomes one practice (use the dispatcher) plus one map (what the dispatcher is). Imperative content belongs to practice; nominative content belongs to map. The boundary is enforced by the prompt; do not cross it in hand-authored or curator-proposed nodes.

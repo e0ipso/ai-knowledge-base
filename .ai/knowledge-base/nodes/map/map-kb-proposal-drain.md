@@ -1,0 +1,28 @@
+---
+schema_version: 2
+id: map-kb-proposal-drain
+title: 'kb-proposal-drain: async worker that runs the extraction step'
+kind: map
+tags:
+  - worker
+  - proposal
+  - kb-pipeline
+valid_from: '2026-05-12T14:51:02.976Z'
+valid_until: null
+updated: '2026-05-12T15:50:15.076Z'
+supersedes: null
+superseded_by: null
+derived_from:
+  - 20260512-1438-e5b4618a5295.md
+  - 20260512-1527-aa21a0a11614.md
+relates_to:
+  - map-claude-hooks
+depends_on: []
+confidence: high
+summary: >-
+  SessionStart async hook that spawns a Claude SDK subprocess to extract
+  structured proposals from each queued session log.
+---
+`kb-proposal-drain` (built from `src/lib/proposal-drain.ts`) processes pending entries in `.queue.json`. For each, it spawns a Claude Code SDK subprocess running the extraction prompt against the session log's transcript slice, parses the JSON result with `ProposalOutputSchema` (`proposal-drain.ts:175`), and writes `proposals.practice` and `proposals.map` arrays into the session log's frontmatter. It then replaces the body placeholder with a completion marker (`proposal-drain.ts:294`).
+
+Each subprocess invocation produces one `_logs/proposal/<session-id>__<timestamp>Z.jsonl` stream-json audit log.

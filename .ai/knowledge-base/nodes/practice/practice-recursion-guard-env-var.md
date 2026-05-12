@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: practice-recursion-guard-env-var
 title: "Set KB_BUILDER_INTERNAL=1 on every internal claude -p subprocess"
 kind: practice
@@ -20,7 +20,7 @@ summary: "All three KB hooks exit immediately when KB_BUILDER_INTERNAL=1. The ex
 
 # Set KB_BUILDER_INTERNAL=1 on every internal claude -p subprocess
 
-The three hook scripts (`kb-capture.mjs`, `kb-stage2-drain.mjs`, `kb-session-start.mjs`) all exit immediately when `KB_BUILDER_INTERNAL=1` is set in the environment.
+The three hook scripts (`kb-capture.mjs`, `kb-proposal-drain.mjs`, `kb-session-start.mjs`) all exit immediately when `KB_BUILDER_INTERNAL=1` is set in the environment.
 
 The extractor, curator, and `bootstrap-incremental` set this env var on every `claude -p` child they spawn, so the SessionStart that fires inside the headless child does not trigger our hooks recursively.
 

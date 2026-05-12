@@ -30,7 +30,7 @@ describe('init', () => {
       '.ai/knowledge-base/nodes/practice/.gitkeep',
       '.ai/knowledge-base/nodes/map/.gitkeep',
       '.ai/knowledge-base/_sessions/.gitkeep',
-      '.ai/knowledge-base/_logs/stage-2/.gitkeep',
+      '.ai/knowledge-base/_logs/proposal/.gitkeep',
       '.ai/knowledge-base/_logs/curator/.gitkeep',
       '.ai/knowledge-base/_logs/bootstrap-incremental/.gitkeep',
       '.claude/settings.json',
@@ -38,10 +38,10 @@ describe('init', () => {
       '.claude/skills/kb-bootstrap/SKILL.md',
       '.claude/skills/kb-curate/SKILL.md',
       '.claude/hooks/kb-capture.mjs',
-      '.claude/hooks/kb-stage2-drain.mjs',
+      '.claude/hooks/kb-proposal-drain.mjs',
       '.claude/hooks/kb-session-start.mjs',
       '.ai/knowledge-base/.state/installed-version',
-      '.ai/knowledge-base/.config/prompts/stage-2-extract.md',
+      '.ai/knowledge-base/.config/prompts/proposal-extract.md',
       '.ai/knowledge-base/.config/prompts/curator.md',
       '.ai/knowledge-base/.config/prompts/bootstrap-incremental.md',
       '.ai/knowledge-base/config.yaml',
@@ -66,7 +66,7 @@ describe('init', () => {
     const installed = JSON.parse(
       readFileSync(join(sandbox, '.ai/knowledge-base/.state/installed-version'), 'utf8')
     );
-    expect(installed.schema_version).toBe(1);
+    expect(installed.schema_version).toBe(2);
     expect(installed.package).toBe('@e0ipso/ai-knowledge-base');
     expect(typeof installed.version).toBe('string');
     expect(installed.version.length).toBeGreaterThan(0);
@@ -183,7 +183,7 @@ describe('init', () => {
     expect(commands).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          command: 'KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-stage2-drain.mjs',
+          command: 'KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-proposal-drain.mjs',
           async: true,
         }),
         expect.objectContaining({
@@ -198,10 +198,10 @@ describe('init', () => {
     const body = yaml.load(
       readFileSync(join(sandbox, '.ai/knowledge-base/config.yaml'), 'utf8')
     ) as Record<string, unknown>;
-    expect(body['schema_version']).toBe(1);
+    expect(body['schema_version']).toBe(2);
     expect(body['drainBound']).toBe(5);
     expect(body['maxAttempts']).toBe(3);
-    expect(body['stage2Timeout']).toBe(60000);
+    expect(body['proposalTimeout']).toBe(60000);
     expect(body['indexBudgetTokens']).toBe(2000);
     expect(body['curationThreshold']).toBe(5);
     expect(body['bootstrapTokenBudget']).toBe(10000);
@@ -211,7 +211,7 @@ describe('init', () => {
   it('does not overwrite an existing config.yaml even with --force', async () => {
     await runCli(sandbox, ['init', '--assistants', 'claude']);
     const configFile = join(sandbox, '.ai/knowledge-base/config.yaml');
-    const customized = 'schema_version: 1\ndrainBound: 99\n';
+    const customized = 'schema_version: 2\ndrainBound: 99\n';
     writeFileSync(configFile, customized);
 
     const result = await runCli(sandbox, ['init', '--assistants', 'claude', '--force']);

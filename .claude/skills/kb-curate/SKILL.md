@@ -15,7 +15,7 @@ Run the curator over pending session logs and apply its decisions directly to `n
 Run `ai-knowledge-base curate` in the project root. The command:
 
 - Acquires the curator lock (`.ai/knowledge-base/.state/state.json`, name=`curator`, PID + 30-min TTL).
-- Batches every session log whose `stage_2_status: done` and which has not yet been curated.
+- Batches every session log whose `proposal_status: done` and which has not yet been curated.
 - Spawns `claude -p` per batch with the curator prompt (no recursion: `KB_BUILDER_INTERNAL=1`).
 - Writes node files directly to `.ai/knowledge-base/nodes/<kind>/` for `add` and `modify` actions.
 - Records each `contradict` action in `.ai/knowledge-base/.state/pending-conflicts.json` **without writing the conflicting node to disk**.

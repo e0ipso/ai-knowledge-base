@@ -1,4 +1,4 @@
-# Expected stage-2 output for transcript-routine-zero-capture.md
+# Expected proposal output for transcript-routine-zero-capture.md
 
 The correct output is empty:
 

@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: practice-conventional-commits
 title: "Conventional Commits are required: they drive the release"
 kind: practice

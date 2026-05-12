@@ -8,13 +8,13 @@ nav_order: 3
 
 Every YAML frontmatter and JSON state file is validated by a Zod schema at read time. The schemas in [`src/lib/schemas.ts`](https://github.com/e0ipso/ai-knowledge-base/blob/main/src/lib/schemas.ts) are the source of truth - when this page disagrees with the code, the code wins.
 
-All shapes carry `schema_version: 1`. A schema mismatch is a parse failure; the file is silently dropped.
+All shapes carry `schema_version: 2`. A schema mismatch is a parse failure; the file is silently dropped.
 
 ## Node - `nodes/{practice,map}/<slug>.md`
 
 ```yaml
 ---
-schema_version: 1
+schema_version: 2
 id: practice-prefer-constructor-injection   # <kind>-<slug>
 title: "..."
 kind: practice | map
@@ -40,7 +40,7 @@ Validated by `NodeFrontmatterSchema`.
 - **Practice** - _how we build._ Imperative guidance.
 - **Map** - _what exists._ Named entities (modules, services, vocabulary).
 
-The stage-2 prompt splits combined statements: "use `bravo_analytics.dispatcher`, our event-tracking service" becomes one practice (use the dispatcher) and one map (what the dispatcher is).
+The proposal prompt splits combined statements: "use `bravo_analytics.dispatcher`, our event-tracking service" becomes one practice (use the dispatcher) and one map (what the dispatcher is).
 
 ### Validity, provenance, relations
 
@@ -55,7 +55,7 @@ The curator records `contradict` actions here instead of writing conflicting nod
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "conflicts": [
     {
       "id": "<run-id>-<n>",
@@ -84,27 +84,27 @@ Failures are reported in CLI output and not persisted; rerun the curator after f
 ## Session log - `_sessions/<YYYYMMDD-HHmm-id>.md`
 
 ```yaml
-schema_version: 1
+schema_version: 2
 session_id: <claude-code-session-id>
 captured_by: stop | session_end | pre_compact | manual
 captured_at: 2026-05-11T10:00:00Z
 transcript_hash: sha256:<hex>
-stage_2_status: pending | done | failed | skipped
-stage_2_completed_at: <ISO> | null
-stage_2_error: <string> | null
-stage_2_log: _logs/stage-2/<id>__<ts>.jsonl | null
+proposal_status: pending | done | failed | skipped
+proposal_completed_at: <ISO> | null
+proposal_error: <string> | null
+proposal_log: _logs/proposal/<id>__<ts>.jsonl | null
 secret_scan_status: clean | redacted | blocked | skipped
 topics: [string, ...]
 proposals:
-  practice: [<Stage2Candidate>, ...]
-  map: [<Stage2Candidate>, ...]
+  practice: [<ProposalCandidate>, ...]
+  map: [<ProposalCandidate>, ...]
 curator_processed_at: 2026-05-11T11:00:00Z   # set after curate
 curator_run_id: <ULID>
 ```
 
 Validated by `SessionLogFrontmatterSchema`.
 
-## Stage-2 candidate
+## Proposal candidate
 
 ```yaml
 kind: practice | map
@@ -117,11 +117,11 @@ supports_existing_node: <node-id> | null
 contradicts_existing_node: <node-id> | null
 ```
 
-Validated by `Stage2CandidateSchema`. Top-level: `Stage2OutputSchema = { practice: [...], map: [...] }`.
+Validated by `ProposalCandidateSchema`. Top-level: `ProposalOutputSchema = { practice: [...], map: [...] }`.
 
 ## Bootstrap candidate
 
-Superset of stage-2 with `derived_from`. `supports_existing_node` and `contradicts_existing_node` are always `null` in bootstrap output. Validated by `BootstrapCandidateSchema`.
+Superset of the proposal candidate with `derived_from`. `supports_existing_node` and `contradicts_existing_node` are always `null` in bootstrap output. Validated by `BootstrapCandidateSchema`.
 
 ## Curator action
 
@@ -139,7 +139,7 @@ Validated by `CuratorOutputSchema` (array of actions).
 ## INDEX.md / GRAPH.md frontmatter
 
 ```yaml
-schema_version: 1
+schema_version: 2
 nodes_hash: sha256:<hex>
 node_count: 47
 budget_tokens: 2000     # INDEX only
@@ -166,7 +166,7 @@ Defined in `computeNodesHash` (`src/lib/nodes.ts`).
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "lock": { "name": "...", "pid": 12345, "acquired_at": "...", "ttl_ms": 1800000 },
   "last_nudged_at": "2026-05-11T10:00:00Z"
 }
@@ -180,7 +180,7 @@ Records the SHA-256 of every doc the bootstrap pipelines have processed. Hash hi
 
 ```json
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "last_full_bootstrap_at": "2026-05-10T14:30:00Z",
   "last_incremental_at": "2026-05-15T09:12:00Z",
   "docs": {

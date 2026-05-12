@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: practice-no-schema-migrators
 title: "Strict schema-version policy: clean break, no migrators"
 kind: practice

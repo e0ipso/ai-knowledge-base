@@ -30,15 +30,15 @@ describe('logs prune', () => {
   }
 
   it('deletes log files older than --older-than and reports per-bucket counts', async () => {
-    const old = plantLog('stage-2', 'old.jsonl', 60 * DAY_MS);
-    const fresh = plantLog('stage-2', 'fresh.jsonl', 1 * DAY_MS);
+    const old = plantLog('proposal', 'old.jsonl', 60 * DAY_MS);
+    const fresh = plantLog('proposal', 'fresh.jsonl', 1 * DAY_MS);
 
     const result = await runCli(sandbox, ['logs', 'prune', '--older-than', '30d']);
     expect(result.exitCode).toBe(0);
     expect(existsSync(old)).toBe(false);
     expect(existsSync(fresh)).toBe(true);
     expect(result.stdout).toMatch(/Deleted 1 log file/);
-    expect(result.stdout).toMatch(/stage-2: 1\/2 eligible/);
+    expect(result.stdout).toMatch(/proposal: 1\/2 eligible/);
   });
 
   it('honors --dry-run', async () => {

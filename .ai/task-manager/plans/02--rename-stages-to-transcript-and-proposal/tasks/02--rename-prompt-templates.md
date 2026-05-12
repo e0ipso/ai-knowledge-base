@@ -2,7 +2,7 @@
 id: 2
 group: "prompts"
 dependencies: []
-status: "pending"
+status: "completed"
 created: 2026-05-12
 skills:
   - prompts

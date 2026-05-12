@@ -1,12 +1,11 @@
 ---
-schema_version: 1
-generated_at: '2026-05-12T15:50:15.081Z'
-nodes_hash: 'sha256:b624a095cf7888f4e8577e43f4b8821eb94974ad534624a4092438d2cc44325f'
-node_count: 42
+schema_version: 2
+nodes_hash: 'sha256:1d1e1dae0a867d9c4d50b2995e27f03c02a24e2c465d741ea22b58a17bd4801b'
+node_count: 41
 ---
 # KB Graph
 
-Total nodes: 42
+Total nodes: 41
 
 ## map-adapter-interface
 
@@ -98,13 +97,13 @@ Total nodes: 42
 - **relates_to:** map-ai-knowledge-base-cli, map-pending-conflicts-file
 - **derived_from:** docs/cli-reference.md, docs/daily-use.md, PRD.md
 
-## map-kb-stage2-drain
+## map-kb-proposal-drain
 
 - **kind:** map
 - **status:** valid
-- **title:** kb-stage2-drain: async worker that runs the extraction step
-- **tags:** worker, stage-2, kb-pipeline
-- **relates_to:** map-claude-hooks, practice-rename-stage-vocab-to-transcript-proposal
+- **title:** kb-proposal-drain: async worker that runs the extraction step
+- **tags:** worker, proposal, kb-pipeline
+- **relates_to:** map-claude-hooks
 - **derived_from:** 20260512-1438-e5b4618a5295.md, 20260512-1527-aa21a0a11614.md
 
 ## map-map-node
@@ -167,7 +166,7 @@ Total nodes: 42
 - **status:** valid
 - **title:** Proposal: structured candidate nodes extracted from a Transcript
 - **tags:** kb-pipeline, artifact, vocabulary
-- **relates_to:** map-transcript-artifact, map-kb-stage2-drain, practice-rename-stage-vocab-to-transcript-proposal
+- **relates_to:** map-transcript-artifact, map-kb-proposal-drain
 - **derived_from:** 20260512-1527-aa21a0a11614.md
 
 ## map-session-log-and-queue-helpers
@@ -212,7 +211,7 @@ Total nodes: 42
 - **status:** valid
 - **title:** Transcript: raw session capture in the KB pipeline
 - **tags:** kb-pipeline, artifact, vocabulary
-- **relates_to:** map-proposal-artifact, map-sessions-directory, practice-rename-stage-vocab-to-transcript-proposal
+- **relates_to:** map-proposal-artifact, map-sessions-directory
 - **derived_from:** 20260512-1527-aa21a0a11614.md
 
 ## practice-atomic-prs-with-paired-docs
@@ -344,16 +343,7 @@ Total nodes: 42
 - **relates_to:** map-claude-hooks
 - **derived_from:** docs/internals/hooks.md, docs/internals/architecture.md
 
-## practice-rename-stage-vocab-to-transcript-proposal
-
-- **kind:** practice
-- **status:** valid
-- **title:** Rename Stage 1/Stage 2 to Transcript/Proposal across the KB pipeline
-- **tags:** naming, refactor, kb-pipeline, vocabulary
-- **relates_to:** map-transcript-artifact, map-proposal-artifact, map-kb-stage2-drain
-- **derived_from:** 20260512-1527-aa21a0a11614.md
-
-## practice-sessions-and-stage2-logs-are-intermediate-artifacts
+## practice-sessions-and-proposal-logs-are-intermediate-artifacts
 
 - **kind:** practice
 - **status:** valid

@@ -37,7 +37,7 @@ Knowledge is captured automatically. Knowledge is curated deliberately, with a h
 4. **Low friction for contributors.** Capture is automatic. Curation is one skill invocation, run when convenient.
 5. **Reviewable like code.** All KB changes go through git. A reviewer can read a diff, accept some, reject others; the audit trail is the commit history.
 6. **Safe by default.** No secrets, API keys, customer data, or other sensitive content ever lands in the KB.
-7. **Debuggable.** Every LLM-driven step (stage-2 extraction, curation) writes a verbose stream-json log so contributors can audit what the model saw and what it produced.
+7. **Debuggable.** Every LLM-driven step (proposal extraction, curation) writes a verbose stream-json log so contributors can audit what the model saw and what it produced.
 
 ## 5. Non-goals
 
@@ -97,7 +97,7 @@ Two passes: a deterministic secret scanner (secretlint with the recommended pres
 
 > "When the curator does something weird, I want to be able to look at exactly what it saw and what it produced."
 
-Every LLM-driven step writes a verbose log file under `_logs/` (gitignored). For each stage-2 extraction and each curator run, the full stream-json trace is preserved.
+Every LLM-driven step writes a verbose log file under `_logs/` (gitignored). For each proposal extraction and each curator run, the full stream-json trace is preserved.
 
 > "I just realized something about the project, even though I'm not in a session. I want to add it to the KB now."
 
@@ -146,8 +146,8 @@ Every node carries a `derived_from` list pointing to session log filenames. **Ca
 ### 8.2 Daily session capture (automatic)
 
 1. The contributor runs an AI session as normal.
-2. When the session ends - or when context compaction is about to fire - a hook captures a redacted slice of the transcript into `.ai/knowledge-base/_sessions/`, marked pending for stage-2 extraction.
-3. Stage-2 extraction runs in the background on the next session start, without blocking it. Results land in the session log; the run's stream-json trace lands in `_logs/stage-2/`.
+2. When the session ends - or when context compaction is about to fire - a hook captures a redacted slice of the transcript into `.ai/knowledge-base/_sessions/`, marked pending for proposal extraction.
+3. Proposal extraction runs in the background on the next session start, without blocking it. Results land in the session log; the run's stream-json trace lands in `_logs/proposal/`.
 4. Capture is silent on success.
 
 ### 8.3 Curation (deliberate)
@@ -192,14 +192,14 @@ Incremental bootstrap is deterministic, fast, and safe to re-run. It does not at
 
 ### 8.8 Debugging an LLM run
 
-1. Stage-2 produced something odd, or the curator missed a contradiction the contributor expected to see.
-2. The contributor opens the relevant log in `.ai/knowledge-base/_logs/stage-2/<session-id>-<timestamp>.jsonl` or `_logs/curator/<run-id>-<timestamp>.jsonl`.
+1. The proposal worker produced something odd, or the curator missed a contradiction the contributor expected to see.
+2. The contributor opens the relevant log in `.ai/knowledge-base/_logs/proposal/<session-id>-<timestamp>.jsonl` or `_logs/curator/<run-id>-<timestamp>.jsonl`.
 3. Each line is a stream-json message: prompt, assistant text, tool calls, final result. The contributor inspects what the model saw and produced.
 4. If a prompt change is needed, the contributor reports the issue or edits `templates/prompts/...` in the package.
 
 ### 8.9 Tunables and log retention
 
-Operational defaults - curation threshold, lock TTL, index token budget, drain batch size, stage-2 timeout, bootstrap token budget, log retention window - can be overridden per-project via a committed `.ai/knowledge-base/config.yaml` or per-user via `~/.config/ai-knowledge-base/config.yaml`. Project overrides win over user overrides; both win over built-in defaults. An unparseable file warns and falls back to defaults rather than bricking the CLI.
+Operational defaults - curation threshold, lock TTL, index token budget, drain batch size, proposal timeout, bootstrap token budget, log retention window - can be overridden per-project via a committed `.ai/knowledge-base/config.yaml` or per-user via `~/.config/ai-knowledge-base/config.yaml`. Project overrides win over user overrides; both win over built-in defaults. An unparseable file warns and falls back to defaults rather than bricking the CLI.
 
 `_logs/` grows unbounded by design (full stream-json traces are the audit trail). `npx @e0ipso/ai-knowledge-base logs prune --older-than <duration>` deletes traces older than the threshold; default retention is `logsRetentionDays` from the settings stack.
 
@@ -207,8 +207,8 @@ Operational defaults - curation threshold, lock TTL, index token budget, drain b
 
 | Failure | What the user sees |
 |---|---|
-| Stage-1 capture fails (secretlint crashes, disk full) | Session log not written. Brief warning at next session start. Session content is lost; user can paste relevant parts manually. |
-| Stage-2 extraction fails (CLI error, rate limit) | Session log retained as `stage_2_status: failed`. Visible in `ai-knowledge-base status`. Curator retries on next run. Full log under `_logs/stage-2/` for diagnosis. |
+| Transcript capture fails (secretlint crashes, disk full) | Session log not written. Brief warning at next session start. Session content is lost; user can paste relevant parts manually. |
+| Proposal extraction fails (CLI error, rate limit) | Session log retained as `proposal_status: failed`. Visible in `ai-knowledge-base status`. Curator retries on next run. Full log under `_logs/proposal/` for diagnosis. |
 | Secretlint blocks a commit | Standard `lint-staged` error message identifies the file and rule. |
 | `SessionStart` hook fails | Session starts without KB context. Single-line warning in transcript. The session works, just without injection. |
 | `INDEX.md` stale (someone hand-edited a node) | `ai-knowledge-base doctor` flags it. Pre-commit check (optional) refuses commit until `ai-knowledge-base index rebuild` is run. |
@@ -219,7 +219,7 @@ Operational defaults - curation threshold, lock TTL, index token budget, drain b
 
 The system is working if, after three months of use on a real project:
 
-- **Capture quality:** ≥80% of curator-proposed additions are accepted on first review. (Lower means the stage-2 prompt is over-capturing.)
+- **Capture quality:** ≥80% of curator-proposed additions are accepted on first review. (Lower means the proposal prompt is over-capturing.)
 - **Curation cadence:** P50 curation session takes under 10 minutes for 10 pending logs.
 - **Drift bounded:** No more than one week between curation runs in active development.
 - **Zero secret incidents:** No secret has ever appeared in a committed KB file.

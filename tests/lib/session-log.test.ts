@@ -20,9 +20,9 @@ describe('renderSessionLog', () => {
       expect(result.data.session_id).toBe('abc');
       expect(result.data.captured_by).toBe('stop');
       expect(result.data.secret_scan_status).toBe('clean');
-      expect(result.data.stage_2_status).toBe('pending');
+      expect(result.data.proposal_status).toBe('pending');
     }
-    expect(parsed.content).toContain('## Stage 1: redacted transcript slice');
+    expect(parsed.content).toContain('## Transcript');
     expect(parsed.content).toContain('[USER]: hi');
   });
 });

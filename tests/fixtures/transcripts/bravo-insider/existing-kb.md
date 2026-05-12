@@ -8,7 +8,7 @@ Used to test curator decisions. The transcript should produce, among other thing
 
 ```yaml
 ---
-schema_version: 1
+schema_version: 2
 id: practice-controller-dependency-injection
 title: "Inject services via constructor; never use \\Drupal::service() in controllers"
 kind: practice
@@ -39,7 +39,7 @@ See `modules/custom/bravo_cards/src/Controller/CardFeedController.php` as the ca
 
 ```yaml
 ---
-schema_version: 1
+schema_version: 2
 id: map-bravo-cards
 title: "Bravo Cards — card-feed rendering module"
 kind: map
@@ -73,7 +73,7 @@ Currently supports: article, event, content-type-x (added 2026-03-22).
 
 ```yaml
 ---
-schema_version: 1
+schema_version: 2
 id: practice-analytics-direct-ga
 title: "Use vanilla Google Analytics events for client-side tracking"
 kind: practice
@@ -106,7 +106,7 @@ This is a **stale node** — the transcript reveals the project moved off vanill
 
 ```yaml
 ---
-schema_version: 1
+schema_version: 2
 id: practice-cache-tags-default
 title: "Use Drupal default cache tags for entity-rendering pages"
 kind: practice

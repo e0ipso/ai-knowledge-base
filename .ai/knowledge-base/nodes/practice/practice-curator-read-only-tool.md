@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: practice-curator-read-only-tool
 title: "The curator's only allowed tool is Read"
 kind: practice

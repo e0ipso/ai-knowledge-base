@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: map-session-log-and-queue-helpers
 title: session-log and queue helpers in src/lib
 kind: map

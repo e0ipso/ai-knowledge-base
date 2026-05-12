@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: practice-atomic-prs-with-paired-docs
 title: "One logical change per PR, with the docs update for that change"
 kind: practice

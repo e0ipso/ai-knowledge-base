@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: map-templates-npm-artifact
 title: 'templates/: shipped npm artifact, regenerated on publish'
 kind: map

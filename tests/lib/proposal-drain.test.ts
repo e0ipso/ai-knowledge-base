@@ -6,10 +6,10 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { appendToQueue, readQueue } from '../../src/lib/queue.js';
 import { renderSessionLog } from '../../src/lib/session-log.js';
 import {
-  drainStage2Queue,
-  STAGE2_LOCK_NAME,
-  type Stage2Runner,
-} from '../../src/lib/stage2-drain.js';
+  drainProposalQueue,
+  PROPOSAL_LOCK_NAME,
+  type ProposalRunner,
+} from '../../src/lib/proposal-drain.js';
 import { acquireLock, readState } from '../../src/lib/state.js';
 
 interface Harness {
@@ -53,9 +53,9 @@ function seedSession(harness: Harness, sessionId: string, transcript: string): s
 }
 
 const PROMPT_TEMPLATE =
-  'Extract knowledge from the following transcript.\n\n[TRANSCRIPT PLACEHOLDER — substituted at runtime]';
+  'Extract knowledge from the following transcript.\n\n[TRANSCRIPT PLACEHOLDER - substituted at runtime]';
 
-function successRunner(): Stage2Runner {
+function successRunner(): ProposalRunner {
   return async () => ({
     practice: [
       {
@@ -84,13 +84,13 @@ function successRunner(): Stage2Runner {
   });
 }
 
-function failingRunner(message: string): Stage2Runner {
+function failingRunner(message: string): ProposalRunner {
   return async () => {
     throw new Error(message);
   };
 }
 
-describe('drainStage2Queue', () => {
+describe('drainProposalQueue', () => {
   let harness: Harness;
   beforeEach(() => {
     harness = makeHarness();
@@ -100,7 +100,7 @@ describe('drainStage2Queue', () => {
   it('processes a queued session log on success and updates frontmatter', async () => {
     const file = seedSession(harness, 's1', '[USER]: use bravo_pii.cache for PII\n[AGENT]: ok');
 
-    const summary = await drainStage2Queue({
+    const summary = await drainProposalQueue({
       sessionsDir: harness.sessionsDir,
       logsDir: harness.logsDir,
       stateFile: harness.stateFile,
@@ -113,8 +113,8 @@ describe('drainStage2Queue', () => {
     expect(summary.remaining).toBe(0);
 
     const after = matter(readFileSync(join(harness.sessionsDir, file), 'utf8'));
-    expect(after.data['stage_2_status']).toBe('done');
-    expect(after.data['stage_2_log']).toMatch(/_logs\/stage-2\//);
+    expect(after.data['proposal_status']).toBe('done');
+    expect(after.data['proposal_log']).toMatch(/_logs\/proposal\//);
     const proposals = after.data['proposals'] as { practice: unknown[]; map: unknown[] };
     expect(proposals.practice).toHaveLength(1);
     expect(proposals.map).toHaveLength(1);
@@ -125,12 +125,12 @@ describe('drainStage2Queue', () => {
   it('substitutes the transcript into the prompt template before invoking the runner', async () => {
     seedSession(harness, 's-sub', 'TRANSCRIPT-BODY-MARKER');
     let receivedPrompt = '';
-    const runner: Stage2Runner = async (prompt, _stdin, _schema, _opts) => {
+    const runner: ProposalRunner = async (prompt, _stdin, _schema, _opts) => {
       receivedPrompt = prompt;
       return { practice: [], map: [] };
     };
 
-    await drainStage2Queue({
+    await drainProposalQueue({
       sessionsDir: harness.sessionsDir,
       logsDir: harness.logsDir,
       stateFile: harness.stateFile,
@@ -146,12 +146,12 @@ describe('drainStage2Queue', () => {
     seedSession(harness, 's2', '[USER]: hi');
     const lockTime = new Date('2026-05-11T10:00:00Z');
     acquireLock(harness.stateFile, {
-      name: STAGE2_LOCK_NAME,
+      name: PROPOSAL_LOCK_NAME,
       pid: 999_999,
       now: lockTime,
     });
 
-    const summary = await drainStage2Queue({
+    const summary = await drainProposalQueue({
       sessionsDir: harness.sessionsDir,
       logsDir: harness.logsDir,
       stateFile: harness.stateFile,
@@ -171,7 +171,7 @@ describe('drainStage2Queue', () => {
     for (const id of ['a', 'b', 'c', 'd']) {
       seedSession(harness, id, `[USER]: hi-${id}`);
     }
-    const summary = await drainStage2Queue({
+    const summary = await drainProposalQueue({
       sessionsDir: harness.sessionsDir,
       logsDir: harness.logsDir,
       stateFile: harness.stateFile,
@@ -188,13 +188,13 @@ describe('drainStage2Queue', () => {
     seedSession(harness, 'second', '[USER]: hi-second');
 
     let calls = 0;
-    const runner: Stage2Runner = async () => {
+    const runner: ProposalRunner = async () => {
       calls += 1;
       if (calls === 1) throw new Error('parse error');
       return { practice: [], map: [] };
     };
 
-    const summary = await drainStage2Queue({
+    const summary = await drainProposalQueue({
       sessionsDir: harness.sessionsDir,
       logsDir: harness.logsDir,
       stateFile: harness.stateFile,
@@ -217,7 +217,7 @@ describe('drainStage2Queue', () => {
     existing.entries[0]!.attempts = 2;
     writeFileSync(harness.queueFile, JSON.stringify(existing, null, 2));
 
-    const summary = await drainStage2Queue({
+    const summary = await drainProposalQueue({
       sessionsDir: harness.sessionsDir,
       logsDir: harness.logsDir,
       stateFile: harness.stateFile,
@@ -229,8 +229,8 @@ describe('drainStage2Queue', () => {
     expect(summary.processed[0]?.status).toBe('skipped');
     expect(readQueue(harness.queueFile).entries).toHaveLength(0);
     const after = matter(readFileSync(join(harness.sessionsDir, file), 'utf8'));
-    expect(after.data['stage_2_status']).toBe('skipped');
-    expect(after.data['stage_2_error']).toContain('schema mismatch');
+    expect(after.data['proposal_status']).toBe('skipped');
+    expect(after.data['proposal_error']).toContain('schema mismatch');
   });
 
   it('handles a queue entry whose session log is missing on disk', async () => {
@@ -241,7 +241,7 @@ describe('drainStage2Queue', () => {
       captured_at: '2026-05-11T10:00:00Z',
       attempts: 0,
     });
-    const summary = await drainStage2Queue({
+    const summary = await drainProposalQueue({
       sessionsDir: harness.sessionsDir,
       logsDir: harness.logsDir,
       stateFile: harness.stateFile,
@@ -254,7 +254,7 @@ describe('drainStage2Queue', () => {
 
   it('releases the lock after completion', async () => {
     seedSession(harness, 's3', '[USER]: hi');
-    await drainStage2Queue({
+    await drainProposalQueue({
       sessionsDir: harness.sessionsDir,
       logsDir: harness.logsDir,
       stateFile: harness.stateFile,
@@ -266,7 +266,7 @@ describe('drainStage2Queue', () => {
 
   it('releases the lock even if a runner throws an unexpected error', async () => {
     seedSession(harness, 's4', '[USER]: hi');
-    await drainStage2Queue({
+    await drainProposalQueue({
       sessionsDir: harness.sessionsDir,
       logsDir: harness.logsDir,
       stateFile: harness.stateFile,
@@ -277,7 +277,7 @@ describe('drainStage2Queue', () => {
   });
 
   it('does nothing and reports remaining=0 when the queue is empty', async () => {
-    const summary = await drainStage2Queue({
+    const summary = await drainProposalQueue({
       sessionsDir: harness.sessionsDir,
       logsDir: harness.logsDir,
       stateFile: harness.stateFile,
@@ -292,11 +292,11 @@ describe('drainStage2Queue', () => {
   it('forwards model and effort to the runner when set, omits them otherwise', async () => {
     seedSession(harness, 's-model', '[USER]: hi');
     let captured: { model?: string; effort?: string } = {};
-    const runner: Stage2Runner = async (_p, _s, _schema, opts) => {
+    const runner: ProposalRunner = async (_p, _s, _schema, opts) => {
       captured = { model: opts.model, effort: opts.effort };
       return { practice: [], map: [] };
     };
-    await drainStage2Queue({
+    await drainProposalQueue({
       sessionsDir: harness.sessionsDir,
       logsDir: harness.logsDir,
       stateFile: harness.stateFile,
@@ -309,7 +309,7 @@ describe('drainStage2Queue', () => {
 
     seedSession(harness, 's-no-model', '[USER]: hi');
     captured = {};
-    await drainStage2Queue({
+    await drainProposalQueue({
       sessionsDir: harness.sessionsDir,
       logsDir: harness.logsDir,
       stateFile: harness.stateFile,

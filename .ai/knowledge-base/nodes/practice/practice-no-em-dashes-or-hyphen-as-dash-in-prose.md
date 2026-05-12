@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: practice-no-em-dashes-or-hyphen-as-dash-in-prose
 title: "No em-dashes or hyphen-as-dash in prose"
 kind: practice

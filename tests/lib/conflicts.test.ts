@@ -9,7 +9,7 @@ import { runCurate, type CuratorRunner } from '../../src/lib/curate.js';
 import {
   PendingConflictsFileSchema,
   type CuratorAction,
-  type Stage2Candidate,
+  type ProposalCandidate,
 } from '../../src/lib/schemas.js';
 import { runCurateCommand } from '../../src/commands/curate.js';
 import { cleanSandbox, makeSandbox, runCli } from '../helpers.js';
@@ -39,28 +39,28 @@ function makeHarness(): Harness {
   return { root, kbDir, sessionsDir, nodesDir, logsDir, stateFile };
 }
 
-function seedSession(harness: Harness, sessionId: string, candidates: Stage2Candidate[]): void {
+function seedSession(harness: Harness, sessionId: string, candidates: ProposalCandidate[]): void {
   const fm = {
-    schema_version: 1,
+    schema_version: 2,
     session_id: sessionId,
     captured_by: 'stop',
     captured_at: '2026-05-12T10:00:00Z',
     transcript_hash: `sha256:${sessionId}`,
-    stage_2_status: 'done',
-    stage_2_completed_at: '2026-05-12T10:00:00Z',
-    stage_2_error: null,
-    stage_2_log: null,
+    proposal_status: 'done',
+    proposal_completed_at: '2026-05-12T10:00:00Z',
+    proposal_error: null,
+    proposal_log: null,
     secret_scan_status: 'clean',
     topics: [],
     proposals: { practice: candidates, map: [] },
   };
   writeFileSync(
     join(harness.sessionsDir, `session-${sessionId}.md`),
-    matter.stringify('## stage-2', fm)
+    matter.stringify('## Proposal', fm)
   );
 }
 
-function makeCandidate(title: string): Stage2Candidate {
+function makeCandidate(title: string): ProposalCandidate {
   return {
     kind: 'practice',
     tags: [],
@@ -147,7 +147,7 @@ describe('curate command writes pending-conflicts.json + status surfaces it', ()
     writeFileSync(
       join(nodesDir, 'practice', 'practice-old-target.md'),
       matter.stringify('# old\nbody\n', {
-        schema_version: 1,
+        schema_version: 2,
         id: 'practice-old-target',
         title: 'Old',
         kind: 'practice',
@@ -166,16 +166,16 @@ describe('curate command writes pending-conflicts.json + status surfaces it', ()
     );
     writeFileSync(
       join(sessionsDir, 'session-x.md'),
-      matter.stringify('## stage-2', {
-        schema_version: 1,
+      matter.stringify('## Proposal', {
+        schema_version: 2,
         session_id: 'x',
         captured_by: 'stop',
         captured_at: '2026-05-12T10:00:00Z',
         transcript_hash: 'sha256:x',
-        stage_2_status: 'done',
-        stage_2_completed_at: '2026-05-12T10:00:00Z',
-        stage_2_error: null,
-        stage_2_log: null,
+        proposal_status: 'done',
+        proposal_completed_at: '2026-05-12T10:00:00Z',
+        proposal_error: null,
+        proposal_log: null,
         secret_scan_status: 'clean',
         topics: [],
         proposals: { practice: [makeCandidate('X')], map: [] },
@@ -211,7 +211,7 @@ describe('curate command writes pending-conflicts.json + status surfaces it', ()
       file,
       JSON.stringify(
         {
-          schema_version: 1,
+          schema_version: 2,
           conflicts: [
             {
               id: 'c1',

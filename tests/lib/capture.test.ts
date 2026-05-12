@@ -67,13 +67,13 @@ describe('captureSession', () => {
     const fm = matter(log).data as {
       session_id: string;
       captured_by: string;
-      stage_2_status: string;
+      proposal_status: string;
       secret_scan_status: string;
       transcript_hash: string;
     };
     expect(fm.session_id).toBe('sess-1');
     expect(fm.captured_by).toBe('stop');
-    expect(fm.stage_2_status).toBe('pending');
+    expect(fm.proposal_status).toBe('pending');
     expect(fm.secret_scan_status).toBe('clean');
     expect(fm.transcript_hash).toMatch(/^sha256:[0-9a-f]{64}$/);
 
@@ -223,7 +223,7 @@ describe('captureSession', () => {
     // Simulate the drainer consuming the queue entry (file stays).
     writeFileSync(
       join(sessionsDir, '.queue.json'),
-      `${JSON.stringify({ schema_version: 1, entries: [] }, null, 2)}\n`
+      `${JSON.stringify({ schema_version: 2, entries: [] }, null, 2)}\n`
     );
 
     // New turn → new transcript hash → capture proceeds.

@@ -20,8 +20,8 @@ const PACKAGE_TAG = '[ai-knowledge-base]';
 const HARD_DEADLINE_MS = 1000;
 
 async function main(): Promise<void> {
-  // Recursion guard: stage-2 drain spawns `claude -p` which itself fires
-  // SessionStart. The drain runner sets KB_BUILDER_INTERNAL=1 on every
+  // Recursion guard: the proposal drain spawns `claude -p` which itself
+  // fires SessionStart. The drain runner sets KB_BUILDER_INTERNAL=1 on every
   // child so this hook exits silently in that case.
   if (process.env['KB_BUILDER_INTERNAL'] === '1') return;
 

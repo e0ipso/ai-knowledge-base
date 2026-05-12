@@ -36,6 +36,6 @@ export function recordHash(cacheFile: string, hash: string, nowMs: number = Date
   const entries = pruneExpired(loadEntries(cacheFile), nowMs).filter(e => e.hash !== hash);
   entries.push({ hash, expires_at: new Date(nowMs + DEDUP_TTL_MS).toISOString() });
   const tmp = `${cacheFile}.tmp`;
-  writeFileSync(tmp, `${JSON.stringify({ schema_version: 1, entries }, null, 2)}\n`);
+  writeFileSync(tmp, `${JSON.stringify({ schema_version: 2, entries }, null, 2)}\n`);
   renameSync(tmp, cacheFile);
 }

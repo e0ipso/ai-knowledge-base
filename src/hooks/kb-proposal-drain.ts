@@ -1,7 +1,7 @@
 /**
  * SessionStart hook (async).
  *
- * Drains the stage-2 queue without blocking session start. For each queued
+ * Drains the proposal queue without blocking session start. For each queued
  * entry it spawns `claude -p --output-format stream-json --verbose`, parses
  * the final result, validates against the Zod schema, and updates the
  * session log frontmatter.
@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { runHeadlessClaude } from '../lib/headless.js';
 import { findRepoRoot, packageTemplatesDir, repoPaths } from '../lib/paths.js';
 import { resolveSettings } from '../lib/settings.js';
-import { drainStage2Queue, type Stage2Runner } from '../lib/stage2-drain.js';
+import { drainProposalQueue, type ProposalRunner } from '../lib/proposal-drain.js';
 
 const PACKAGE_TAG = '[ai-knowledge-base]';
 
@@ -39,18 +39,18 @@ async function main(): Promise<void> {
   const paths = repoPaths(root);
   if (!existsSync(paths.installedVersionFile)) return;
 
-  const promptTemplate = loadStage2Prompt(paths.promptsDir);
+  const promptTemplate = loadProposalPrompt(paths.promptsDir);
   if (!promptTemplate) {
-    process.stderr.write(`${PACKAGE_TAG} stage-2 prompt template not found; skipping drain\n`);
+    process.stderr.write(`${PACKAGE_TAG} proposal prompt template not found; skipping drain\n`);
     return;
   }
 
-  const runner: Stage2Runner = async (prompt, stdin, schema, opts) =>
+  const runner: ProposalRunner = async (prompt, stdin, schema, opts) =>
     runHeadlessClaude(prompt, stdin, schema, opts);
 
   try {
     const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
-    const summary = await drainStage2Queue({
+    const summary = await drainProposalQueue({
       sessionsDir: paths.sessionsDir,
       logsDir: paths.logsDir,
       stateFile: join(paths.stateDir, 'state.json'),
@@ -58,10 +58,10 @@ async function main(): Promise<void> {
       runner,
       maxEntries: settings.drainBound,
       maxAttempts: settings.maxAttempts,
-      timeoutMs: settings.stage2Timeout,
+      timeoutMs: settings.proposalTimeout,
       lockTtlMs: settings.lockTtlMs,
-      ...(settings.stage2Model
-        ? { model: settings.stage2Model.name, effort: settings.stage2Model.effort }
+      ...(settings.proposalModel
+        ? { model: settings.proposalModel.name, effort: settings.proposalModel.effort }
         : {}),
     });
     if (summary.status === 'locked') {
@@ -73,22 +73,22 @@ async function main(): Promise<void> {
     const failed = summary.processed.filter(p => p.status === 'failed' || p.status === 'skipped');
     if (failed.length > 0) {
       process.stderr.write(
-        `${PACKAGE_TAG} stage-2 drain: ${failed.length} session(s) failed or skipped; see _logs/stage-2/\n`
+        `${PACKAGE_TAG} proposal drain: ${failed.length} session(s) failed or skipped; see _logs/proposal/\n`
       );
     }
   } catch (err) {
     process.stderr.write(
-      `${PACKAGE_TAG} stage-2 drain error: ${err instanceof Error ? err.message : String(err)}\n`
+      `${PACKAGE_TAG} proposal drain error: ${err instanceof Error ? err.message : String(err)}\n`
     );
   }
 }
 
-function loadStage2Prompt(promptsDir: string): string | null {
+function loadProposalPrompt(promptsDir: string): string | null {
   // Prefer the per-repo override written by `init`; fall back to the
   // template bundled with the npm package.
-  const override = join(promptsDir, 'stage-2-extract.md');
+  const override = join(promptsDir, 'proposal-extract.md');
   if (existsSync(override)) return readFileSync(override, 'utf8');
-  const bundled = join(packageTemplatesDir(), 'prompts/stage-2-extract.md');
+  const bundled = join(packageTemplatesDir(), 'prompts/proposal-extract.md');
   if (existsSync(bundled)) return readFileSync(bundled, 'utf8');
   return null;
 }

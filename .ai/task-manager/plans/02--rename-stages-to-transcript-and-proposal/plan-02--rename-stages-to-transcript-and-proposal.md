@@ -297,14 +297,14 @@ graph TD
 
 No edges: every task reads the same rename dictionary from the plan body and edits a disjoint file set. POST_PHASE runs lint and creates one commit covering all five tasks; POST_EXECUTION runs the full test suite and the plan's Self Validation steps.
 
-### Phase 1: Atomic rename across all surfaces
+### ✅ Phase 1: Atomic rename across all surfaces
 
 **Parallel Tasks:**
-- Task 001: Rename schemas, source, build wiring, runtime config (`src/`, `tsup.config.ts`, `.ai/knowledge-base/config.yaml`, `.claude/settings.json`, rebuilt `.claude/hooks/`)
-- Task 002: Rename `stage-2-extract.md` → `proposal-extract.md` and bump prompt Version comments (`src/templates-source/prompts/`, `templates/prompts/`, `docs/internals/prompts.md`)
-- Task 003: Rename tests and fixtures (`tests/`)
-- Task 004: Rewrite KB nodes and regenerate INDEX / GRAPH (`.ai/knowledge-base/nodes/`, `.ai/knowledge-base/INDEX.md`, `.ai/knowledge-base/GRAPH.md`)
-- Task 005: Update human-facing docs, skills, and CHANGELOG (`PRD.md`, `IMPLEMENTATION.md`, `README.md`, `docs/`, `.claude/skills/kb-curate/SKILL.md`, `CHANGELOG.md`)
+- ✔️ Task 001: Rename schemas, source, build wiring, runtime config (`src/`, `tsup.config.ts`, `.ai/knowledge-base/config.yaml`, `.claude/settings.json`, rebuilt `.claude/hooks/`)
+- ✔️ Task 002: Rename `stage-2-extract.md` → `proposal-extract.md` and bump prompt Version comments (`src/templates-source/prompts/`, `templates/prompts/`, `docs/internals/prompts.md`)
+- ✔️ Task 003: Rename tests and fixtures (`tests/`)
+- ✔️ Task 004: Rewrite KB nodes and regenerate INDEX / GRAPH (`.ai/knowledge-base/nodes/`, `.ai/knowledge-base/INDEX.md`, `.ai/knowledge-base/GRAPH.md`)
+- ✔️ Task 005: Update human-facing docs, skills, and CHANGELOG (`PRD.md`, `IMPLEMENTATION.md`, `README.md`, `docs/`, `.claude/skills/kb-curate/SKILL.md`, `CHANGELOG.md`)
 
 ### Post-phase Actions
 

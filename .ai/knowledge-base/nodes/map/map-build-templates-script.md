@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: map-build-templates-script
 title: 'scripts/build-templates.mjs: regenerates templates/ from sources'
 kind: map

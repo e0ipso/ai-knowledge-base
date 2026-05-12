@@ -1,6 +1,6 @@
 # Fixture: Session Transcript — Bravo Insider analytics integration
 
-This is a synthetic Claude Code session used to test the stage-2 extraction prompt. It deliberately contains:
+This is a synthetic Claude Code session used to test the proposal extraction prompt. It deliberately contains:
 
 - A **teaching moment** (user correcting the agent on the analytics event setup convention).
 - A **new-feature introduction** (user telling the agent to start building a feature called "Bravo Insider").

@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: map-state-json-file
 title: ".state/state.json: lock and nudge timestamp"
 kind: map
@@ -34,7 +34,7 @@ Holds one lock at a time. Default TTL is 30 minutes (`DEFAULT_LOCK_TTL_MS = 30 *
 
 Three lock names are used:
 
-- `stage2-drain`: prevents concurrent SessionStart drains racing on the queue.
+- `proposal-drain`: prevents concurrent SessionStart drains racing on the queue.
 - `curator`: prevents duplicate proposals from concurrent `curate` runs.
 - `bootstrap-incremental`: same, for bootstrap.
 

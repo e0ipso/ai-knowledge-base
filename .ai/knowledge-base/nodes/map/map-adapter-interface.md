@@ -1,5 +1,5 @@
 ---
-schema_version: 1
+schema_version: 2
 id: map-adapter-interface
 title: "Adapter interface: src/adapters/types.ts"
 kind: map
@@ -33,6 +33,6 @@ interface Adapter {
 }
 ```
 
-`readTranscript` returns role-tagged content because the stage-2 extractor's pass 1 (practice) operates only on user turns. `runHeadless` is the only entry point that spawns `claude -p`; it sets `KB_BUILDER_INTERNAL=1` on the child.
+`readTranscript` returns role-tagged content because the proposal extractor's pass 1 (practice) operates only on user turns. `runHeadless` is the only entry point that spawns `claude -p`; it sets `KB_BUILDER_INTERNAL=1` on the child.
 
 v1 ships `src/adapters/claude.ts` as the only implementation. Adding an adapter: implement every method, then dispatch from `src/commands/init.ts`.
