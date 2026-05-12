@@ -20,6 +20,7 @@ export interface HeadlessOpts {
   timeoutMs?: number;
   allowedTools?: string[];
   logFile?: string;
+  onMessage?: (msg: unknown) => void;
 }
 
 export interface RoleTaggedTranscript {

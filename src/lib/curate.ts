@@ -35,7 +35,12 @@ export type CuratorRunner = <T>(
   promptBody: string,
   stdin: string,
   schema: ZodSchema<T>,
-  opts: { timeoutMs: number; allowedTools?: string[]; logFile?: string }
+  opts: {
+    timeoutMs: number;
+    allowedTools?: string[];
+    logFile?: string;
+    onMessage?: (msg: unknown) => void;
+  }
 ) => Promise<T>;
 
 export interface CurateContext {
@@ -55,6 +60,14 @@ export interface CurateContext {
   pid?: number;
   /** Test seam: override ULID. */
   runId?: string;
+  /** Called once before each batch is sent to the runner. */
+  onBatchStart?: (info: { index: number; total: number; batch: PendingSession[] }) => void;
+  /** Called once after each batch completes. */
+  onBatchEnd?: (info: { index: number; total: number; durationMs: number }) => void;
+  /** Forwarded to the runner so callers can stream curator events. */
+  onCuratorMessage?: (msg: unknown) => void;
+  /** Pre-computed curator log file path (used by the CLI to show it up front). */
+  logFile?: string;
 }
 
 export interface CurateResult {
@@ -70,7 +83,7 @@ export interface CurateResult {
   reason?: string;
 }
 
-interface PendingSession {
+export interface PendingSession {
   filename: string;
   filePath: string;
   sessionId: string;
@@ -292,21 +305,33 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
 
   const runId = ctx.runId ?? ulid(now());
   const startStamp = compactStamp(now());
-  const logFile = join(ctx.logsDir, 'curator', `${runId}__${startStamp}.jsonl`);
+  const logFile = ctx.logFile ?? join(ctx.logsDir, 'curator', `${runId}__${startStamp}.jsonl`);
   mkdirSync(join(ctx.logsDir, 'curator'), { recursive: true });
 
   const batches = batchSessions(pending, batchSize, tokenBudget);
   const allActions: CuratorAction[] = [];
 
   try {
-    for (const batch of batches) {
+    for (let i = 0; i < batches.length; i += 1) {
+      const batch = batches[i]!;
       const payload = buildBatchPayload(batch, ctx.kbDir, ctx.nodesDir);
       const prompt = buildBatchPrompt(ctx.promptTemplate, payload);
-      const actions: CuratorOutput = await ctx.runner(prompt, '', CuratorOutputSchema, {
+      if (ctx.onBatchStart) ctx.onBatchStart({ index: i, total: batches.length, batch });
+      const batchStartMs = Date.now();
+      const runnerOpts: Parameters<CuratorRunner>[3] = {
         timeoutMs,
         allowedTools: ['Read'],
         logFile,
-      });
+      };
+      if (ctx.onCuratorMessage) runnerOpts.onMessage = ctx.onCuratorMessage;
+      const actions: CuratorOutput = await ctx.runner(prompt, '', CuratorOutputSchema, runnerOpts);
+      if (ctx.onBatchEnd) {
+        ctx.onBatchEnd({
+          index: i,
+          total: batches.length,
+          durationMs: Date.now() - batchStartMs,
+        });
+      }
       allActions.push(...actions);
     }
 
@@ -510,6 +535,10 @@ function regenerateIndexAndGraph(ctx: CurateContext, now: Date): void {
   writeIndex(join(ctx.kbDir, 'INDEX.md'), index);
   const graph = generateGraph(ctx.nodesDir, { now });
   writeGraph(join(ctx.kbDir, 'GRAPH.md'), graph);
+}
+
+export function curatorLogFile(logsDir: string, runId: string, now: Date): string {
+  return join(logsDir, 'curator', `${runId}__${compactStamp(now)}.jsonl`);
 }
 
 function compactStamp(d: Date): string {

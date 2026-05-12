@@ -61,10 +61,14 @@ async function runHeadlessClaude(promptBody, stdin, schema, opts = {}) {
     if (trimmed.length === 0) return;
     if (logStream) logStream.write(`${trimmed}
 `);
+    let parsed;
     try {
-      messages.push(JSON.parse(trimmed));
+      parsed = JSON.parse(trimmed);
     } catch {
+      return;
     }
+    messages.push(parsed);
+    if (opts.onMessage) opts.onMessage(parsed);
   });
   const streamDone = new Promise((resolve2, reject) => {
     splitter.once("end", () => resolve2());

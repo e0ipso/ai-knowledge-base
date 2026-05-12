@@ -82,17 +82,31 @@ async function main(): Promise<void> {
       parseInt(v, 10)
     )
     .option('--timeout <ms>', 'per-batch subprocess timeout (default 120000)', v => parseInt(v, 10))
-    .action(async (opts: { batchSize?: number; tokenBudget?: number; timeout?: number }) => {
-      const curateOpts: { batchSize?: number; tokenBudget?: number; timeoutMs?: number } = {};
-      if (typeof opts.batchSize === 'number' && !Number.isNaN(opts.batchSize))
-        curateOpts.batchSize = opts.batchSize;
-      if (typeof opts.tokenBudget === 'number' && !Number.isNaN(opts.tokenBudget))
-        curateOpts.tokenBudget = opts.tokenBudget;
-      if (typeof opts.timeout === 'number' && !Number.isNaN(opts.timeout))
-        curateOpts.timeoutMs = opts.timeout;
-      const code = await runCurateCommand(curateOpts);
-      process.exit(code);
-    });
+    .option('-v, --verbose', 'stream curator assistant text and tool-use events as they arrive')
+    .action(
+      async (opts: {
+        batchSize?: number;
+        tokenBudget?: number;
+        timeout?: number;
+        verbose?: boolean;
+      }) => {
+        const curateOpts: {
+          batchSize?: number;
+          tokenBudget?: number;
+          timeoutMs?: number;
+          verbose?: boolean;
+        } = {};
+        if (typeof opts.batchSize === 'number' && !Number.isNaN(opts.batchSize))
+          curateOpts.batchSize = opts.batchSize;
+        if (typeof opts.tokenBudget === 'number' && !Number.isNaN(opts.tokenBudget))
+          curateOpts.tokenBudget = opts.tokenBudget;
+        if (typeof opts.timeout === 'number' && !Number.isNaN(opts.timeout))
+          curateOpts.timeoutMs = opts.timeout;
+        if (opts.verbose === true) curateOpts.verbose = true;
+        const code = await runCurateCommand(curateOpts);
+        process.exit(code);
+      }
+    );
 
   program
     .command('bootstrap-incremental')

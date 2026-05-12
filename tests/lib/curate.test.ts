@@ -419,6 +419,36 @@ describe('runCurate', () => {
     expect(readState(harness.stateFile).lock ?? null).toBeNull();
   });
 
+  it('fires onBatchStart and onBatchEnd for each batch, and threads onCuratorMessage to the runner', async () => {
+    seedSession(harness, 's1', [makeCandidate('practice', 'A')], []);
+    seedSession(harness, 's2', [makeCandidate('practice', 'B')], [], '2026-05-12T10:01:00Z');
+    const starts: Array<{ index: number; total: number; size: number }> = [];
+    const ends: Array<{ index: number; total: number }> = [];
+    let runnerSawOnMessage = false;
+    const runner: CuratorRunner = async (_p, _s, _schema, runnerOpts) => {
+      if (typeof runnerOpts.onMessage === 'function') {
+        runnerSawOnMessage = true;
+        runnerOpts.onMessage({ type: 'assistant' });
+      }
+      return [];
+    };
+    const sink: unknown[] = [];
+    await runCurate({
+      ...ctx(runner),
+      batchSize: 1,
+      onBatchStart: ({ index, total, batch }) => starts.push({ index, total, size: batch.length }),
+      onBatchEnd: ({ index, total }) => ends.push({ index, total }),
+      onCuratorMessage: msg => sink.push(msg),
+    });
+    expect(starts).toEqual([
+      { index: 0, total: 2, size: 1 },
+      { index: 1, total: 2, size: 1 },
+    ]);
+    expect(ends.map(e => e.index)).toEqual([0, 1]);
+    expect(runnerSawOnMessage).toBe(true);
+    expect(sink).toEqual([{ type: 'assistant' }, { type: 'assistant' }]);
+  });
+
   it('reports no-pending and still regenerates INDEX/GRAPH when nothing is queued', async () => {
     const result = await runCurate(ctx(async () => []));
     expect(result.status).toBe('no-pending');

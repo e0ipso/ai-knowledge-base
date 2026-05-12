@@ -12,6 +12,8 @@ export interface RunHeadlessOptions {
   allowedTools?: string[];
   logFile?: string;
   env?: NodeJS.ProcessEnv;
+  /** Invoked once per successfully parsed stream-json line. */
+  onMessage?: (msg: StreamJsonMessage) => void;
   /** Test seam: substitute the underlying spawn. */
   spawn?: SpawnFn;
 }
@@ -34,7 +36,7 @@ export interface SpawnContext {
 
 export type SpawnFn = (command: string, ctx: SpawnContext) => SpawnResult;
 
-interface StreamJsonMessage {
+export interface StreamJsonMessage {
   type?: string;
   subtype?: string;
   result?: string;
@@ -112,11 +114,14 @@ export async function runHeadlessClaude<T>(
     const trimmed = line.trim();
     if (trimmed.length === 0) return;
     if (logStream) logStream.write(`${trimmed}\n`);
+    let parsed: StreamJsonMessage;
     try {
-      messages.push(JSON.parse(trimmed) as StreamJsonMessage);
+      parsed = JSON.parse(trimmed) as StreamJsonMessage;
     } catch {
-      // Non-JSON line; ignore.
+      return;
     }
+    messages.push(parsed);
+    if (opts.onMessage) opts.onMessage(parsed);
   });
   const streamDone = new Promise<void>((resolve, reject) => {
     splitter.once('end', () => resolve());

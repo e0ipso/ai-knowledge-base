@@ -133,6 +133,24 @@ describe('runHeadlessClaude', () => {
     await expect(runHeadlessClaude('p', '', Schema, { spawn })).rejects.toThrow();
   });
 
+  it('invokes onMessage for every parsed stream-json line', async () => {
+    const { spawn } = makeSpawn([
+      JSON.stringify({ type: 'system', subtype: 'init' }),
+      JSON.stringify({ type: 'assistant', message: { content: 'hi' } }),
+      JSON.stringify({
+        type: 'result',
+        is_error: false,
+        result: JSON.stringify({ ok: true, n: 5 }),
+      }),
+    ]);
+    const seen: Array<string | undefined> = [];
+    await runHeadlessClaude('p', '', Schema, {
+      spawn,
+      onMessage: msg => seen.push(msg.type),
+    });
+    expect(seen).toEqual(['system', 'assistant', 'result']);
+  });
+
   it('throws when result JSON does not match the schema', async () => {
     const { spawn } = makeSpawn([
       JSON.stringify({
