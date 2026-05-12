@@ -17,7 +17,17 @@ The transcript is provided as role-tagged segments below. Each segment is prefix
 
 There are exactly two kinds of knowledge worth capturing:
 
-### Practice nodes - "how we build things"
+### End-state framing rule (applies to both kinds)
+
+Every candidate body describes the project as it currently is. Practice bodies state the rule in present tense. Map bodies describe the entity as it now exists.
+
+Transition narratives are not valid bodies. A transition narrative is any wording that describes the journey rather than the destination, such as "we used to do X, now do Y", "renamed F to G", "removed Z", "switched from A to B", or "migrated from old framework to new framework". When a transition is present in the transcript, you record only the resulting **end-state** claim (for example: "the config file is YAML") and discard the journey.
+
+Map nodes are not emitted with bodies like "X was added" or "Y was renamed to Z". They describe the entity as it now is. If the only information you have about a thing is that it changed, that thing is not yet a map candidate.
+
+If a candidate body cannot be rewritten in present tense without losing its meaning, drop it. A pure transition narrative has no end-state claim to extract.
+
+### Practice nodes, "how we build things"
 
 These are imperative, action-guiding statements about how this project does things. They include:
 
@@ -29,7 +39,30 @@ These are imperative, action-guiding statements about how this project does thin
 
 **Practice nodes are extracted strictly from `[USER]:` turns.** The user is the source of project-specific knowledge; the agent's text is context only. If the agent says "So you want me to use X for Y" after the user said "use X for Y," do not treat the agent's paraphrase as a teaching moment - the user's statement is the source. Quote or paraphrase from the user's turn.
 
-### Map nodes - "what exists in this project"
+#### Imperative corrections in user turns (corrective pattern)
+
+Some of the strongest practice signal lives in `[USER]:` turns that reverse what the agent just did. Treat these phrasings as first-class practice candidates whenever the corrected behavior generalizes beyond the current task:
+
+- "don't do X, do Y"
+- "no, never use that approach"
+- "stop doing Z"
+- "use Y instead"
+- Similar imperative reversals, including "actually, …", "wrong, …", "that's not how we do it, …".
+
+Each such turn is a **corrective pattern** trigger. Extract the rule (not the violation) in present tense: the practice body states what to do (or not do) going forward, framed as a project convention. If the user provided a rationale, capture that too.
+
+Gate every corrective pattern through the task-specific filter below. If the underlying rule only constrains code touched in the current change, prefer drop.
+
+#### Self-review-apply turns
+
+A common high-signal pattern in this project is the `/self-review-apply` skill. It looks like this in the transcript:
+
+- A `[USER]:` turn invokes `/self-review-apply <path>.xml`. The XML filename is variable: it may be `review.xml`, `feedback/round-2.xml`, `reviews/security-pass.xml`, or any other path. Do not assume a fixed filename.
+- The next `[AGENT]:` turn narrates the changes the agent applied in response to review comments parsed from the XML. The transcript does not contain the XML body itself, only the agent's narration of which comments were addressed and how.
+
+Treat each narrated change as a candidate corrective signal. Judge generalizability per change: a comment that names a project-wide rule ("loop variables in this codebase use descriptive names") becomes a practice candidate; a comment that only fixes a one-off issue in the change under review is dropped. Apply both the corrective-pattern rule and the task-specific filter to each narrated change independently.
+
+### Map nodes, "what exists in this project"
 
 These describe the entities, features, vocabulary, and locations of the project:
 
@@ -55,6 +88,23 @@ Most of the transcript is not knowledge. Do not capture:
 - Anything that could be re-derived by reading the codebase.
 
 The signal for capture is: **did the user have to teach the agent something the agent couldn't have known from the codebase or from general knowledge? Or did the user introduce a named thing that didn't exist in the project's vocabulary before?** Everything else is noise. When in doubt, skip.
+
+### Task-specific scope filter
+
+Many corrective signals look like rules but only apply to the immediate change. These have **task-specific scope** and must be dropped. Concrete heuristics:
+
+- References to one-off variable names, function names, or single file paths that are not load-bearing elsewhere in the project.
+- Scope markers such as "in this PR", "in this branch", "in this commit", "for this file", "for this function", "for this test".
+- Wording that only makes sense in the context of the current change ("rename this back", "undo the line you just added", "the new field you introduced should be camelCase").
+- Comments whose subject is a specific edit, not a general property of the codebase.
+
+Pair this filter with a confidence-bias rule: **when a corrective signal does not generalize to a project-level rule, prefer drop over emitting a low-confidence practice candidate.** A high-confidence project rule is worth a node; a low-confidence guess at a rule is not.
+
+Framing aid: **the rule's *scope*, not its *occasion*, decides task-specificity.** A genuine project-wide rule that the user happens to mention "in this PR" (because that is where the violation was noticed) is still project-wide and is kept. A rule that only constrains code touched in this PR is task-specific and is dropped. Read the corrective signal carefully and ask: would this rule still be true on a different file, in a different change, six months from now? If yes, keep. If no, drop.
+
+### Transition narratives (change-oriented framing)
+
+Even outside corrective signals, transcripts often contain change-oriented framing: "we used to do X", "this was renamed", "we removed the old service", "we migrated to Y". Treat a **transition narrative** as a transcript artifact, not as knowledge. The only retainable content in such a turn is the resulting end-state claim, extracted in present tense. If no clean end-state claim is present, drop the whole turn.
 
 ---
 
@@ -119,6 +169,47 @@ Here is a small example transcript and the correct output, so you know exactly w
 Notice what the example does NOT capture:
 - The agent's initial mention of "#cache properties" - that's just standard Drupal knowledge, not project-specific.
 - The agent's "Got it" acknowledgment - paraphrasing isn't a teaching moment.
+
+### Inline example: a self-review-apply turn
+
+This second example shows the self-review-apply pattern in action. It produces one kept practice candidate (a generalizable rule) and one dropped item (a task-specific comment). Note that the XML filename here is not `review.xml`; treat any `.xml` path as a valid self-review-apply target.
+
+**Input transcript:**
+
+```
+[USER]: /self-review-apply feedback/round-2.xml
+[AGENT]: I worked through the review comments in feedback/round-2.xml and applied two changes.
+
+First, the reviewer flagged that I had used a single-letter loop variable `i` inside `src/lib/feed-builder.ts`. The note said loop variables in this codebase always use descriptive names so the intent is readable at a glance. I renamed `i` to `cardIndex`.
+
+Second, the reviewer pointed out a typo in the JSDoc for `assembleHeroCard`: "recieves" should be "receives". I fixed the typo in that one docstring.
+```
+
+**Correct output:**
+
+```json
+{
+  "practice": [
+    {
+      "kind": "practice",
+      "tags": ["typescript", "naming", "readability"],
+      "title": "Loop variables use descriptive names",
+      "summary": "Loop variables in this codebase use descriptive names (for example cardIndex) rather than single letters, so intent is readable at a glance.",
+      "body": "Loop variables in this codebase use descriptive names that convey what is being iterated, such as `cardIndex` or `userId`. Single-letter loop counters like `i`, `j`, or `k` are not used. The rule applies to every loop in the codebase, not only to the file where it was flagged.\n\nRationale: readability at a glance. A descriptive loop variable removes the need to scan the loop body to remember what is being indexed.",
+      "confidence": "high",
+      "supports_existing_node": null,
+      "contradicts_existing_node": null
+    }
+  ],
+  "map": []
+}
+```
+
+**Commentary on what was dropped (not part of the JSON output):**
+
+The second review comment (the "recieves" typo in `assembleHeroCard`'s JSDoc) is dropped. The drop reason is **task-specific scope**: the comment names one specific docstring in one specific function, and the underlying rule (spell words correctly) is general programming knowledge rather than a project convention. No practice candidate is emitted for it. Producing nothing for that comment is correct; emitting a low-confidence "spell things correctly" practice candidate would be noise.
+
+Notice how the kept candidate's body is written in present tense as an end-state rule. It does not say "the agent used to write single-letter loop variables and was corrected"; it says "loop variables in this codebase use descriptive names". The transition (the rename of `i` to `cardIndex`) is the occasion that surfaced the rule; the rule itself is the captured knowledge.
 
 ---
 

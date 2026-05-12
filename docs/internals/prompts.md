@@ -115,6 +115,7 @@ The wrapper applies actions directly:
 - Additions when a near-duplicate exists (modify instead).
 - Suggesting a `suggested_resolution` value (it's ignored - the user picks via the kb-curate skill).
 - Crossing the practice/map boundary.
+- Change-oriented framing (transition narratives, migration stories, rename or removal logs): automatic drop regardless of confidence, unless a clean end-state claim can be salvaged.
 
 ## Bootstrap-incremental prompt
 

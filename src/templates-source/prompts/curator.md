@@ -44,10 +44,12 @@ Use **modify** when an existing node already covers this topic, but the candidat
 
 Signs a modification is correct:
 - An existing node has the same scope (same convention, same module, same gotcha) but the candidate adds: an updated example, expanded rationale, a newly-supported case, a missing detail, or a clarification.
-- The two are compatible - both can be true at the same time.
+- The two are compatible (both can be true at the same time).
 - The candidate's content is genuinely new relative to the existing body, not just a rephrasing.
 
 A modification overwrites the existing `nodes/<kind>/<target_node_id>.md` file with the merged content. The reviewer sees the change as a `git diff` on that file. The `target_node_id` is required and must already exist on disk; if it doesn't, the wrapper records a failure and writes nothing.
+
+**End-state rewrite rule.** The merged body reads as the current state in present tense. Never append "previously…" or "earlier this used to…" paragraphs, and never narrate "the project moved from X to Y" inside the body. When the new candidate's information is a transition narrative, rewrite the existing node body so that only the new end-state claim remains visible; the prior state disappears from the body. The KB is the project's current state, not its changelog.
 
 **Important:** if the candidate is essentially the same content as the existing node, just rephrased, **drop it** instead. Modifications must add real new information.
 
@@ -64,7 +66,9 @@ Signs a contradiction is real:
 
 **Important:** if the candidate's scope is a *subset* or *exception* to the existing node, this is NOT a contradiction - it's an addition (or modification). For example, if the existing node says "use the default cache tags," and the candidate says "for personalized pages, use per-user cache contexts instead," these can both be true: the existing node remains correct for non-personalized pages. The right action is **add** (with a `relates_to` link), not contradict.
 
-A contradiction **does not write any file**. The wrapper records the conflict (target node, proposed new content, your rationale) into `.ai/knowledge-base/.state/pending-conflicts.json`. The kb-curate skill reads that file after you exit and asks the user how to resolve each entry. Make your `proposed_node` and `rationale` complete enough that a human reviewing in-session can decide between superseding the old node, keeping both, or rejecting the new claim - without re-running you.
+A contradiction **does not write any file**. The wrapper records the conflict (target node, proposed new content, your rationale) into `.ai/knowledge-base/.state/pending-conflicts.json`. The kb-curate skill reads that file after you exit and asks the user how to resolve each entry. Make your `proposed_node` and `rationale` complete enough that a human reviewing in-session can decide between superseding the old node, keeping both, or rejecting the new claim, without re-running you.
+
+**Supersession is state replacement, not a history record.** The `proposed_node.body` describes only the new end state in present tense. The supersession relationship is recorded in the `supersedes` and `superseded_by` frontmatter fields of the relevant nodes; the body does not narrate the supersession with phrases like "this replaces…" or "previously the rule was…". A reviewer who reads only the new node's body should see the current rule as if it had always been the rule; the link back to what it replaces lives in frontmatter.
 
 ---
 
@@ -76,6 +80,9 @@ Use **drop** when the candidate should not result in any change. Reasons to drop
 - The confidence is low and the content is vague.
 - The candidate captured something that's actually general programming knowledge, not project-specific.
 - The candidate is internally inconsistent or refers to things that don't exist elsewhere in the batch or KB.
+- The candidate uses **change-oriented framing** (transition narratives, migration stories, rename or removal logs, "we used to do X, now we do Y" wording). This is an automatic drop reason regardless of confidence: a high-confidence changelog entry is still a changelog entry, and confidence alone does not earn it a node. The KB describes the project's current end state, not its history.
+
+**Salvage rule for change-oriented candidates.** When a candidate contains a clean **end-state claim** alongside the transition narrative (for example: the candidate narrates "we renamed `foo_service` to `bar_service`" but also conveys the present-tense fact "the service that fans out tracking events is `bar_service`"), extract that end-state claim and keep it via the appropriate action (`add` or `modify`), rewritten in present tense with the journey stripped out. When there is no clean end-state claim to salvage (the entire candidate is the journey), drop the whole candidate.
 
 A drop produces no file change and no conflict entry. Record the candidate origin and the reason in your output so the user can audit what you dropped.
 
