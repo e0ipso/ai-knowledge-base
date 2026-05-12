@@ -25,20 +25,20 @@ The biggest quality lever in capture. Controls what the extractor treats as wort
 ### Sections
 
 1. **Version comment**.
-2. **What to extract** — practice/map definitions, trigger phrases.
-3. **What to skip** — typos, file reads, agent paraphrases, generic programming knowledge.
-4. **Ownership boundary** — how to split combined statements between practice and map.
-5. **Inline example** — a worked transcript with expected JSON.
-6. **Output schema** — must match `Stage2OutputSchema`.
+2. **What to extract** - practice/map definitions, trigger phrases.
+3. **What to skip** - typos, file reads, agent paraphrases, generic programming knowledge.
+4. **Ownership boundary** - how to split combined statements between practice and map.
+5. **Inline example** - a worked transcript with expected JSON.
+6. **Output schema** - must match `Stage2OutputSchema`.
 
-The drain replaces `[TRANSCRIPT PLACEHOLDER — substituted at runtime]` with the redacted slice. If the placeholder is removed, the transcript is appended at the end.
+The drain replaces `[TRANSCRIPT PLACEHOLDER - substituted at runtime]` with the redacted slice. If the placeholder is removed, the transcript is appended at the end.
 
 ### Calibration
 
 Fixtures under `tests/fixtures/transcripts/`:
 
-- `routine-zero/` — a session with no teaching moments. Correct output is empty.
-- `bravo-insider/` — 4 practice + 3 map candidates. `expected.md` is the target.
+- `routine-zero/` - a session with no teaching moments. Correct output is empty.
+- `bravo-insider/` - 4 practice + 3 map candidates. `expected.md` is the target.
 
 Mocked tests pin the schema; only real `claude -p` reveals prompt quality. Run the fixtures with the real CLI before shipping changes.
 
@@ -93,21 +93,21 @@ The wrapper applies actions directly:
 
 - `add` writes `nodes/<kind>/<id>.md`. If the file already exists, the wrapper records an `add_collision` failure and writes nothing.
 - `modify` overwrites `nodes/<kind>/<target_node_id>.md`. If the target file doesn't exist, the wrapper records a `modify_missing_target` failure.
-- `contradict` writes nothing — the wrapper records the conflict in `.ai/knowledge-base/.state/pending-conflicts.json` for the kb-curate skill to surface to the user in-session.
+- `contradict` writes nothing - the wrapper records the conflict in `.ai/knowledge-base/.state/pending-conflicts.json` for the kb-curate skill to surface to the user in-session.
 - `drop` is a no-op.
 
 `suggested_resolution` is ignored by the wrapper (always emit `null`); resolution happens via the kb-curate skill walking `pending-conflicts.json` with the user.
 
 ### Verifying
 
-1. `npm test` — curate tests assert add/modify write the right `nodes/<kind>/<id>.md`, contradict appears in `result.conflicts`, collisions and missing targets land in `result.failures`.
+1. `npm test` - curate tests assert add/modify write the right `nodes/<kind>/<id>.md`, contradict appears in `result.conflicts`, collisions and missing targets land in `result.failures`.
 2. Inspect `_logs/curator/<run-id>__<ts>.jsonl` for the final array (no preamble).
 
 ### Anti-patterns
 
 - Modifications that rephrase existing content (drop instead).
 - Additions when a near-duplicate exists (modify instead).
-- Suggesting a `suggested_resolution` value (it's ignored — the user picks via the kb-curate skill).
+- Suggesting a `suggested_resolution` value (it's ignored - the user picks via the kb-curate skill).
 - Crossing the practice/map boundary.
 
 ## Bootstrap-incremental prompt
@@ -116,14 +116,14 @@ Controls what `bootstrap-incremental` treats as candidates from your source docs
 
 ### Sections
 
-1. **Inputs** — chunk format (`=== FILE: <path> ===` ... `=== END FILE ===`).
-2. **Output** — JSON shape and candidate fields.
-3. **What to extract** — trigger patterns per kind.
-4. **What to skip** — auto-generated reference, licenses, generic framework knowledge, aspirational TODOs.
+1. **Inputs** - chunk format (`=== FILE: <path> ===` ... `=== END FILE ===`).
+2. **Output** - JSON shape and candidate fields.
+3. **What to extract** - trigger patterns per kind.
+4. **What to skip** - auto-generated reference, licenses, generic framework knowledge, aspirational TODOs.
 5. **Confidence calibration**.
-6. **Rules** — never invent facts, quote rationale verbatim, emit only the JSON object.
+6. **Rules** - never invent facts, quote rationale verbatim, emit only the JSON object.
 
-The chunk replaces `[CHUNK PLACEHOLDER — substituted at runtime]`. If removed, the chunk is appended.
+The chunk replaces `[CHUNK PLACEHOLDER - substituted at runtime]`. If removed, the chunk is appended.
 
 ### Calibration loop
 
@@ -138,7 +138,7 @@ The chunk replaces `[CHUNK PLACEHOLDER — substituted at runtime]`. If removed,
 
 Every LLM pipeline writes a stream-JSON trace under `.ai/knowledge-base/_logs/`. Gitignored.
 
-### Stage-2 — `_logs/stage-2/<session-id>__<ts>.jsonl`
+### Stage-2 - `_logs/stage-2/<session-id>__<ts>.jsonl`
 
 | Line type | What it is |
 |---|---|
@@ -149,12 +149,12 @@ Every LLM pipeline writes a stream-JSON trace under `.ai/knowledge-base/_logs/`.
 
 Common failures:
 
-- **No final result** — `claude` was killed or timed out. Check timestamps. The entry retries; three failures mark it `skipped`.
-- **Schema mismatch** — model emitted extra prose or skipped a field. Inspect `result` text; tune the prompt if consistent.
+- **No final result** - `claude` was killed or timed out. Check timestamps. The entry retries; three failures mark it `skipped`.
+- **Schema mismatch** - model emitted extra prose or skipped a field. Inspect `result` text; tune the prompt if consistent.
 
 To force re-extraction of a skipped entry: set `stage_2_status: pending` in the session log, clear `stage_2_error`, and re-add the path to `_sessions/.queue.json`.
 
-### Curator — `_logs/curator/<run-id>__<ts>.jsonl`
+### Curator - `_logs/curator/<run-id>__<ts>.jsonl`
 
 | `type` | What it is |
 |---|---|
@@ -165,10 +165,10 @@ To force re-extraction of a skipped entry: set `stage_2_status: pending` in the 
 
 Common issues:
 
-- **`nodesWritten: 0` despite a non-empty batch** — check the final `result` for `is_error: true`, then check `failures` and `conflicts` in the curate output: every action either writes, fails, conflicts, or drops.
-- **Fenced JSON** — `runHeadlessClaude` strips ` ```json ``` ` fences. Preamble without a fence falls through to raw parsing and fails validation.
-- **Duplicates after dedup** — cross-batch dedup keeps the higher-confidence action per `proposed_node.id`. Duplicates mean inconsistent slugification produced different ids.
-- **Conflict not surfacing in `/kb-curate`** — verify `.ai/knowledge-base/.state/pending-conflicts.json` exists and contains the entry. The skill reads from there.
+- **`nodesWritten: 0` despite a non-empty batch** - check the final `result` for `is_error: true`, then check `failures` and `conflicts` in the curate output: every action either writes, fails, conflicts, or drops.
+- **Fenced JSON** - `runHeadlessClaude` strips ` ```json ``` ` fences. Preamble without a fence falls through to raw parsing and fails validation.
+- **Duplicates after dedup** - cross-batch dedup keeps the higher-confidence action per `proposed_node.id`. Duplicates mean inconsistent slugification produced different ids.
+- **Conflict not surfacing in `/kb-curate`** - verify `.ai/knowledge-base/.state/pending-conflicts.json` exists and contains the entry. The skill reads from there.
 
 To re-run a single batch (no first-class command): clear `curator_processed_at` and `curator_run_id` from the affected session log and re-run `curate`.
 

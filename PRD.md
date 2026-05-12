@@ -1,16 +1,16 @@
-# PRD — Project Knowledge Base for AI Coding Sessions
+# PRD - Project Knowledge Base for AI Coding Sessions
 
 ## 1. Problem
 
 Working with an AI coding assistant on a real software project produces a steady stream of valuable knowledge: project conventions, prohibitions ("don't use the default cache tags here"), gotchas about a third-party API, names and locations of internal modules, things the human had to teach the agent before it would do something correctly, and rationale for why a current approach exists. Today, almost all of that knowledge evaporates when the session ends.
 
-The mainstream answers — a hand-curated `CLAUDE.md`, sticky-note files, "remember this" prompts — break down in three ways:
+The mainstream answers - a hand-curated `CLAUDE.md`, sticky-note files, "remember this" prompts - break down in three ways:
 
 - **They don't scale.** A single memory file becomes either too sparse to help or too noisy to load every session.
 - **They don't evolve.** When a decision is reversed or a convention updated, the old text quietly misleads future sessions.
 - **They're solo artifacts.** Knowledge captured by one developer doesn't reach the rest of the team, even on the same repo.
 
-We need a system where AI sessions actively contribute to a shared, project-specific knowledge base that grows, gets corrected, and gets re-loaded on demand — without the developer having to remember to do anything ceremonial.
+We need a system where AI sessions actively contribute to a shared, project-specific knowledge base that grows, gets corrected, and gets re-loaded on demand - without the developer having to remember to do anything ceremonial.
 
 ## 2. Solution overview
 
@@ -54,7 +54,7 @@ This scope is critical to signal-to-noise. The system captures two broad kinds:
 
 **"How we build things" (practice nodes):**
 - **Conventions:** "When adding schema.org metadata, use the custom event setup in `modules/custom/<name>`."
-- **Prohibitions:** "Don't use the default cache tags for entity X — they break invalidation."
+- **Prohibitions:** "Don't use the default cache tags for entity X - they break invalidation."
 - **Gotchas:** Finicky third-party integration details, race conditions, brittle config.
 - **Decision rationale:** Why a current approach exists, especially when non-obvious. "We use approach X because Y didn't handle the multilingual case."
 - **Tooling and workflow:** "Tests run with `vendor/bin/phpunit ...`."
@@ -103,9 +103,9 @@ Every LLM-driven step writes a verbose log file under `_logs/` (gitignored). For
 
 Two paths into manual capture: `npx @e0ipso/ai-knowledge-base node add` from the terminal (interactive prompts collect kind, title, summary, body, tags), or the `kb-add` Claude Code skill from inside a session (the skill guides the agent through the same fields and writes a node). Either path writes directly to `nodes/<kind>/<slug>.md`. Acceptance is `git commit`; rejection is `git restore <path>`. Same human-in-the-loop guarantee as session-derived captures, just with git as the review surface instead of a separate staging directory.
 
-> "My project already has a bunch of READMEs, ADRs, and module docs. I don't want to start with an empty KB — I want the KB seeded from what's already documented."
+> "My project already has a bunch of READMEs, ADRs, and module docs. I don't want to start with an empty KB - I want the KB seeded from what's already documented."
 
-The `kb-bootstrap` Claude Code skill runs an agent-driven first-time bootstrap inside a normal session. The agent surveys the project's docs directory, reads representative content, follows cross-references between docs, and writes nodes directly to `nodes/<kind>/<slug>.md` with `derived_from` pointing to the actual doc paths. Bootstrap is conservative: it never overwrites an existing node — collisions are skipped and reported. The contributor reviews each new node with `git diff nodes/` and accepts what they want. Bootstrap is a supervised one-off, not an autopilot.
+The `kb-bootstrap` Claude Code skill runs an agent-driven first-time bootstrap inside a normal session. The agent surveys the project's docs directory, reads representative content, follows cross-references between docs, and writes nodes directly to `nodes/<kind>/<slug>.md` with `derived_from` pointing to the actual doc paths. Bootstrap is conservative: it never overwrites an existing node - collisions are skipped and reported. The contributor reviews each new node with `git diff nodes/` and accepts what they want. Bootstrap is a supervised one-off, not an autopilot.
 
 > "I added some new docs after the initial bootstrap. I want them folded into the KB without re-processing everything."
 
@@ -119,7 +119,7 @@ A `SessionStart` hook injects a token-budgeted index of the KB into the session.
 
 > "I want the AI to load the right knowledge for the task I'm doing, not all of it at once."
 
-Progressive disclosure. The injection is the index only — typically a few hundred to two thousand tokens. The AI reads individual nodes only when relevant.
+Progressive disclosure. The injection is the index only - typically a few hundred to two thousand tokens. The AI reads individual nodes only when relevant.
 
 > "I should be able to read the KB as a human, not just have it consumed by the AI."
 
@@ -133,7 +133,7 @@ Proposed KB changes *are* code changes. Skills and the curator write directly to
 
 > "I want to know which session a piece of knowledge came from."
 
-Every node carries a `derived_from` list pointing to session log filenames. **Caveat:** session logs are gitignored by default — provenance only works for the original contributor unless the team commits `_sessions/`. If reviewers other than the original contributor need to verify provenance, the team removes `_sessions/` from `.gitignore`. Documented as an explicit setup decision with the trade-off (more repo bloat, full audit trail).
+Every node carries a `derived_from` list pointing to session log filenames. **Caveat:** session logs are gitignored by default - provenance only works for the original contributor unless the team commits `_sessions/`. If reviewers other than the original contributor need to verify provenance, the team removes `_sessions/` from `.gitignore`. Documented as an explicit setup decision with the trade-off (more repo bloat, full audit trail).
 
 ## 8. Key workflows
 
@@ -146,7 +146,7 @@ Every node carries a `derived_from` list pointing to session log filenames. **Ca
 ### 8.2 Daily session capture (automatic)
 
 1. The contributor runs an AI session as normal.
-2. When the session ends — or when context compaction is about to fire — a hook captures a redacted slice of the transcript into `.ai/knowledge-base/_sessions/`, marked pending for stage-2 extraction.
+2. When the session ends - or when context compaction is about to fire - a hook captures a redacted slice of the transcript into `.ai/knowledge-base/_sessions/`, marked pending for stage-2 extraction.
 3. Stage-2 extraction runs in the background on the next session start, without blocking it. Results land in the session log; the run's stream-json trace lands in `_logs/stage-2/`.
 4. Capture is silent on success.
 
@@ -178,7 +178,7 @@ Every node carries a `derived_from` list pointing to session log filenames. **Ca
 3. The agent updates `bootstrap-state.json` with content hashes of every doc it read.
 4. The contributor reviews the new nodes with `git diff nodes/` and commits the ones they want; `git restore` discards the rest.
 
-The contributor can supervise and intervene mid-session if the agent goes off track. This is a one-time, judgment-heavy operation — running it once is the expected case.
+The contributor can supervise and intervene mid-session if the agent goes off track. This is a one-time, judgment-heavy operation - running it once is the expected case.
 
 ### 8.7 Incremental bootstrap (later updates)
 
@@ -188,7 +188,7 @@ The contributor can supervise and intervene mid-session if the agent goes off tr
 4. New nodes are written directly to `nodes/<kind>/<slug>.md`. Existing-node collisions are skipped (and counted in the run summary). The state file is updated.
 5. The contributor reviews with `git diff nodes/` and commits.
 
-Incremental bootstrap is deterministic, fast, and safe to re-run. It does not attempt to detect overlap with existing accepted nodes via curator-style modify/contradict logic — if an extracted candidate would collide with an existing node, the new candidate is dropped and reported, not merged.
+Incremental bootstrap is deterministic, fast, and safe to re-run. It does not attempt to detect overlap with existing accepted nodes via curator-style modify/contradict logic - if an extracted candidate would collide with an existing node, the new candidate is dropped and reported, not merged.
 
 ### 8.8 Debugging an LLM run
 
@@ -199,7 +199,7 @@ Incremental bootstrap is deterministic, fast, and safe to re-run. It does not at
 
 ### 8.9 Tunables and log retention
 
-Operational defaults — curation threshold, lock TTL, index token budget, drain batch size, stage-2 timeout, bootstrap token budget, log retention window — can be overridden per-project via a committed `.ai/knowledge-base/.config.json` or per-user via `~/.config/ai-knowledge-base/config.json`. Project overrides win over user overrides; both win over built-in defaults. An unparseable file warns and falls back to defaults rather than bricking the CLI.
+Operational defaults - curation threshold, lock TTL, index token budget, drain batch size, stage-2 timeout, bootstrap token budget, log retention window - can be overridden per-project via a committed `.ai/knowledge-base/.config.json` or per-user via `~/.config/ai-knowledge-base/config.json`. Project overrides win over user overrides; both win over built-in defaults. An unparseable file warns and falls back to defaults rather than bricking the CLI.
 
 `_logs/` grows unbounded by design (full stream-json traces are the audit trail). `npx @e0ipso/ai-knowledge-base logs prune --older-than <duration>` deletes traces older than the threshold; default retention is `logsRetentionDays` from the settings stack.
 
@@ -238,5 +238,5 @@ The system is working if, after three months of use on a real project:
 ## 12. Open questions deferred to implementation or v2
 
 - For very large KBs, should the index injection be filtered by current task, or is the token budget alone sufficient? (Defer; decide based on real usage.)
-- Schema migration tooling. **Out of scope, permanently.** `schema_version` exists to *fail loudly* on incompatible reads, not to feed a migrator. Breaking changes use a clean break — readers reject older shapes with a clear error directing users to re-init. No migrators, no compatibility shims, no legacy code paths ship in any version.
+- Schema migration tooling. **Out of scope, permanently.** `schema_version` exists to *fail loudly* on incompatible reads, not to feed a migrator. Breaking changes use a clean break - readers reject older shapes with a clear error directing users to re-init. No migrators, no compatibility shims, no legacy code paths ship in any version.
 - Whether incremental bootstrap should detect overlap with existing accepted nodes (curator-style modify/contradict logic) instead of always producing additions. (Deferred; v1 produces additions only and relies on the reviewer to catch duplicates.)

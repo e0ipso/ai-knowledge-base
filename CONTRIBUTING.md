@@ -9,7 +9,7 @@ Prerequisites:
 - Node 22+
 - npm 10+ (or pnpm 9+)
 - Claude Code CLI on PATH for integration smoke tests (`claude --version`)
-- No external binaries — the capture-hook secret scan runs [`secretlint`](https://github.com/secretlint/secretlint) programmatically from `node_modules`.
+- No external binaries - the capture-hook secret scan runs [`secretlint`](https://github.com/secretlint/secretlint) programmatically from `node_modules`.
 
 Git hooks are managed by [husky](https://typicode.github.io/husky/) and installed automatically by `npm install` (via the `prepare` script). The `pre-commit` hook runs [`lint-staged`](https://github.com/lint-staged/lint-staged), which in turn runs ESLint, Prettier, and secretlint on staged files, followed by `typecheck` and `test` across the project.
 
@@ -56,11 +56,11 @@ npm run format:check   # prettier
 
 ### Manual test plan
 
-Before a significant release — schema bump, capture/curate/consume behavior change, pinned Claude Code CLI bump — work through [`docs/internals/manual-test-plan.md`](docs/internals/manual-test-plan.md). It covers the checks that resist automation: per-platform smoke (macOS / Linux / WSL2 / native Windows), PreCompact timing on long sessions, real capture quality, `init --upgrade` from the previous published version, concurrent-pipeline locking, and a few intentionally-broken-state doctor exit-code checks. Record results in the release PR description.
+Before a significant release - schema bump, capture/curate/consume behavior change, pinned Claude Code CLI bump - work through [`docs/internals/manual-test-plan.md`](docs/internals/manual-test-plan.md). It covers the checks that resist automation: per-platform smoke (macOS / Linux / WSL2 / native Windows), PreCompact timing on long sessions, real capture quality, `init --upgrade` from the previous published version, concurrent-pipeline locking, and a few intentionally-broken-state doctor exit-code checks. Record results in the release PR description.
 
 ## Schema-version bump policy
 
-Every frontmatter and JSON state file in the system carries `schema_version: 1`. The policy is **strict**: any breaking change to the on-disk shape gets a clean break — there are no migrators, no compatibility shims, and no legacy code paths. Users on the old shape re-initialize.
+Every frontmatter and JSON state file in the system carries `schema_version: 1`. The policy is **strict**: any breaking change to the on-disk shape gets a clean break - there are no migrators, no compatibility shims, and no legacy code paths. Users on the old shape re-initialize.
 
 Concretely:
 

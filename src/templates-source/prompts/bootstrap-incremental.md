@@ -50,7 +50,7 @@ Each candidate has:
 
 ## What to extract
 
-**Practice nodes — imperative project guidance:**
+**Practice nodes - imperative project guidance:**
 - Conventions: "Always do X." "Use Y for Z."
 - Prohibitions: "Don't use X." "Never call Y directly."
 - Gotchas: "If you do X, Y happens; avoid by doing Z."
@@ -59,7 +59,7 @@ Each candidate has:
 
 Triggers in docs: imperative verbs ("use," "do," "avoid," "always," "never," "must"); rationale markers ("because," "since," "to avoid"); admonition blocks (`> Note:`, `> Warning:`); explicit do/don't sections.
 
-**Map nodes — what exists in the project:**
+**Map nodes - what exists in the project:**
 - Features: named systems, modules, services.
 - Vocabulary: project-specific terms and their meanings.
 - Locations: file paths for major systems.
@@ -98,4 +98,4 @@ The chunk begins below.
 
 ---
 
-[CHUNK PLACEHOLDER — substituted at runtime]
+[CHUNK PLACEHOLDER - substituted at runtime]

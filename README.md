@@ -5,13 +5,13 @@
 
 Build and maintain a per-repo knowledge base from AI coding sessions, for use with [Claude Code](https://docs.claude.com/en/docs/claude-code).
 
-Your AI sessions produce a steady stream of project-specific knowledge — conventions, prohibitions, gotchas, named modules, decision rationale. Today, almost all of it evaporates when the session ends. This tool captures it, asks a human to curate it, and injects it back into every future session so the assistant starts each conversation with your team's accumulated context.
+Your AI sessions produce a steady stream of project-specific knowledge - conventions, prohibitions, gotchas, named modules, decision rationale. Today, almost all of it evaporates when the session ends. This tool captures it, asks a human to curate it, and injects it back into every future session so the assistant starts each conversation with your team's accumulated context.
 
 ## Quick start
 
 ```sh
 npx @e0ipso/ai-knowledge-base init --assistants claude
-ai-knowledge-base doctor
+npx @e0ipso/ai-knowledge-base doctor
 ```
 
 That's the consumer path. After running `init`, AI sessions in this repo automatically capture candidate knowledge; `ai-knowledge-base curate` (or `/kb-curate` from inside a session) writes new knowledge nodes directly under `nodes/`. You review with `git diff`, accept with `git commit`, reject with `git restore`.
@@ -28,7 +28,7 @@ npx @e0ipso/ai-knowledge-base bootstrap-incremental --from docs/
 
 ## How it works (one paragraph)
 
-Two cooperating pieces. The **builder tool** (this npm package) installs hooks under `.claude/` and a knowledge directory under `.ai/knowledge-base/`. Hooks capture redacted session slices, an async stage-2 extractor turns them into structured candidates, and the curator writes new knowledge nodes directly under `nodes/`. You review the diff and commit (or restore) like any other code change; a pre-commit hook keeps `INDEX.md`/`GRAPH.md` in lockstep. A `SessionStart` hook injects the current `INDEX.md` into every new AI session. The KB itself is plain markdown — readable, diffable, reviewable like code.
+Two cooperating pieces. The **builder tool** (this npm package) installs hooks under `.claude/` and a knowledge directory under `.ai/knowledge-base/`. Hooks capture redacted session slices, an async stage-2 extractor turns them into structured candidates, and the curator writes new knowledge nodes directly under `nodes/`. You review the diff and commit (or restore) like any other code change; a pre-commit hook keeps `INDEX.md`/`GRAPH.md` in lockstep. A `SessionStart` hook injects the current `INDEX.md` into every new AI session. The KB itself is plain markdown - readable, diffable, reviewable like code.
 
 ## Documentation
 

@@ -18,7 +18,7 @@ npm pack ../path/to/ai-knowledge-base
 npm init -y
 npx ./e0ipso-ai-knowledge-base-<v>.tgz init --assistants claude
 npm install
-ai-knowledge-base doctor
+npx @e0ipso/ai-knowledge-base doctor
 ```
 
 `doctor` should exit 0 (warnings OK).
@@ -48,7 +48,7 @@ Diagnostic: `time node .claude/hooks/kb-capture.mjs < /dev/null` should be under
 After `npm install`:
 
 - [ ] macOS / Linux / WSL2: `node_modules/@secretlint/core` exists. `doctor` reports secretlint resolvable.
-- [ ] Native Windows: same — secretlint is a pure-JS Node package, no platform-specific binaries.
+- [ ] Native Windows: same - secretlint is a pure-JS Node package, no platform-specific binaries.
 
 Redaction:
 
