@@ -114,9 +114,9 @@ If curator output is clearly noise, bump the proposal prompt's `Version:` and ti
 
 ## 10. Settings layering
 
-- [ ] Edit `~/.config/ai-knowledge-base/config.yaml` to set `indexBudgetTokens: 999`. Without a project file, `index rebuild` reports budget 999.
-- [ ] Add project `config.yaml` with `indexBudgetTokens: 1500`. Re-render reports 1500.
-- [ ] Pass `--budget-tokens 2500`. CLI wins, reports 2500.
+- [ ] Edit `~/.config/ai-knowledge-base/config.yaml` to set `drainBound: 9`. Without a project file, `curate` honors 9.
+- [ ] Add project `config.yaml` with `drainBound: 3`. Re-run honors 3 (project wins).
+- [ ] Remove both files. `curate` falls back to the documented default.
 
 ## 11. Doctor exit codes
 

@@ -68,16 +68,18 @@ describe('index rebuild', () => {
     }
   });
 
-  it('honors --budget-tokens for INDEX trimming', async () => {
-    // Seed enough practice nodes that a tiny budget triggers a hidden footer.
-    for (let i = 0; i < 12; i += 1) writeNode(sandbox, 'practice', `practice-${i}`);
-    const result = await runCli(sandbox, ['index', 'rebuild', '--budget-tokens', '50']);
+  it('renders every valid node title in the catalog (no eviction)', async () => {
+    const titles: string[] = [];
+    for (let i = 0; i < 12; i += 1) {
+      const id = `practice-${i}`;
+      titles.push(id);
+      writeNode(sandbox, 'practice', id);
+    }
+    const result = await runCli(sandbox, ['index', 'rebuild']);
     expect(result.exitCode).toBe(0);
     const body = readFileSync(join(sandbox, '.ai/knowledge-base/INDEX.md'), 'utf8');
-    expect(body).toContain('additional nodes hidden by token budget');
-    // INDEX records the requested budget.
-    const fm = matter(body).data as { budget_tokens?: number };
-    expect(fm.budget_tokens).toBe(50);
+    expect(body).not.toContain('additional nodes hidden by token budget');
+    for (const title of titles) expect(body).toContain(title);
   });
 
   it('writes a freshness-aligned INDEX (doctor reports fresh after rebuild)', async () => {

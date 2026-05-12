@@ -15,7 +15,6 @@ import { IndexFrontmatterSchema } from '../lib/schemas.js';
 import { resolveSettings } from '../lib/settings.js';
 
 export interface IndexRebuildOptions {
-  budgetTokens?: number;
   /** When true, `git add` INDEX.md and GRAPH.md after writing them. */
   stage?: boolean;
 }
@@ -39,12 +38,8 @@ export async function runIndexRebuild(opts: IndexRebuildOptions = {}): Promise<n
   }
 
   mkdirSync(paths.kbDir, { recursive: true });
-  const { settings, warnings } = resolveSettings({ projectFile: paths.projectConfigFile });
+  const { warnings } = resolveSettings({ projectFile: paths.projectConfigFile });
   for (const w of warnings) log.warn(w);
-  const genOpts: { budgetTokens?: number } = {
-    budgetTokens: settings.indexBudgetTokens,
-  };
-  if (opts.budgetTokens !== undefined) genOpts.budgetTokens = opts.budgetTokens;
 
   const indexFile = join(paths.kbDir, 'INDEX.md');
   const graphFile = join(paths.kbDir, 'GRAPH.md');
@@ -67,18 +62,12 @@ export async function runIndexRebuild(opts: IndexRebuildOptions = {}): Promise<n
     return 0;
   }
 
-  const index = generateIndex(paths.nodesDir, genOpts);
+  const index = generateIndex(paths.nodesDir);
   const graph = generateGraph(paths.nodesDir);
   writeIndex(indexFile, index);
   writeGraph(graphFile, graph);
 
-  log.success(
-    `Regenerated INDEX.md and GRAPH.md from ${index.nodeCount} node(s)` +
-      (index.hiddenByBudget > 0
-        ? ` (${index.hiddenByBudget} hidden by token budget; see GRAPH.md for the full list)`
-        : '') +
-      '.'
-  );
+  log.success(`Regenerated INDEX.md and GRAPH.md from ${index.nodeCount} node(s).`);
 
   if (opts.stage) {
     stageIfInGitRepo(root, indexFile, graphFile);

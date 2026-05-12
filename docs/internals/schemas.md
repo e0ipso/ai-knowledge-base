@@ -142,7 +142,6 @@ Validated by `CuratorOutputSchema` (array of actions).
 schema_version: 2
 nodes_hash: sha256:<hex>
 node_count: 47
-budget_tokens: 2000     # INDEX only
 ```
 
 Validated by `IndexFrontmatterSchema` / `GraphFrontmatterSchema`.

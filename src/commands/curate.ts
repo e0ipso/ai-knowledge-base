@@ -62,7 +62,6 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
     promptTemplate,
     runner,
     lockTtlMs: settings.lockTtlMs,
-    indexBudgetTokens: settings.indexBudgetTokens,
     runId,
     logFile,
     ...(settings.curatorModel

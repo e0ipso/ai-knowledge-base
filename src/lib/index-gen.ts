@@ -3,35 +3,18 @@ import matter from 'gray-matter';
 import { computeNodesHash, readAllNodes, type NodeFile } from './nodes.js';
 import { GraphFrontmatterSchema, IndexFrontmatterSchema, type NodeFrontmatter } from './schemas.js';
 
-export const DEFAULT_BUDGET_TOKENS = 2000;
-export const MIN_PER_KIND = 5;
 export const RECENT_SUPERSEDED_LIMIT = 5;
-const CHARS_PER_TOKEN = 4;
-
-export interface GenerateOptions {
-  budgetTokens?: number;
-}
 
 export interface GeneratedIndex {
   content: string;
   nodesHash: string;
   nodeCount: number;
-  hiddenByBudget: number;
 }
 
 export interface GeneratedGraph {
   content: string;
   nodesHash: string;
   nodeCount: number;
-}
-
-/**
- * Rough token estimate. We currently use the documented 4-chars-per-token
- * fallback from IMPLEMENTATION.md §9; @anthropic-ai/tokenizer can be wired
- * in later without a schema change.
- */
-function estimateTokens(text: string): number {
-  return Math.ceil(text.length / CHARS_PER_TOKEN);
 }
 
 function isValid(fm: NodeFrontmatter): boolean {
@@ -56,30 +39,99 @@ function sortByUpdatedDesc(a: NodeFile, b: NodeFile): number {
 }
 
 function relPathFromKb(node: NodeFile): string {
-  // node.path looks like .../knowledge-base/nodes/<kind>/<slug>.md.
   const marker = '/nodes/';
   const idx = node.path.lastIndexOf(marker);
   if (idx < 0) return node.path;
   return `nodes/${node.path.slice(idx + marker.length)}`;
 }
 
+/**
+ * Count incoming `relates_to` + `depends_on` edges per node id across the
+ * full input set (valid plus superseded), so that flipping a node's validity
+ * status does not destabilize the catalog sort.
+ */
+export function computeInDegree(nodes: NodeFile[]): Map<string, number> {
+  const m = new Map<string, number>();
+  for (const n of nodes) m.set(n.frontmatter.id, 0);
+  for (const n of nodes) {
+    const edges = [...n.frontmatter.relates_to, ...n.frontmatter.depends_on];
+    for (const targetId of edges) {
+      m.set(targetId, (m.get(targetId) ?? 0) + 1);
+    }
+  }
+  return m;
+}
+
 function renderBullet(n: NodeFile): string {
-  const tags = n.frontmatter.tags.length > 0 ? ` (tags: ${n.frontmatter.tags.join(', ')})` : '';
-  return `- **${n.frontmatter.title}** — ${n.frontmatter.summary} [\`${relPathFromKb(n)}\`]${tags}`;
+  const tagPart = n.frontmatter.tags.map(t => ` #${t}`).join('');
+  return `- **${n.frontmatter.title}** [\`${relPathFromKb(n)}\`]${tagPart}`;
+}
+
+function makeCatalogComparator(inDegree: Map<string, number>) {
+  return (a: NodeFile, b: NodeFile): number => {
+    const d = (inDegree.get(b.frontmatter.id) ?? 0) - (inDegree.get(a.frontmatter.id) ?? 0);
+    if (d !== 0) return d;
+    return a.frontmatter.title.localeCompare(b.frontmatter.title);
+  };
+}
+
+/**
+ * Render the `## By topic` block. Tag buckets are sorted by bucket size DESC
+ * then alpha; titles within a bucket by in-degree DESC then alpha.
+ */
+export function renderTagIndex(
+  validNodes: NodeFile[],
+  inDegree: Map<string, number>
+): string {
+  const buckets = new Map<string, NodeFile[]>();
+  for (const n of validNodes) {
+    for (const t of n.frontmatter.tags) {
+      let bucket = buckets.get(t);
+      if (!bucket) {
+        bucket = [];
+        buckets.set(t, bucket);
+      }
+      bucket.push(n);
+    }
+  }
+  const tags = [...buckets.keys()].sort((a, b) => {
+    const da = buckets.get(a)!.length;
+    const db = buckets.get(b)!.length;
+    if (db !== da) return db - da;
+    return a.localeCompare(b);
+  });
+  const lines: string[] = ['## By topic', ''];
+  if (tags.length === 0) {
+    lines.push('_No tags yet._');
+    return lines.join('\n');
+  }
+  const titleCmp = makeCatalogComparator(inDegree);
+  for (const tag of tags) {
+    const titles = buckets
+      .get(tag)!
+      .slice()
+      .sort(titleCmp)
+      .map(n => n.frontmatter.title);
+    lines.push(`- **#${tag} (${titles.length}):** ${titles.join(', ')}`);
+  }
+  return lines.join('\n');
 }
 
 /**
  * Render INDEX.md from the current state of `nodesDir`. Deterministic, no LLM.
- * Implements the token-budgeted layout in IMPLEMENTATION.md §8.
+ * INDEX is a catalog: every valid node appears, sorted by graph in-degree
+ * within each section. See IMPLEMENTATION.md §8.
  */
-export function generateIndex(nodesDir: string, opts: GenerateOptions = {}): GeneratedIndex {
-  const budget = opts.budgetTokens ?? DEFAULT_BUDGET_TOKENS;
+export function generateIndex(nodesDir: string): GeneratedIndex {
   const nodes = readAllNodes(nodesDir);
   const { valid, superseded } = partition(nodes);
+  const inDegree = computeInDegree(nodes);
+
   const validByKind: Record<'practice' | 'map', NodeFile[]> = { practice: [], map: [] };
   for (const n of valid) validByKind[n.frontmatter.kind].push(n);
-  validByKind.practice.sort(sortByUpdatedDesc);
-  validByKind.map.sort(sortByUpdatedDesc);
+  const cmp = makeCatalogComparator(inDegree);
+  validByKind.practice.sort(cmp);
+  validByKind.map.sort(cmp);
   superseded.sort(sortByUpdatedDesc);
 
   const hash = computeNodesHash(nodesDir);
@@ -87,54 +139,31 @@ export function generateIndex(nodesDir: string, opts: GenerateOptions = {}): Gen
   const validCount = valid.length;
   const supersededCount = superseded.length;
 
-  const header = `# KB Index\n\n_${nodeCount} nodes • ${validCount} currently valid • ${supersededCount} superseded_\n`;
-
-  // Greedy budgeting: render all bullets, then trim oldest within each kind
-  // (preserving at least MIN_PER_KIND) until we fit the budget. Hidden count
-  // becomes a footer line.
   const sections: Array<{ heading: string; bullets: NodeFile[] }> = [
-    { heading: '## Practice (how we build)', bullets: validByKind.practice.slice() },
-    { heading: '## Map (what exists)', bullets: validByKind.map.slice() },
+    { heading: '## Conventions (how we build)', bullets: validByKind.practice },
+    { heading: '## Components (what exists)', bullets: validByKind.map },
   ];
 
   const recentSuperseded = superseded.slice(0, RECENT_SUPERSEDED_LIMIT);
-  let hidden = 0;
-  let body = renderBody(header, sections, recentSuperseded, hidden);
-  while (estimateTokens(body) > budget) {
-    const trimmed = trimOldest(sections);
-    if (!trimmed) break;
-    hidden += 1;
-    body = renderBody(header, sections, recentSuperseded, hidden);
-  }
+  const tagBlock = renderTagIndex(valid, inDegree);
+
+  const header = `# KB Index\n\n_${nodeCount} nodes • ${validCount} valid • ${supersededCount} superseded_\n`;
+  const body = renderBody(header, sections, tagBlock, recentSuperseded);
 
   const fm = IndexFrontmatterSchema.parse({
     schema_version: 1,
     nodes_hash: `sha256:${hash}`,
     node_count: nodeCount,
-    budget_tokens: budget,
   });
   const content = matter.stringify(body, fm);
-  return { content, nodesHash: hash, nodeCount, hiddenByBudget: hidden };
-}
-
-function trimOldest(sections: Array<{ heading: string; bullets: NodeFile[] }>): boolean {
-  // Pick the section with the largest bullet count above MIN_PER_KIND and
-  // drop its oldest entry (the tail after sort-desc).
-  let target: { heading: string; bullets: NodeFile[] } | null = null;
-  for (const s of sections) {
-    if (s.bullets.length <= MIN_PER_KIND) continue;
-    if (!target || s.bullets.length > target.bullets.length) target = s;
-  }
-  if (!target) return false;
-  target.bullets.pop();
-  return true;
+  return { content, nodesHash: hash, nodeCount };
 }
 
 function renderBody(
   header: string,
   sections: Array<{ heading: string; bullets: NodeFile[] }>,
-  recentSuperseded: NodeFile[],
-  hidden: number
+  tagBlock: string,
+  recentSuperseded: NodeFile[]
 ): string {
   const parts: string[] = [header];
   for (const s of sections) {
@@ -146,6 +175,8 @@ function renderBody(
       for (const b of s.bullets) parts.push(renderBullet(b));
     }
   }
+  parts.push('');
+  parts.push(tagBlock);
   if (recentSuperseded.length > 0) {
     parts.push('');
     parts.push('## Recently superseded');
@@ -156,15 +187,11 @@ function renderBody(
       parts.push(`- **${n.frontmatter.title}**${successor} [\`${relPathFromKb(n)}\`]`);
     }
   }
-  if (hidden > 0) {
-    parts.push('');
-    parts.push(`_${hidden} additional nodes hidden by token budget — see GRAPH.md_`);
-  }
   return parts.join('\n');
 }
 
 /**
- * Render GRAPH.md — full unfiltered edge listing. Deterministic.
+ * Render GRAPH.md, the full unfiltered edge listing. Deterministic.
  */
 export function generateGraph(nodesDir: string): GeneratedGraph {
   const nodes = readAllNodes(nodesDir);

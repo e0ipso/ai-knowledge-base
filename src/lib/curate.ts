@@ -59,7 +59,6 @@ export interface CurateContext {
   tokenBudget?: number;
   timeoutMs?: number;
   lockTtlMs?: number;
-  indexBudgetTokens?: number;
   now?: () => Date;
   pid?: number;
   /** Test seam: override ULID. */
@@ -537,9 +536,7 @@ function markSessionsProcessed(sessions: PendingSession[], runId: string, now: D
 
 function regenerateIndexAndGraph(ctx: CurateContext): void {
   mkdirSync(ctx.kbDir, { recursive: true });
-  const indexOpts: { budgetTokens?: number } = {};
-  if (ctx.indexBudgetTokens !== undefined) indexOpts.budgetTokens = ctx.indexBudgetTokens;
-  const index = generateIndex(ctx.nodesDir, indexOpts);
+  const index = generateIndex(ctx.nodesDir);
   writeIndex(join(ctx.kbDir, 'INDEX.md'), index);
   const graph = generateGraph(ctx.nodesDir);
   writeGraph(join(ctx.kbDir, 'GRAPH.md'), graph);

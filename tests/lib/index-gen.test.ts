@@ -14,6 +14,8 @@ interface NodeSeed {
   updated?: string;
   valid_until?: string | null;
   superseded_by?: string | null;
+  relates_to?: string[];
+  depends_on?: string[];
 }
 
 function seedNodes(root: string, seeds: NodeSeed[]): void {
@@ -33,8 +35,8 @@ function seedNodes(root: string, seeds: NodeSeed[]): void {
       supersedes: null,
       superseded_by: s.superseded_by ?? null,
       derived_from: [],
-      relates_to: [],
-      depends_on: [],
+      relates_to: s.relates_to ?? [],
+      depends_on: s.depends_on ?? [],
       confidence: 'high',
       summary: s.summary,
     });
@@ -49,34 +51,74 @@ describe('generateIndex', () => {
   });
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 
-  it('renders practice and map sections sorted by updated desc', () => {
+  it('renders Conventions, Components, and By topic sections with the catalog bullet shape', () => {
     seedNodes(root, [
       {
         kind: 'practice',
         id: 'practice-a',
         title: 'A practice',
         summary: 'A summary',
-        updated: '2026-04-01T00:00:00Z',
+        tags: ['foo', 'bar'],
       },
       {
         kind: 'practice',
         id: 'practice-b',
         title: 'B practice',
         summary: 'B summary',
-        updated: '2026-05-01T00:00:00Z',
+        tags: ['foo'],
       },
-      { kind: 'map', id: 'map-x', title: 'X map', summary: 'X summary' },
+      {
+        kind: 'map',
+        id: 'map-x',
+        title: 'X map',
+        summary: 'X summary',
+        tags: ['bar'],
+      },
     ]);
     const out = generateIndex(root);
     expect(out.nodeCount).toBe(3);
-    expect(out.content).toContain('## Practice (how we build)');
-    expect(out.content).toContain('## Map (what exists)');
-    const aIdx = out.content.indexOf('A practice');
-    const bIdx = out.content.indexOf('B practice');
-    expect(bIdx).toBeGreaterThan(0);
-    expect(bIdx).toBeLessThan(aIdx);
+    expect(out.content).toContain('## Conventions (how we build)');
+    expect(out.content).toContain('## Components (what exists)');
+    expect(out.content).toContain('## By topic');
+    expect(out.content).not.toMatch(/^- \*\*[^*]+\*\* — /m);
+    expect(out.content).toContain('** [`');
+    expect(out.content).toContain(' #foo');
+    expect(out.content).toContain(' #bar');
+    expect(out.content).toContain('**#foo (2):**');
+    expect(out.content).toContain('**#bar (2):**');
     expect(out.content).toMatch(/nodes_hash:\s+['"]?sha256:/);
-    expect(out.content).toMatch(/3 nodes • 3 currently valid • 0 superseded/);
+    expect(out.content).toMatch(/3 nodes • 3 valid • 0 superseded/);
+  });
+
+  it('sorts nodes within a section by in-degree DESC, with title ASC as tiebreaker', () => {
+    seedNodes(root, [
+      { kind: 'practice', id: 'practice-hub', title: 'Hub', summary: 's' },
+      {
+        kind: 'practice',
+        id: 'practice-ref-a',
+        title: 'Ref A',
+        summary: 's',
+        relates_to: ['practice-hub'],
+      },
+      {
+        kind: 'practice',
+        id: 'practice-ref-b',
+        title: 'Ref B',
+        summary: 's',
+        depends_on: ['practice-hub'],
+      },
+      { kind: 'practice', id: 'practice-alone', title: 'Alone', summary: 's' },
+    ]);
+    const out = generateIndex(root);
+    const hubIdx = out.content.indexOf('**Hub**');
+    const aloneIdx = out.content.indexOf('**Alone**');
+    expect(hubIdx).toBeGreaterThan(-1);
+    expect(aloneIdx).toBeGreaterThan(-1);
+    expect(hubIdx).toBeLessThan(aloneIdx);
+    // Tiebreaker: Ref A and Ref B both have in-degree 0; Ref A comes first.
+    const refAIdx = out.content.indexOf('**Ref A**');
+    const refBIdx = out.content.indexOf('**Ref B**');
+    expect(refAIdx).toBeLessThan(refBIdx);
   });
 
   it('lists superseded nodes in their own section and counts them as invalid', () => {
@@ -94,7 +136,7 @@ describe('generateIndex', () => {
     const out = generateIndex(root);
     expect(out.content).toContain('## Recently superseded');
     expect(out.content).toContain('superseded by practice-new');
-    expect(out.content).toMatch(/2 nodes • 1 currently valid • 1 superseded/);
+    expect(out.content).toMatch(/2 nodes • 1 valid • 1 superseded/);
   });
 
   it('renders an empty index gracefully when nodes/ is missing', () => {

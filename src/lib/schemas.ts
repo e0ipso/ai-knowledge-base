@@ -169,7 +169,6 @@ export const IndexFrontmatterSchema = z.object({
   schema_version: z.literal(1),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative(),
-  budget_tokens: z.number().int().positive(),
 });
 export type IndexFrontmatter = z.infer<typeof IndexFrontmatterSchema>;
 
@@ -270,7 +269,6 @@ export const SettingsSchema = z
     maxAttempts: z.number().int().positive().optional(),
     proposalTimeout: z.number().int().positive().optional(),
     lockTtlMs: z.number().int().positive().optional(),
-    indexBudgetTokens: z.number().int().positive().optional(),
     curationThreshold: z.number().int().positive().optional(),
     bootstrapTokenBudget: z.number().int().positive().optional(),
     logsRetentionDays: z.number().int().positive().optional(),

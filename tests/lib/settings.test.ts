@@ -30,13 +30,13 @@ describe('settings', () => {
 
   it('layers user overrides on top of defaults', () => {
     const userFile = join(sandbox, 'user.yaml');
-    writeFileSync(userFile, 'schema_version: 1\ndrainBound: 99\nindexBudgetTokens: 4096\n');
+    writeFileSync(userFile, 'schema_version: 1\ndrainBound: 99\nproposalTimeout: 90000\n');
     const result = resolveSettings({
       projectFile: join(sandbox, 'missing.yaml'),
       userFile,
     });
     expect(result.settings.drainBound).toBe(99);
-    expect(result.settings.indexBudgetTokens).toBe(4096);
+    expect(result.settings.proposalTimeout).toBe(90000);
     expect(result.settings.maxAttempts).toBe(SETTINGS_DEFAULTS.maxAttempts);
   });
 

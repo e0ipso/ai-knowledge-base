@@ -63,7 +63,7 @@ Deterministic, hash-aware bootstrap from existing markdown docs. Skips files who
 ## `index rebuild`
 
 ```sh
-npx @e0ipso/ai-knowledge-base index rebuild [--budget-tokens <n>] [--stage]
+npx @e0ipso/ai-knowledge-base index rebuild [--stage]
 ```
 
 Regenerate `INDEX.md` and `GRAPH.md` from `nodes/`. No LLM. Run after hand-edits or rebases.
@@ -86,7 +86,6 @@ Project-level settings live in `.ai/knowledge-base/config.yaml` (committed). A u
 schema_version: 2
 drainBound: 5
 proposalTimeout: 60000
-indexBudgetTokens: 2000
 curationThreshold: 5
 bootstrapTokenBudget: 10000
 logsRetentionDays: 30
@@ -96,7 +95,6 @@ logsRetentionDays: 30
 |---|---|---|
 | `drainBound` | `5` | Max background extractions processed per session start. |
 | `proposalTimeout` | `60000` | Per-entry extraction timeout (ms). |
-| `indexBudgetTokens` | `2000` | Token budget for `INDEX.md`. |
 | `curationThreshold` | `5` | Pending logs that trigger the curate nudge. |
 | `bootstrapTokenBudget` | `10000` | Per-batch budget for `bootstrap-incremental`. |
 | `logsRetentionDays` | `30` | Default window for `logs prune`. |

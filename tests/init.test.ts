@@ -202,7 +202,6 @@ describe('init', () => {
     expect(body['drainBound']).toBe(5);
     expect(body['maxAttempts']).toBe(3);
     expect(body['proposalTimeout']).toBe(60000);
-    expect(body['indexBudgetTokens']).toBe(2000);
     expect(body['curationThreshold']).toBe(5);
     expect(body['bootstrapTokenBudget']).toBe(10000);
     expect(body['logsRetentionDays']).toBe(30);
