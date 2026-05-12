@@ -2,7 +2,13 @@ import matter from 'gray-matter';
 import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ZodSchema } from 'zod';
-import { Stage2OutputSchema, type Stage2Output, type QueueEntry } from './schemas.js';
+import {
+  Stage2OutputSchema,
+  type EffortLevel,
+  type ModelFamily,
+  type Stage2Output,
+  type QueueEntry,
+} from './schemas.js';
 import { appendToQueue, readQueue } from './queue.js';
 import { acquireLock, releaseLock } from './state.js';
 
@@ -15,7 +21,13 @@ export type Stage2Runner = <T>(
   promptBody: string,
   stdin: string,
   schema: ZodSchema<T>,
-  opts: { timeoutMs: number; allowedTools?: string[]; logFile?: string }
+  opts: {
+    timeoutMs: number;
+    allowedTools?: string[];
+    logFile?: string;
+    model?: ModelFamily;
+    effort?: EffortLevel;
+  }
 ) => Promise<T>;
 
 export interface DrainContext {
@@ -30,6 +42,8 @@ export interface DrainContext {
   timeoutMs?: number;
   lockTtlMs?: number;
   pid?: number;
+  model?: ModelFamily;
+  effort?: EffortLevel;
 }
 
 export type DrainEntryStatus = 'done' | 'failed' | 'skipped' | 'missing-log';
@@ -90,6 +104,8 @@ export async function drainStage2Queue(ctx: DrainContext): Promise<DrainSummary>
         now,
         timeoutMs,
         maxAttempts,
+        ...(ctx.model !== undefined ? { model: ctx.model } : {}),
+        ...(ctx.effort !== undefined ? { effort: ctx.effort } : {}),
       });
       processed.push(result);
 
@@ -121,10 +137,23 @@ interface ProcessEntryArgs {
   now: () => Date;
   timeoutMs: number;
   maxAttempts: number;
+  model?: ModelFamily;
+  effort?: EffortLevel;
 }
 
 async function processEntry(args: ProcessEntryArgs): Promise<DrainEntryResult> {
-  const { entry, sessionsDir, logsDir, promptTemplate, runner, now, timeoutMs, maxAttempts } = args;
+  const {
+    entry,
+    sessionsDir,
+    logsDir,
+    promptTemplate,
+    runner,
+    now,
+    timeoutMs,
+    maxAttempts,
+    model,
+    effort,
+  } = args;
   const sessionLogPath = join(sessionsDir, entry.session_log);
   if (!existsSync(sessionLogPath)) {
     return {
@@ -147,6 +176,8 @@ async function processEntry(args: ProcessEntryArgs): Promise<DrainEntryResult> {
       timeoutMs,
       allowedTools: [],
       logFile,
+      ...(model !== undefined ? { model } : {}),
+      ...(effort !== undefined ? { effort } : {}),
     });
     writeSessionLogFrontmatter(sessionLogPath, parsed, {
       stage_2_status: 'done',

@@ -67,7 +67,7 @@ export type ModelFamily = z.infer<typeof ModelFamilySchema>;
 export const EffortLevelSchema = z.enum(['low', 'medium', 'high', 'xhigh', 'max']);
 export type EffortLevel = z.infer<typeof EffortLevelSchema>;
 
-const ModelChoiceSchema = z
+export const ModelChoiceSchema = z
   .object({ name: ModelFamilySchema, effort: EffortLevelSchema })
   .strict();
 export type ModelChoice = z.infer<typeof ModelChoiceSchema>;

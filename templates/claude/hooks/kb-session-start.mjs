@@ -63,6 +63,9 @@ var DedupCacheFileSchema = z.object({
   entries: z.array(DedupCacheEntrySchema)
 });
 var ConfidenceSchema = z.enum(["low", "medium", "high"]);
+var ModelFamilySchema = z.enum(["haiku", "sonnet", "opus"]);
+var EffortLevelSchema = z.enum(["low", "medium", "high", "xhigh", "max"]);
+var ModelChoiceSchema = z.object({ name: ModelFamilySchema, effort: EffortLevelSchema }).strict();
 var Stage2CandidateSchema = z.object({
   kind: z.enum(["practice", "map"]),
   tags: z.array(z.string()),
@@ -191,7 +194,10 @@ var SettingsSchema = z.object({
   indexBudgetTokens: z.number().int().positive().optional(),
   curationThreshold: z.number().int().positive().optional(),
   bootstrapTokenBudget: z.number().int().positive().optional(),
-  logsRetentionDays: z.number().int().positive().optional()
+  logsRetentionDays: z.number().int().positive().optional(),
+  stage2Model: ModelChoiceSchema.optional(),
+  curatorModel: ModelChoiceSchema.optional(),
+  bootstrapModel: ModelChoiceSchema.optional()
 }).strict();
 var BootstrapStateSchema = z.object({
   schema_version: z.literal(1),
@@ -405,6 +411,7 @@ var SETTINGS_DEFAULTS = {
   bootstrapTokenBudget: 1e4,
   logsRetentionDays: 30
 };
+var MODEL_CHOICE_KEYS = ["stage2Model", "curatorModel", "bootstrapModel"];
 function resolveSettings(opts = {}) {
   const projectFile = opts.projectFile ?? null;
   const userFile = opts.userFile ?? defaultUserConfigPath();
@@ -428,6 +435,10 @@ function applyOverrides(target, src) {
     if (value !== void 0) {
       target[key] = value;
     }
+  }
+  for (const key of MODEL_CHOICE_KEYS) {
+    const value = src[key];
+    if (value !== void 0) target[key] = value;
   }
 }
 function loadFile(file, warnings) {

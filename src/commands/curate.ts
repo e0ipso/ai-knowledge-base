@@ -65,6 +65,9 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
     indexBudgetTokens: settings.indexBudgetTokens,
     runId,
     logFile,
+    ...(settings.curatorModel
+      ? { model: settings.curatorModel.name, effort: settings.curatorModel.effort }
+      : {}),
     onBatchStart: ({
       index,
       total,

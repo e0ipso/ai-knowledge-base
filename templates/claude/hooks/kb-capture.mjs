@@ -48,6 +48,9 @@ var DedupCacheFileSchema = z.object({
   entries: z.array(DedupCacheEntrySchema)
 });
 var ConfidenceSchema = z.enum(["low", "medium", "high"]);
+var ModelFamilySchema = z.enum(["haiku", "sonnet", "opus"]);
+var EffortLevelSchema = z.enum(["low", "medium", "high", "xhigh", "max"]);
+var ModelChoiceSchema = z.object({ name: ModelFamilySchema, effort: EffortLevelSchema }).strict();
 var Stage2CandidateSchema = z.object({
   kind: z.enum(["practice", "map"]),
   tags: z.array(z.string()),
@@ -176,7 +179,10 @@ var SettingsSchema = z.object({
   indexBudgetTokens: z.number().int().positive().optional(),
   curationThreshold: z.number().int().positive().optional(),
   bootstrapTokenBudget: z.number().int().positive().optional(),
-  logsRetentionDays: z.number().int().positive().optional()
+  logsRetentionDays: z.number().int().positive().optional(),
+  stage2Model: ModelChoiceSchema.optional(),
+  curatorModel: ModelChoiceSchema.optional(),
+  bootstrapModel: ModelChoiceSchema.optional()
 }).strict();
 var BootstrapStateSchema = z.object({
   schema_version: z.literal(1),

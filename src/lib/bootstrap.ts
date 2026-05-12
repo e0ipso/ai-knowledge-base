@@ -15,6 +15,8 @@ import {
   type BootstrapCandidate,
   type BootstrapOutput,
   type BootstrapState,
+  type EffortLevel,
+  type ModelFamily,
   type NodeFrontmatter,
 } from './schemas.js';
 import { acquireLock, releaseLock } from './state.js';
@@ -31,7 +33,13 @@ export type BootstrapRunner = <T>(
   promptBody: string,
   stdin: string,
   schema: ZodSchema<T>,
-  opts: { timeoutMs: number; allowedTools?: string[]; logFile?: string }
+  opts: {
+    timeoutMs: number;
+    allowedTools?: string[];
+    logFile?: string;
+    model?: ModelFamily;
+    effort?: EffortLevel;
+  }
 ) => Promise<T>;
 
 export interface BootstrapContext {
@@ -63,6 +71,8 @@ export interface BootstrapContext {
   pid?: number;
   /** Test seam: override the run id. */
   runId?: string;
+  model?: ModelFamily;
+  effort?: EffortLevel;
 }
 
 export interface DocCandidateFile {
@@ -467,6 +477,8 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
           timeoutMs,
           allowedTools: [],
           logFile,
+          ...(ctx.model !== undefined ? { model: ctx.model } : {}),
+          ...(ctx.effort !== undefined ? { effort: ctx.effort } : {}),
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

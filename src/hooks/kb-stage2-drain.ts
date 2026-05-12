@@ -60,6 +60,9 @@ async function main(): Promise<void> {
       maxAttempts: settings.maxAttempts,
       timeoutMs: settings.stage2Timeout,
       lockTtlMs: settings.lockTtlMs,
+      ...(settings.stage2Model
+        ? { model: settings.stage2Model.name, effort: settings.stage2Model.effort }
+        : {}),
     });
     if (summary.status === 'locked') {
       // Another drain is in flight; nothing to do.

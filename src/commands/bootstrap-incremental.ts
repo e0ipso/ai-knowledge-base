@@ -64,6 +64,10 @@ export async function runBootstrapIncrementalCommand(
     tokenBudget: settings.bootstrapTokenBudget,
     lockTtlMs: settings.lockTtlMs,
   };
+  if (settings.bootstrapModel) {
+    ctx.model = settings.bootstrapModel.name;
+    ctx.effort = settings.bootstrapModel.effort;
+  }
   if (opts.include !== undefined) ctx.include = opts.include;
   if (opts.exclude !== undefined) ctx.exclude = opts.exclude;
   if (opts.dryRun) ctx.dryRun = true;

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import yaml from 'js-yaml';
-import { SettingsSchema, type SettingsFile } from './schemas.js';
+import { SettingsSchema, type ModelChoice, type SettingsFile } from './schemas.js';
 
 /**
  * Documented defaults. These mirror the constants used by `stage2-drain.ts`,
@@ -22,7 +22,13 @@ export const SETTINGS_DEFAULTS = {
 
 export type EffectiveSettings = {
   -readonly [K in keyof typeof SETTINGS_DEFAULTS]: (typeof SETTINGS_DEFAULTS)[K];
+} & {
+  stage2Model?: ModelChoice;
+  curatorModel?: ModelChoice;
+  bootstrapModel?: ModelChoice;
 };
+
+const MODEL_CHOICE_KEYS = ['stage2Model', 'curatorModel', 'bootstrapModel'] as const;
 
 export type ResolveSettingsResult = {
   settings: EffectiveSettings;
@@ -72,6 +78,10 @@ function applyOverrides(target: EffectiveSettings, src: SettingsFile | null): vo
       // value types align across the union; the Zod schema does.
       (target as Record<string, unknown>)[key] = value as never;
     }
+  }
+  for (const key of MODEL_CHOICE_KEYS) {
+    const value = src[key];
+    if (value !== undefined) target[key] = value;
   }
 }
 

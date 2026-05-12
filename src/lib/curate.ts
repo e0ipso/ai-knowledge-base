@@ -15,7 +15,9 @@ import {
   CuratorOutputSchema,
   type CuratorAction,
   type CuratorOutput,
+  type EffortLevel,
   type FailureReport,
+  type ModelFamily,
   type NodeFrontmatter,
   type NodeKind,
   SessionLogFrontmatterSchema,
@@ -39,6 +41,8 @@ export type CuratorRunner = <T>(
     timeoutMs: number;
     allowedTools?: string[];
     logFile?: string;
+    model?: ModelFamily;
+    effort?: EffortLevel;
     onMessage?: (msg: unknown) => void;
   }
 ) => Promise<T>;
@@ -68,6 +72,8 @@ export interface CurateContext {
   onCuratorMessage?: (msg: unknown) => void;
   /** Pre-computed curator log file path (used by the CLI to show it up front). */
   logFile?: string;
+  model?: ModelFamily;
+  effort?: EffortLevel;
 }
 
 export interface CurateResult {
@@ -323,6 +329,8 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
         allowedTools: ['Read'],
         logFile,
       };
+      if (ctx.model !== undefined) runnerOpts.model = ctx.model;
+      if (ctx.effort !== undefined) runnerOpts.effort = ctx.effort;
       if (ctx.onCuratorMessage) runnerOpts.onMessage = ctx.onCuratorMessage;
       const actions: CuratorOutput = await ctx.runner(prompt, '', CuratorOutputSchema, runnerOpts);
       if (ctx.onBatchEnd) {
