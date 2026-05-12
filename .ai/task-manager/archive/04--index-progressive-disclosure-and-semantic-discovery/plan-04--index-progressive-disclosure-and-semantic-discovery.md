@@ -247,22 +247,22 @@ graph TD
     T4 --> T5
 ```
 
-### Phase 1: Generator and schema rewrite
+### ✅ Phase 1: Generator and schema rewrite
 **Parallel Tasks:**
-- Task 1: Rewrite generateIndex as non-evicting catalog with in-degree sort and tag block
+- ✔️ Task 1: Rewrite generateIndex as non-evicting catalog with in-degree sort and tag block — completed
 
-### Phase 2: Fan-out cleanup and documentation
+### ✅ Phase 2: Fan-out cleanup and documentation
 **Parallel Tasks:**
-- Task 2: Remove indexBudgetTokens / --budget-tokens from settings, CLI, and commands (depends on: 1)
-- Task 4: Rewrite IMPLEMENTATION.md §8/§9 and the index-and-graph KB node (depends on: 1)
+- ✔️ Task 2: Remove indexBudgetTokens / --budget-tokens from settings, CLI, and commands (depends on: 1) — completed
+- ✔️ Task 4: Rewrite IMPLEMENTATION.md §8/§9 and the index-and-graph KB node (depends on: 1) — completed
 
-### Phase 3: Test catch-up
+### ✅ Phase 3: Test catch-up
 **Parallel Tasks:**
-- Task 3: Update tests to assert catalog shape; delete obsolete budget-trim coverage (depends on: 1, 2)
+- ✔️ Task 3: Update tests to assert catalog shape; delete obsolete budget-trim coverage (depends on: 1, 2) — completed
 
-### Phase 4: Verification gate
+### ✅ Phase 4: Verification gate
 **Parallel Tasks:**
-- Task 5: Run self-validation gates (depends on: 1, 2, 3, 4)
+- ✔️ Task 5: Run self-validation gates (depends on: 1, 2, 3, 4) — completed
 
 ### Post-phase Actions
 
@@ -271,3 +271,26 @@ After each phase, run `npm run typecheck` and re-run the relevant test subset to
 ### Execution Summary
 - Total Phases: 4
 - Total Tasks: 5
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-13
+
+### Results
+
+- `src/lib/index-gen.ts` rewritten as a non-evicting catalog: `computeInDegree`, `renderTagIndex`, in-degree DESC + title ASC sort, new section headings `## Conventions (how we build)` / `## Components (what exists)` / `## By topic`.
+- Budget-trim symbols deleted (`trimOldest`, `MIN_PER_KIND`, `DEFAULT_BUDGET_TOKENS`, `hiddenByBudget`, `--budget-tokens`, `indexBudgetTokens`, `budget_tokens`) from `src/`, `tests/`, `docs/`, `IMPLEMENTATION.md`, and the live `.ai/knowledge-base/` artifacts.
+- `IndexFrontmatterSchema` reduced to `{ schema_version, nodes_hash, node_count }`; `IMPLEMENTATION.md §8/§9`, `docs/internals/schemas.md`, `docs/cli-reference.md`, `docs/how-it-works.md`, and `map-index-and-graph-files.md` rewritten with current-design framing.
+- 215/215 tests pass; typecheck and lint clean; symbol-grep returns zero hits across the watched paths.
+- Live `INDEX.md` regenerated: 41 nodes, 41 valid, 0 superseded, three catalog sections plus `## By topic` with 30+ tag buckets.
+
+### Noteworthy Events
+
+- **YAGNI deviation from plan**: the plan added `estimated_tokens` to `IndexFrontmatterSchema` and to the body header line as "observability." User pushed back mid-execution that nothing consumed the field. Field was stripped from `IndexFrontmatterSchema`, `GeneratedIndex`, the body header (`_N nodes • V valid • S superseded_`), the CLI success message, and all docs/tests. `estimateTokens` helper and `CHARS_PER_TOKEN` constant deleted from `src/lib/index-gen.ts`. Token-budget heuristics remain only where actually used (`src/lib/bootstrap.ts`, `src/lib/curate.ts`).
+- Pre-commit hook (`lint-staged && typecheck && test`) prevented intermediate per-phase commits because the generator rewrite + settings/CLI fan-out + test updates form a single typecheck-coherent unit. Implementation phases were carried out sequentially in-context; one combined commit lands the rewrite.
+- Discovered extra residual references in `docs/internals/manual-test-plan.md`, `docs/internals/schemas.md`, `docs/cli-reference.md`, `docs/how-it-works.md`, `tests/init.test.ts`, `tests/lib/settings.test.ts`, and `.ai/knowledge-base/nodes/map/map-ai-knowledge-base-cli.md`. All cleaned to zero hits.
+
+### Necessary follow-ups
+
+- None. The plan's success criteria are satisfied (modulo the agreed YAGNI cut), and the CHANGELOG entry will land via semantic-release from the `feat!:` commit body.
