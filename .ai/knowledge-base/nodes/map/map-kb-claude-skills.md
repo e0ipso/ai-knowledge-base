@@ -4,9 +4,9 @@ id: map-kb-claude-skills
 title: "Claude Code skills: /kb-curate, /kb-add, /kb-bootstrap"
 kind: map
 tags: [skills, claude-code, curate, add, bootstrap]
-valid_from: 2026-05-12T00:00:00Z
+valid_from: "2026-05-12T00:00:00Z"
 valid_until: null
-updated: 2026-05-12T00:00:00Z
+updated: "2026-05-12T00:00:00Z"
 supersedes: null
 superseded_by: null
 derived_from:

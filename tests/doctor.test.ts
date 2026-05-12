@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -35,6 +35,46 @@ describe('doctor', () => {
     expect(combined).toContain('settings file is valid');
     expect(combined).toContain('Claude skills installed');
     expect(combined).toContain('kb-add, kb-bootstrap, kb-curate');
+  });
+
+  it('flags nodes with unquoted ISO timestamps and skips the dangling check', async () => {
+    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    const dir = join(sandbox, '.ai/knowledge-base/nodes/practice');
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(
+      join(dir, 'practice-unquoted.md'),
+      [
+        '---',
+        'schema_version: 1',
+        'id: practice-unquoted',
+        'title: "unquoted timestamps"',
+        'kind: practice',
+        'tags: []',
+        'valid_from: 2026-05-12T00:00:00Z',
+        'valid_until: null',
+        'updated: 2026-05-12T00:00:00Z',
+        'supersedes: null',
+        'superseded_by: null',
+        'derived_from: []',
+        'relates_to: []',
+        'depends_on: []',
+        'confidence: high',
+        'summary: "s"',
+        '---',
+        '',
+        'body',
+      ].join('\n')
+    );
+
+    const result = await runCli(sandbox, ['doctor', '--verbose']);
+
+    expect(result.exitCode).toBe(1);
+    const combined = result.stdout + result.stderr;
+    expect(combined).toContain('node frontmatter valid');
+    expect(combined).toContain('failed validation');
+    expect(combined).toContain('practice-unquoted.md');
+    expect(combined).toContain('valid_from');
+    expect(combined).toContain('skipped — nodes failed frontmatter validation');
   });
 
   it('flags an invalid config.yaml as an error', async () => {

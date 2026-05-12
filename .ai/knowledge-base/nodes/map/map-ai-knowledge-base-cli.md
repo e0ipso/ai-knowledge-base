@@ -4,9 +4,9 @@ id: map-ai-knowledge-base-cli
 title: "ai-knowledge-base CLI: the package binary"
 kind: map
 tags: [cli, commander, binary]
-valid_from: 2026-05-12T00:00:00Z
+valid_from: "2026-05-12T00:00:00Z"
 valid_until: null
-updated: 2026-05-12T00:00:00Z
+updated: "2026-05-12T00:00:00Z"
 supersedes: null
 superseded_by: null
 derived_from:

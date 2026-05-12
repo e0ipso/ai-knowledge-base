@@ -4,7 +4,12 @@ import { join } from 'node:path';
 import matter from 'gray-matter';
 import { generateGraph, generateIndex, writeGraph, writeIndex } from '../lib/index-gen.js';
 import { log } from '../lib/log.js';
-import { computeNodesHash } from '../lib/nodes.js';
+import {
+  computeNodesHash,
+  formatIssue,
+  InvalidNodeFrontmatterError,
+  readAllNodes,
+} from '../lib/nodes.js';
 import { findRepoRoot, repoPaths } from '../lib/paths.js';
 import { IndexFrontmatterSchema } from '../lib/schemas.js';
 import { resolveSettings } from '../lib/settings.js';
@@ -45,14 +50,27 @@ export async function runIndexRebuild(opts: IndexRebuildOptions = {}): Promise<n
   const indexFile = join(paths.kbDir, 'INDEX.md');
   const graphFile = join(paths.kbDir, 'GRAPH.md');
 
+  // Strict validation up front: surface any malformed node files before the
+  // short-circuit below so a stale-but-broken tree (e.g. previous run wrote
+  // an empty INDEX.md whose hash still "matches") cannot silently pass.
+  try {
+    readAllNodes(paths.nodesDir);
+  } catch (err) {
+    if (err instanceof InvalidNodeFrontmatterError) {
+      reportInvalidFrontmatter(err);
+      return 1;
+    }
+    throw err;
+  }
+
   if (opts.stage && !nodesHashChanged(indexFile, paths.nodesDir)) {
     log.success('INDEX.md/GRAPH.md already match nodes/ — nothing to do.');
     return 0;
   }
 
   const index = generateIndex(paths.nodesDir, genOpts);
-  writeIndex(indexFile, index);
   const graph = generateGraph(paths.nodesDir, { now: genOpts.now });
+  writeIndex(indexFile, index);
   writeGraph(graphFile, graph);
 
   log.success(
@@ -101,6 +119,17 @@ function stageIfInGitRepo(root: string, ...files: string[]): void {
     const message = err instanceof Error ? err.message : String(err);
     log.warn(`--stage: \`git add\` failed: ${message}`);
   }
+}
+
+function reportInvalidFrontmatter(err: InvalidNodeFrontmatterError): void {
+  log.error('Refusing to rebuild INDEX.md/GRAPH.md, invalid node frontmatter:');
+  for (const failure of err.failures) {
+    log.error(`  ${failure.file}: ${failure.reason}`);
+    for (const issue of failure.issues) {
+      log.error(`    - ${formatIssue(issue)}`);
+    }
+  }
+  log.error('Fix the offending files and rerun.');
 }
 
 function isInsideGitRepo(cwd: string): boolean {

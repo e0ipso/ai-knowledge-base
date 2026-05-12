@@ -22,6 +22,8 @@ Each `.md` file in `nodes/` has a frontmatter header and a markdown body. Key fi
 - `superseded_by` / `supersedes`: when a decision is reversed, the old node stays in place with `valid_until` set and links to the new node.
 - `derived_from`: list of session log filenames that produced or refined this node. (Note: `_sessions/` is gitignored by default, so provenance only resolves for the original contributor unless your team commits it.)
 
+ISO timestamps in node frontmatter must be quoted, e.g. `valid_from: "2026-05-12T00:00:00Z"`. Unquoted forms are parsed as YAML date values and rejected by `index rebuild` and `doctor`.
+
 ## Manually adding a node
 
 Two paths, both human-in-the-loop via git:

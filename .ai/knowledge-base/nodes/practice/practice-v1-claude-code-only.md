@@ -4,9 +4,9 @@ id: practice-v1-claude-code-only
 title: "v1 ships Claude Code only; the adapter interface is preparation, not plurality"
 kind: practice
 tags: [adapters, scope, claude-code, v1]
-valid_from: 2026-05-12T00:00:00Z
+valid_from: "2026-05-12T00:00:00Z"
 valid_until: null
-updated: 2026-05-12T00:00:00Z
+updated: "2026-05-12T00:00:00Z"
 supersedes: null
 superseded_by: null
 derived_from:

@@ -4,9 +4,9 @@ id: map-pending-conflicts-file
 title: ".state/pending-conflicts.json: curator-detected contradictions"
 kind: map
 tags: [state, curator, contradictions, kb-curate]
-valid_from: 2026-05-12T00:00:00Z
+valid_from: "2026-05-12T00:00:00Z"
 valid_until: null
-updated: 2026-05-12T00:00:00Z
+updated: "2026-05-12T00:00:00Z"
 supersedes: null
 superseded_by: null
 derived_from:

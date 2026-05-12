@@ -4,9 +4,9 @@ id: practice-hooks-meet-1s-deadline
 title: "Sync hooks must finish in under 1 second"
 kind: practice
 tags: [hooks, performance, claude-code, contract]
-valid_from: 2026-05-12T00:00:00Z
+valid_from: "2026-05-12T00:00:00Z"
 valid_until: null
-updated: 2026-05-12T00:00:00Z
+updated: "2026-05-12T00:00:00Z"
 supersedes: null
 superseded_by: null
 derived_from:

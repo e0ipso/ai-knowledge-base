@@ -104,6 +104,48 @@ describe('index rebuild', () => {
     expect(staged).toContain('.ai/knowledge-base/GRAPH.md');
   });
 
+  it('refuses to rebuild when a node has unquoted ISO timestamps', async () => {
+    const dir = join(sandbox, '.ai/knowledge-base/nodes/practice');
+    mkdirSync(dir, { recursive: true });
+    const badPath = join(dir, 'practice-unquoted.md');
+    writeFileSync(
+      badPath,
+      [
+        '---',
+        'schema_version: 1',
+        'id: practice-unquoted',
+        'title: "unquoted timestamps"',
+        'kind: practice',
+        'tags: []',
+        'valid_from: 2026-05-12T00:00:00Z',
+        'valid_until: null',
+        'updated: 2026-05-12T00:00:00Z',
+        'supersedes: null',
+        'superseded_by: null',
+        'derived_from: []',
+        'relates_to: []',
+        'depends_on: []',
+        'confidence: high',
+        'summary: "s"',
+        '---',
+        '',
+        'body',
+      ].join('\n')
+    );
+    const indexPath = join(sandbox, '.ai/knowledge-base/INDEX.md');
+    const before = readFileSync(indexPath, 'utf8');
+
+    const result = await runCli(sandbox, ['index', 'rebuild']);
+
+    expect(result.exitCode).not.toBe(0);
+    const combined = result.stdout + result.stderr;
+    expect(combined).toContain('practice-unquoted.md');
+    expect(combined).toContain('valid_from');
+    expect(combined).toContain('quote the ISO timestamp');
+    // INDEX.md must not be overwritten to an empty (0-node) state.
+    expect(readFileSync(indexPath, 'utf8')).toBe(before);
+  });
+
   it('--stage no-ops when nodes/ has not changed since the last index write', async () => {
     await exec('git', ['add', '.'], { cwd: sandbox });
     await exec('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '-m', 'init'], {

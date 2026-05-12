@@ -4,9 +4,9 @@ id: map-bootstrap-state-file
 title: ".state/bootstrap-state.json: per-doc SHA-256 cache for bootstrap"
 kind: map
 tags: [state, bootstrap, hashing, gitignore]
-valid_from: 2026-05-12T00:00:00Z
+valid_from: "2026-05-12T00:00:00Z"
 valid_until: null
-updated: 2026-05-12T00:00:00Z
+updated: "2026-05-12T00:00:00Z"
 supersedes: null
 superseded_by: null
 derived_from:

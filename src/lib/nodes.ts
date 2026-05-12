@@ -9,6 +9,7 @@ import {
 } from 'node:fs';
 import { join, posix, relative, sep } from 'node:path';
 import matter from 'gray-matter';
+import { z } from 'zod';
 import { NodeFrontmatterSchema, type NodeFrontmatter, type NodeKind } from './schemas.js';
 
 export interface NodeFile {
@@ -18,10 +19,33 @@ export interface NodeFile {
   body: string;
 }
 
+export interface NodeLoadFailure {
+  file: string;
+  reason: string;
+  issues: z.ZodIssue[];
+}
+
+export class InvalidNodeFrontmatterError extends Error {
+  readonly failures: NodeLoadFailure[];
+  constructor(failures: NodeLoadFailure[]) {
+    super(formatFailures(failures));
+    this.name = 'InvalidNodeFrontmatterError';
+    this.failures = failures;
+  }
+}
+
 const KINDS: NodeKind[] = ['practice', 'map'];
 
+/**
+ * Loads every `nodes/<kind>/*.md` file. Aggregates parse and schema failures
+ * across the entire tree and throws a single `InvalidNodeFrontmatterError`
+ * listing all offending files if any are found. Callers that wrap this in a
+ * `try/catch` get one actionable report; everywhere else, the failure aborts
+ * loudly instead of silently dropping nodes.
+ */
 export function readAllNodes(nodesDir: string): NodeFile[] {
   const out: NodeFile[] = [];
+  const failures: NodeLoadFailure[] = [];
   for (const kind of KINDS) {
     const dir = join(nodesDir, kind);
     if (!existsSync(dir)) continue;
@@ -29,9 +53,26 @@ export function readAllNodes(nodesDir: string): NodeFile[] {
       if (!name.endsWith('.md')) continue;
       const filePath = join(dir, name);
       const raw = readFileSync(filePath, 'utf8');
-      const parsed = matter(raw);
+      let parsed: ReturnType<typeof matter>;
+      try {
+        parsed = matter(raw);
+      } catch (err) {
+        failures.push({
+          file: filePath,
+          reason: `YAML frontmatter parse error: ${(err as Error).message}`,
+          issues: [],
+        });
+        continue;
+      }
       const result = NodeFrontmatterSchema.safeParse(parsed.data);
-      if (!result.success) continue;
+      if (!result.success) {
+        failures.push({
+          file: filePath,
+          reason: 'frontmatter does not match NodeFrontmatterSchema',
+          issues: result.error.issues,
+        });
+        continue;
+      }
       out.push({
         path: filePath,
         filename: name,
@@ -40,7 +81,42 @@ export function readAllNodes(nodesDir: string): NodeFile[] {
       });
     }
   }
+  if (failures.length > 0) {
+    throw new InvalidNodeFrontmatterError(failures);
+  }
   return out;
+}
+
+function formatFailures(failures: NodeLoadFailure[]): string {
+  const lines = [`Invalid node frontmatter in ${failures.length} file(s):`];
+  for (const f of failures) {
+    lines.push(`  ${f.file}: ${f.reason}`);
+    for (const issue of f.issues) {
+      lines.push(`    - ${formatIssue(issue)}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+const TIMESTAMP_FIELDS = new Set(['valid_from', 'valid_until', 'updated']);
+
+/**
+ * Render a single zod issue as `<path>: <message>` plus an actionable hint
+ * when the issue is the "unquoted ISO timestamp" case (YAML auto-parsed the
+ * value as a Date, which the schema's `z.string()` rejects).
+ */
+export function formatIssue(issue: z.ZodIssue): string {
+  const path = issue.path.length > 0 ? issue.path.join('.') : '(root)';
+  return `${path}: ${issue.message}${unquotedTimestampHint(issue)}`;
+}
+
+function unquotedTimestampHint(issue: z.ZodIssue): string {
+  if (issue.code !== 'invalid_type') return '';
+  const field = issue.path[issue.path.length - 1];
+  if (typeof field !== 'string' || !TIMESTAMP_FIELDS.has(field)) return '';
+  const received = (issue as z.ZodInvalidTypeIssue).received;
+  if (received !== 'date') return '';
+  return ' (quote the ISO timestamp, e.g. valid_from: "2026-05-12T00:00:00Z")';
 }
 
 export function findNodeById(nodesDir: string, id: string): NodeFile | null {

@@ -4,9 +4,9 @@ id: map-nodes-directory
 title: "nodes/: the canonical knowledge tree"
 kind: map
 tags: [storage, nodes, canonical, git]
-valid_from: 2026-05-12T00:00:00Z
+valid_from: "2026-05-12T00:00:00Z"
 valid_until: null
-updated: 2026-05-12T00:00:00Z
+updated: "2026-05-12T00:00:00Z"
 supersedes: null
 superseded_by: null
 derived_from:

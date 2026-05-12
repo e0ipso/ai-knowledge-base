@@ -5,7 +5,12 @@ import { promisify } from 'node:util';
 import matter from 'gray-matter';
 import yaml from 'js-yaml';
 import { log } from '../lib/log.js';
-import { computeNodesHash, readAllNodes } from '../lib/nodes.js';
+import {
+  computeNodesHash,
+  formatIssue,
+  InvalidNodeFrontmatterError,
+  readAllNodes,
+} from '../lib/nodes.js';
 import { findRepoRoot, repoPaths } from '../lib/paths.js';
 import { IndexFrontmatterSchema, SettingsSchema } from '../lib/schemas.js';
 import { packageVersion } from '../lib/version.js';
@@ -71,20 +76,35 @@ export async function runDoctor(opts: DoctorOptions): Promise<number> {
     result: checkIndexFreshness(join(paths.kbDir, 'INDEX.md'), paths.nodesDir),
   });
 
-  const dangling = collectDanglingDerivedFrom(root, paths.nodesDir, paths.sessionsDir);
-  checks.push({
-    name: 'derived_from references resolve',
-    result:
-      dangling.length === 0
-        ? { ok: true, detail: 'no dangling references' }
-        : {
-            ok: false,
-            level: 'warn',
-            detail: `${dangling.length} dangling reference(s)${
-              opts.verbose ? '' : ' — re-run with --verbose to list them'
-            }`,
-          },
-  });
+  const frontmatterCheck = checkNodeFrontmatter(paths.nodesDir);
+  checks.push({ name: 'node frontmatter valid', result: frontmatterCheck.result });
+
+  let dangling: DanglingRef[] = [];
+  if (frontmatterCheck.canEnumerate) {
+    dangling = collectDanglingDerivedFrom(root, paths.nodesDir, paths.sessionsDir);
+    checks.push({
+      name: 'derived_from references resolve',
+      result:
+        dangling.length === 0
+          ? { ok: true, detail: 'no dangling references' }
+          : {
+              ok: false,
+              level: 'warn',
+              detail: `${dangling.length} dangling reference(s)${
+                opts.verbose ? '' : ' — re-run with --verbose to list them'
+              }`,
+            },
+    });
+  } else {
+    checks.push({
+      name: 'derived_from references resolve',
+      result: {
+        ok: false,
+        level: 'warn',
+        detail: 'skipped — nodes failed frontmatter validation; fix those first.',
+      },
+    });
+  }
 
   let failures = 0;
   let warnings = 0;
@@ -97,6 +117,17 @@ export async function runDoctor(opts: DoctorOptions): Promise<number> {
     } else {
       log.error(`${c.name}: ${c.result.detail}`);
       failures += 1;
+    }
+  }
+
+  if (opts.verbose && !frontmatterCheck.result.ok && frontmatterCheck.error) {
+    log.plain('');
+    log.plain('Invalid node frontmatter:');
+    for (const failure of frontmatterCheck.error.failures) {
+      log.plain(`  ${failure.file}: ${failure.reason}`);
+      for (const issue of failure.issues) {
+        log.plain(`    - ${formatIssue(issue)}`);
+      }
     }
   }
 
@@ -155,6 +186,38 @@ function resolvesOnDisk(ref: string, root: string, sessionsDir: string): boolean
   if (existsSync(join(root, ref))) return true;
   if (!ref.includes('/') && existsSync(join(sessionsDir, ref))) return true;
   return false;
+}
+
+interface FrontmatterCheck {
+  result: CheckResult;
+  canEnumerate: boolean;
+  error?: InvalidNodeFrontmatterError;
+}
+
+function checkNodeFrontmatter(nodesDir: string): FrontmatterCheck {
+  if (!existsSync(nodesDir)) {
+    return { result: { ok: true, detail: 'no nodes/ directory yet' }, canEnumerate: true };
+  }
+  try {
+    const nodes = readAllNodes(nodesDir);
+    return {
+      result: { ok: true, detail: `${nodes.length} node file(s), all parse cleanly` },
+      canEnumerate: true,
+    };
+  } catch (err) {
+    if (err instanceof InvalidNodeFrontmatterError) {
+      return {
+        result: {
+          ok: false,
+          level: 'error',
+          detail: `${err.failures.length} file(s) failed validation — re-run with --verbose to list them.`,
+        },
+        canEnumerate: false,
+        error: err,
+      };
+    }
+    throw err;
+  }
 }
 
 function checkNodeVersion(): CheckResult {

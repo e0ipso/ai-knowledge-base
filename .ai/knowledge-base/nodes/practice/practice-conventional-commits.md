@@ -4,9 +4,9 @@ id: practice-conventional-commits
 title: "Conventional Commits are required: they drive the release"
 kind: practice
 tags: [git, releases, commits, semantic-release]
-valid_from: 2026-05-12T00:00:00Z
+valid_from: "2026-05-12T00:00:00Z"
 valid_until: null
-updated: 2026-05-12T00:00:00Z
+updated: "2026-05-12T00:00:00Z"
 supersedes: null
 superseded_by: null
 derived_from:

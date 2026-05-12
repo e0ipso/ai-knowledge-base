@@ -6,6 +6,7 @@ import {
   computeNodesHash,
   deriveNodeId,
   ensureUniqueId,
+  InvalidNodeFrontmatterError,
   nodeFileExists,
   readAllNodes,
   slugify,
@@ -47,15 +48,71 @@ describe('nodes helpers', () => {
   });
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 
-  it('reads all valid nodes and skips malformed files', () => {
+  it('reads all valid nodes when every file parses', () => {
     seedNode(root, 'practice', 'practice-x');
     seedNode(root, 'map', 'map-y');
-    // Garbage file should be ignored.
-    mkdirSync(join(root, 'practice'), { recursive: true });
-    writeFileSync(join(root, 'practice', 'broken.md'), '---\nnot: valid\n---\nbody');
 
     const nodes = readAllNodes(root);
     expect(nodes.map(n => n.frontmatter.id).sort()).toEqual(['map-y', 'practice-x']);
+  });
+
+  it('throws InvalidNodeFrontmatterError naming any malformed file', () => {
+    seedNode(root, 'practice', 'practice-x');
+    mkdirSync(join(root, 'practice'), { recursive: true });
+    const brokenPath = join(root, 'practice', 'broken.md');
+    writeFileSync(brokenPath, '---\nnot: valid\n---\nbody');
+
+    let caught: unknown;
+    try {
+      readAllNodes(root);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(InvalidNodeFrontmatterError);
+    const failures = (caught as InvalidNodeFrontmatterError).failures;
+    expect(failures).toHaveLength(1);
+    expect(failures[0]!.file).toBe(brokenPath);
+  });
+
+  it('aggregates failures across multiple bad files and hints at unquoted timestamps', () => {
+    mkdirSync(join(root, 'practice'), { recursive: true });
+    const unquotedPath = join(root, 'practice', 'practice-unquoted.md');
+    writeFileSync(
+      unquotedPath,
+      [
+        '---',
+        'schema_version: 1',
+        'id: practice-unquoted',
+        'title: "unquoted timestamps"',
+        'kind: practice',
+        'tags: []',
+        'valid_from: 2026-05-12T00:00:00Z',
+        'valid_until: null',
+        'updated: 2026-05-12T00:00:00Z',
+        'supersedes: null',
+        'superseded_by: null',
+        'derived_from: []',
+        'relates_to: []',
+        'depends_on: []',
+        'confidence: high',
+        'summary: "s"',
+        '---',
+        '',
+        'body',
+      ].join('\n')
+    );
+    const garbagePath = join(root, 'practice', 'practice-garbage.md');
+    writeFileSync(garbagePath, '---\nnot: valid\n---\nbody');
+
+    let caught: InvalidNodeFrontmatterError | undefined;
+    try {
+      readAllNodes(root);
+    } catch (err) {
+      caught = err as InvalidNodeFrontmatterError;
+    }
+    expect(caught).toBeInstanceOf(InvalidNodeFrontmatterError);
+    expect(caught!.failures.map(f => f.file).sort()).toEqual([garbagePath, unquotedPath].sort());
+    expect(caught!.message).toContain('quote the ISO timestamp');
   });
 
   it('computeNodesHash is deterministic and content-sensitive', () => {

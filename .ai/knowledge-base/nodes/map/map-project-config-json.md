@@ -4,9 +4,9 @@ id: map-project-config-json
 title: ".ai/knowledge-base/config.yaml: project-level tunables"
 kind: map
 tags: [settings, config, tunables]
-valid_from: 2026-05-12T00:00:00Z
+valid_from: "2026-05-12T00:00:00Z"
 valid_until: null
-updated: 2026-05-12T00:00:00Z
+updated: "2026-05-12T00:00:00Z"
 supersedes: null
 superseded_by: null
 derived_from:
