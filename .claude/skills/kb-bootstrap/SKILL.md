@@ -68,7 +68,7 @@ Skip:
 
 For each candidate, write a node file at `.ai/knowledge-base/nodes/<kind>/<kind>-<slug>.md`. **Before writing, check whether the file already exists** — bootstrap is conservative and never overwrites an existing node. If you hit a collision, refine the title or skip the candidate and call it out in your final report.
 
-Use the standard node frontmatter:
+Use the standard node frontmatter. Quote every string value, including the ISO timestamps, so YAML does not auto-parse them as Date objects (the schema rejects non-string timestamps):
 
 ```yaml
 ---
@@ -77,9 +77,9 @@ id: <kind>-<slug>
 title: "..."
 kind: practice | map
 tags: [tag1, tag2, ...]
-valid_from: <today's ISO timestamp>
+valid_from: "<today's ISO timestamp>"
 valid_until: null
-updated: <today's ISO timestamp>
+updated: "<today's ISO timestamp>"
 supersedes: null
 superseded_by: null
 derived_from:

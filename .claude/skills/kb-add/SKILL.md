@@ -26,7 +26,7 @@ If anything is missing or ambiguous, ask before writing — the file lands direc
 
 Create the file at `.ai/knowledge-base/nodes/<kind>/<kind>-<slug>.md`. The slug is derived from the title: lowercase, ascii letters and digits only, hyphens between words. **Before writing, check whether the file already exists** (e.g. via `Read`-equivalent intuition or by trying a more specific title). If a node with the same id already exists, do not overwrite — ask the user whether to refine the title or edit the existing node directly.
 
-Frontmatter (every field is required; null where indicated):
+Frontmatter (every field is required; null where indicated). Quote every string value, including the ISO timestamps, so YAML does not auto-parse them as Date objects (the schema rejects non-string timestamps):
 
 ```yaml
 ---
@@ -35,9 +35,9 @@ id: <kind>-<slug>
 title: "<title>"
 kind: <practice|map>
 tags: [<tag1>, <tag2>, ...]
-valid_from: <now in ISO 8601 UTC, e.g. 2026-05-12T10:00:00Z>
+valid_from: "<now in ISO 8601 UTC, e.g. 2026-05-12T10:00:00Z>"
 valid_until: null
-updated: <same as valid_from>
+updated: "<same as valid_from>"
 supersedes: null
 superseded_by: null
 derived_from: []
