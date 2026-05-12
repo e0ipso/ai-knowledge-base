@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: practice-sessions-and-proposal-logs-are-intermediate-artifacts
 title: 'Session logs and extraction logs are intermediate artifacts, safe to wipe'
 kind: practice

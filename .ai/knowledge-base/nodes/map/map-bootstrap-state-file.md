@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-bootstrap-state-file
 title: '.state/bootstrap-state.json: per-doc SHA-256 cache for bootstrap'
 kind: map

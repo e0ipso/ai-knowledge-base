@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-kb-capture-hook
 title: 'kb-capture hook: writes session logs on Stop/SessionEnd/PreCompact'
 kind: map

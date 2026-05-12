@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: practice-config-yaml-not-json
 title: 'ai-knowledge-base config is YAML, never JSON'
 kind: practice

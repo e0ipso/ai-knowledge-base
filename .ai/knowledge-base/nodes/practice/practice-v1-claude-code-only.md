@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: practice-v1-claude-code-only
 title: "v1 ships Claude Code only; the adapter interface is preparation, not plurality"
 kind: practice

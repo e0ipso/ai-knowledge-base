@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: practice-bootstrap-skip-changelog-and-implementation
 title: Skip CHANGELOG.md and treat IMPLEMENTATION.md as suspect during bootstrap
 kind: practice

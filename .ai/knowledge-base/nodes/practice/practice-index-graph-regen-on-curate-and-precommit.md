@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: practice-index-graph-regen-on-curate-and-precommit
 title: INDEX.md and GRAPH.md regenerate only on curate and pre-commit
 kind: practice

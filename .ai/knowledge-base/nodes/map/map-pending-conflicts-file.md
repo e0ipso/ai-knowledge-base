@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-pending-conflicts-file
 title: ".state/pending-conflicts.json: curator-detected contradictions"
 kind: map

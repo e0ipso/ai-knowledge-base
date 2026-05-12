@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-kb-proposal-drain
 title: 'kb-proposal-drain: async worker that runs the extraction step'
 kind: map

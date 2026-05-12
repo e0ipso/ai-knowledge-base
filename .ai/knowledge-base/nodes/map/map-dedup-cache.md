@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-dedup-cache
 title: 'dedup-cache: sha256-of-slice cache with 5-minute TTL'
 kind: map

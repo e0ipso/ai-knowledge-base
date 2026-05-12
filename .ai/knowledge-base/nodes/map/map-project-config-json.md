@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-project-config-json
 title: '.ai/knowledge-base/config.yaml: project-level tunables'
 kind: map

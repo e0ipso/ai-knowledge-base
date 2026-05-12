@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-adapter-interface
 title: "Adapter interface: src/adapters/types.ts"
 kind: map

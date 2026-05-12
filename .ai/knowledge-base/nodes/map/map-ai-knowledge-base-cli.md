@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-ai-knowledge-base-cli
 title: "ai-knowledge-base CLI: the package binary"
 kind: map

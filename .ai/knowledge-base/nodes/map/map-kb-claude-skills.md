@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-kb-claude-skills
 title: "Claude Code skills: /kb-curate, /kb-add, /kb-bootstrap"
 kind: map

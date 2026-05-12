@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: practice-no-llm-pipelines-in-ci
 title: "Never run curate or bootstrap-incremental in CI"
 kind: practice

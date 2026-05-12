@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-proposal-artifact
 title: 'Proposal: structured candidate nodes extracted from a Transcript'
 kind: map

@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-state-json-file
 title: ".state/state.json: lock and nudge timestamp"
 kind: map

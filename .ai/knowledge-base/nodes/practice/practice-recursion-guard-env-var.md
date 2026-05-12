@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: practice-recursion-guard-env-var
 title: "Set KB_BUILDER_INTERNAL=1 on every internal claude -p subprocess"
 kind: practice

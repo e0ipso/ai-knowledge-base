@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-transcript-artifact
 title: 'Transcript: raw session capture in the KB pipeline'
 kind: map

@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: practice-do-not-commit-bundled-output
 title: Don't commit bundled/generated output to the repo
 kind: practice

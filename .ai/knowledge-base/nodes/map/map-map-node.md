@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-map-node
 title: "Map node: what-exists, named entities and vocabulary"
 kind: map

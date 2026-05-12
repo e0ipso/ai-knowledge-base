@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: practice-one-session-log-per-session-id
 title: 'One session log per session_id, not per assistant turn'
 kind: practice

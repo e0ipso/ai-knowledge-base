@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: practice-prompt-versioning
 title: "Bump the Version: N comment on every prompt behavior change"
 kind: practice

@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-index-and-graph-files
 title: "INDEX.md and GRAPH.md: deterministic outputs derived from nodes/"
 kind: map

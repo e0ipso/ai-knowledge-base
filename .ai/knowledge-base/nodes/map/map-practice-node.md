@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-practice-node
 title: "Practice node: how-we-build, imperative guidance"
 kind: map

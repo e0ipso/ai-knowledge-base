@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: practice-hooks-meet-1s-deadline
 title: "Sync hooks must finish in under 1 second"
 kind: practice

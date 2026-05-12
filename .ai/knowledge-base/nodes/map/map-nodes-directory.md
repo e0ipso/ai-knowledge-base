@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: map-nodes-directory
 title: "nodes/: the canonical knowledge tree"
 kind: map

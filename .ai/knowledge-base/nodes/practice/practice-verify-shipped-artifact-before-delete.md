@@ -1,5 +1,5 @@
 ---
-schema_version: 2
+schema_version: 1
 id: practice-verify-shipped-artifact-before-delete
 title: Verify shipped-artifact status before deleting tracked files
 kind: practice
