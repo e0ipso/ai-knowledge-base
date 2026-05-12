@@ -25,4 +25,6 @@ Then code normally. When you want to turn captured material into knowledge nodes
 - **[CLI reference](cli-reference.md)** - every command, one page.
 - **[Troubleshooting](troubleshooting.md)** - when something looks wrong.
 
+Curious how `INDEX.md` actually reaches the assistant on every session start? See [Internals → Hooks](internals/hooks.md#kb-session-startmjs-consume). These are the assistant's own hooks (Claude Code's `SessionStart`, `Stop`, etc.) that we register into, not an extension API exposed by `ai-knowledge-base`.
+
 Contributors: see [Internals](internals/).

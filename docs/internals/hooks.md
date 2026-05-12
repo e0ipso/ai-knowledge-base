@@ -6,6 +6,8 @@ nav_order: 2
 
 # Hooks
 
+"Hooks" here means [Claude Code's hook mechanism](https://docs.claude.com/en/docs/claude-code/hooks): scripts the assistant invokes on events like `SessionStart` and `Stop`. `ai-knowledge-base` consumes them; it does not expose a hook API of its own for third-party extension.
+
 `init` registers three hook scripts in `.claude/settings.json`.
 
 | Script | Event(s) | Mode |
