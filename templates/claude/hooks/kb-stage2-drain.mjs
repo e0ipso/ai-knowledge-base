@@ -96,12 +96,11 @@ async function runHeadlessClaude(promptBody, stdin, schema, opts = {}) {
     throw new Error("claude subprocess produced no final result message");
   }
   let parsedJson;
+  const jsonText = extractJsonBlock(finalResult);
   try {
-    parsedJson = JSON.parse(extractJsonBlock(finalResult));
+    parsedJson = JSON.parse(jsonText);
   } catch (err) {
-    throw new Error(
-      `failed to parse final result as JSON: ${err instanceof Error ? err.message : String(err)}`
-    );
+    throw new Error(buildParseFailureMessage(err, jsonText, opts.logFile));
   }
   const validated = schema.safeParse(parsedJson);
   if (!validated.success) {
@@ -118,6 +117,32 @@ function findFinalResult(messages) {
     }
   }
   return null;
+}
+var SNIPPET_RADIUS = 60;
+function buildParseFailureMessage(err, jsonText, logFile) {
+  const parseMessage = err instanceof Error ? err.message : String(err);
+  const offsetMatch = /position (\d+)/.exec(parseMessage);
+  const lines = [
+    "curator JSON output is malformed.",
+    `  Parse error: ${parseMessage}`
+  ];
+  if (offsetMatch && offsetMatch[1]) {
+    const offset = Number(offsetMatch[1]);
+    const start = Math.max(0, offset - SNIPPET_RADIUS);
+    const end = Math.min(jsonText.length, offset + SNIPPET_RADIUS);
+    const snippet = jsonText.slice(start, end).replace(/\n/g, "\\n").replace(/\r/g, "\\r");
+    lines.push(`  Snippet near offset ${offset}: \u2026${snippet}\u2026`);
+  }
+  lines.push(`  Full curator transcript: ${logFile ?? "(no log file)"}`);
+  lines.push("  Next steps:");
+  lines.push(
+    "    1. Re-run `ai-knowledge-base curate` (the model may emit valid JSON on retry)."
+  );
+  lines.push(
+    '    2. Inspect the last `type:"result"` event in the transcript to see the full raw output.'
+  );
+  lines.push("    3. If this keeps happening, file an issue and attach the transcript.");
+  return lines.join("\n");
 }
 function extractJsonBlock(text) {
   const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
