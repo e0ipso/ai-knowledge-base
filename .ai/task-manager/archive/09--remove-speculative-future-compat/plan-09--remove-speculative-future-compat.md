@@ -289,9 +289,9 @@ No public API docs exist for the deleted types; nothing else needs updating.
 **Parallel Tasks:**
 - ✔️ Task 006: Update KB memos and CHANGELOG (depends on: 001, 002, 003, 004, 005)
 
-### Phase 3: Verification
+### ✅ Phase 3: Verification
 **Parallel Tasks:**
-- Task 007: End-to-end verification pass — static sweeps, typecheck, tests, CLI smoke run (depends on: 001, 002, 003, 004, 005, 006)
+- ✔️ Task 007: End-to-end verification pass — static sweeps, typecheck, tests, CLI smoke run (depends on: 001, 002, 003, 004, 005, 006)
 
 ### Dependency Diagram
 
@@ -316,3 +316,39 @@ None beyond the verification pass in Phase 3.
 ### Execution Summary
 - Total Phases: 3
 - Total Tasks: 7
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-13
+
+### Results
+
+All seven tasks across three phases landed without scope creep.
+
+Phase 1 (five parallel removals, one commit):
+
+- The `src/adapters/` directory and its two files are gone. `writeHookConfig` is now the free function `writeClaudeHookConfig` in `src/lib/hooks-config.ts`. `init`, `curate`, and `bootstrap-incremental` call `runHeadlessClaude` directly. The eight-test `tests/adapters/claude.test.ts` is replaced by an eight-test `tests/lib/hooks-config.test.ts` covering empty/missing settings, foreign-hook preservation, owned-prefix scrubbing, empty-event cleanup, `async`/`matcher` semantics, and the parse-error path.
+- `RoleTaggedTranscript` declares only `interleaved`; `parseTranscriptJsonl` no longer maintains parallel `user`/`agent` arrays.
+- `NodeFrontmatterSchema.depends_on` removed across schema, writers (`curate`, `bootstrap`, `node-add`), lint, index/graph render, templates (`kb-add`, `kb-bootstrap`, `knowledge-base/README.md`), one transcript fixture, and 13 test files. The in-degree test in `tests/lib/index-gen.test.ts` was rewritten to exercise the same path through `relates_to`.
+- `SessionLogFrontmatterSchema.topics` removed from schema, `renderSessionLog`, `proposal-drain` (including `collectTopics`, the `FrontmatterPatch` field, and the conditional write), `PendingSession`, and four test files.
+- `packageName()` deleted from `src/lib/version.ts`.
+
+Phase 2 (one commit): rewrote `practice-v1-claude-code-only.md` to describe the current shape, deleted `map-adapter-interface.md` and dropped it from every `relates_to` list, regenerated `INDEX.md`/`GRAPH.md`, and added a CHANGELOG bullet noting that on-disk artifacts with stray `depends_on`/`topics` lines remain parseable.
+
+Phase 3: static sweeps and typecheck clean; full suite 235/235 green; CLI smoke (`init`, `doctor`, `curate`, `bootstrap-incremental --dry-run`) green in a `/tmp` scratch dir; `index rebuild` re-parses all 40 on-disk nodes (many still carrying `depends_on: []`) with no errors, confirming the Zod unknown-key tolerance is enough.
+
+Approximate diff size: +345/-396 lines across 43 files in Phase 1 plus +37/-77 across 9 files in Phase 2.
+
+### Noteworthy Events
+
+- The five Phase 1 subagents ran in parallel and reported partial failures from each other's in-flight edits (e.g., the transcript agent saw type errors that came from the still-present `src/adapters/types.ts`). The combined working tree typechecked and tested cleanly. No real conflicts.
+- One pre-existing lint finding (`dangling-edge` from `practice-no-schema-migrators.md` pointing at non-existent `map-zod-schemas`) surfaced during Phase 2's KB lint and is unrelated to this plan; flagged but left untouched per scope. Lint still exits 0.
+- `tests/lib/lint.test.ts > runLint > lints a 1000-node knowledge base within 200 ms` flaked once during a parallel-load run (412ms observed). Re-run in isolation: 89ms. Wall-clock flake; not a regression.
+- The Phase 2 commit message had to drop the literal `practice-v1-claude-code-only` substring because the global pre-commit hook flags the word "claude" (case-insensitive `\bClaude\b`) as AI disclosure.
+- Untracked plan directories for plans 10, 11, and 12 are present in the working tree (out-of-scope drafts) and were deliberately left out of every commit.
+
+### Necessary follow-ups
+
+- Findings 05 and 20 from the over-engineering survey remain in scope for a separate ticket, as agreed.
+- The pre-existing `map-zod-schemas` dangling edge should be triaged independently.
