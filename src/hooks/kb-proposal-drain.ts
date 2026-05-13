@@ -51,9 +51,7 @@ async function main(): Promise<void> {
   try {
     const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
     const summary = await drainProposalQueue({
-      sessionsDir: paths.sessionsDir,
-      logsDir: paths.logsDir,
-      stateFile: join(paths.stateDir, 'state.json'),
+      paths,
       promptTemplate,
       runner,
       ...(settings.proposalModel

@@ -26,6 +26,8 @@ import {
 } from './schemas.js';
 import { randomUUID } from 'node:crypto';
 import { chunk } from './chunk-batch.js';
+import type { RepoPaths } from './paths.js';
+import { currentPid } from './process.js';
 import { acquireLock, releaseLock } from './state.js';
 import { compactStamp } from './time.js';
 
@@ -48,17 +50,11 @@ export type CuratorRunner = <T>(
 ) => Promise<T>;
 
 export interface CurateContext {
-  kbDir: string;
-  sessionsDir: string;
-  nodesDir: string;
-  logsDir: string;
-  stateFile: string;
+  paths: RepoPaths;
   promptTemplate: string;
   runner: CuratorRunner;
   timeoutMs?: number;
   lockTtlMs?: number;
-  now?: () => Date;
-  pid?: number;
   /** Called once before each batch is sent to the runner. */
   onBatchStart?: (info: { index: number; total: number; batch: PendingSession[] }) => void;
   /** Called once after each batch completes. */
@@ -227,12 +223,11 @@ export function buildBatchPrompt(template: string, payload: CuratorBatchPayload)
  * INDEX/GRAPH from the (unchanged) nodes/ tree. Returns a summary.
  */
 export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
-  const now = ctx.now ?? (() => new Date());
-  const pid = ctx.pid ?? process.pid;
   const timeoutMs = ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const runId = randomUUID();
+  const stateFile = join(ctx.paths.stateDir, 'state.json');
 
-  const pending = listPendingSessions(ctx.sessionsDir);
+  const pending = listPendingSessions(ctx.paths.sessionsDir);
   if (pending.length === 0) {
     // Always regenerate INDEX/GRAPH so a manual `node add` followed by an
     // empty curate run still refreshes the index.
@@ -250,10 +245,11 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
     };
   }
 
-  const acquired = acquireLock(ctx.stateFile, {
+  const pid = currentPid();
+  const acquired = acquireLock(stateFile, {
     name: CURATOR_LOCK_NAME,
     pid,
-    now: now(),
+    now: new Date(),
     ...(ctx.lockTtlMs !== undefined ? { ttlMs: ctx.lockTtlMs } : {}),
   });
   if (!acquired) {
@@ -271,9 +267,10 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
     };
   }
 
-  const startStamp = compactStamp(now());
-  const logFile = ctx.logFile ?? join(ctx.logsDir, 'curator', `${runId}__${startStamp}.jsonl`);
-  mkdirSync(join(ctx.logsDir, 'curator'), { recursive: true });
+  const startStamp = compactStamp(new Date());
+  const logFile =
+    ctx.logFile ?? join(ctx.paths.logsDir, 'curator', `${runId}__${startStamp}.jsonl`);
+  mkdirSync(join(ctx.paths.logsDir, 'curator'), { recursive: true });
 
   const batches = chunk(pending, CURATE_BATCH_SIZE);
   const allActions: CuratorAction[] = [];
@@ -281,7 +278,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
   try {
     for (let i = 0; i < batches.length; i += 1) {
       const batch = batches[i]!;
-      const payload = buildBatchPayload(batch, ctx.kbDir, ctx.nodesDir);
+      const payload = buildBatchPayload(batch, ctx.paths.kbDir, ctx.paths.nodesDir);
       const prompt = buildBatchPrompt(ctx.promptTemplate, payload);
       if (ctx.onBatchStart) ctx.onBatchStart({ index: i, total: batches.length, batch });
       const batchStartMs = Date.now();
@@ -305,7 +302,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
     }
 
     const merged = dedupActions(allActions);
-    const existingNodes = readAllNodes(ctx.nodesDir);
+    const existingNodes = readAllNodes(ctx.paths.nodesDir);
     const existingIds = new Set(existingNodes.map(n => n.frontmatter.id));
     const seenSlugs = new Set<string>();
     let nodesWritten = 0;
@@ -315,11 +312,11 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
 
     for (const action of merged) {
       const outcome = persistAction(action, {
-        nodesDir: ctx.nodesDir,
+        nodesDir: ctx.paths.nodesDir,
         existingIds,
         seenSlugs,
         runId,
-        now: now(),
+        now: new Date(),
       });
       switch (outcome.kind) {
         case 'wrote':
@@ -337,7 +334,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
       }
     }
 
-    markSessionsProcessed(pending, runId, now());
+    markSessionsProcessed(pending, runId, new Date());
     regenerateIndexAndGraph(ctx);
 
     return {
@@ -355,7 +352,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
       conflicts,
     };
   } finally {
-    releaseLock(ctx.stateFile, CURATOR_LOCK_NAME, pid);
+    releaseLock(stateFile, CURATOR_LOCK_NAME, pid);
   }
 }
 
@@ -490,11 +487,11 @@ function markSessionsProcessed(sessions: PendingSession[], runId: string, now: D
 }
 
 function regenerateIndexAndGraph(ctx: CurateContext): void {
-  mkdirSync(ctx.kbDir, { recursive: true });
-  const index = generateIndex(ctx.nodesDir);
-  writeIndex(join(ctx.kbDir, 'INDEX.md'), index);
-  const graph = generateGraph(ctx.nodesDir);
-  writeGraph(join(ctx.kbDir, 'GRAPH.md'), graph);
+  mkdirSync(ctx.paths.kbDir, { recursive: true });
+  const index = generateIndex(ctx.paths.nodesDir);
+  writeIndex(join(ctx.paths.kbDir, 'INDEX.md'), index);
+  const graph = generateGraph(ctx.paths.nodesDir);
+  writeGraph(join(ctx.paths.kbDir, 'GRAPH.md'), graph);
 }
 
 export function curatorLogFile(logsDir: string, runId: string, now: Date): string {

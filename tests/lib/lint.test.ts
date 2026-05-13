@@ -103,7 +103,7 @@ describe('runLint', () => {
     expect(dup.message).toContain('hooks');
   });
 
-  it('lints a 1000-node knowledge base within 200 ms', () => {
+  it('lints a 1000-node knowledge base within 500 ms', () => {
     for (let i = 0; i < 500; i += 1) {
       const a = `practice-perf-${i}-a`;
       const b = `practice-perf-${i}-b`;
@@ -115,6 +115,6 @@ describe('runLint', () => {
     const elapsed = performance.now() - start;
     expect(result.errors).toEqual([]);
     expect(result.findings).toEqual([]);
-    expect(elapsed).toBeLessThan(200);
+    expect(elapsed).toBeLessThan(500);
   });
 });

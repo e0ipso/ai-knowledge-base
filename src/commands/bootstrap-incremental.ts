@@ -50,23 +50,17 @@ export async function runBootstrapIncrementalCommand(
 
   const ctx: BootstrapContext = {
     sourceDir,
-    repoRoot: root,
-    kbDir: paths.kbDir,
-    nodesDir: paths.nodesDir,
-    logsDir: paths.logsDir,
-    stateFile: join(paths.stateDir, 'state.json'),
-    bootstrapStateFile: join(paths.stateDir, 'bootstrap-state.json'),
+    paths,
     promptTemplate,
     runner,
+    ...(opts.include !== undefined ? { include: opts.include } : {}),
+    ...(opts.exclude !== undefined ? { exclude: opts.exclude } : {}),
+    ...(opts.dryRun ? { dryRun: true } : {}),
+    ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
+    ...(settings.bootstrapModel
+      ? { model: settings.bootstrapModel.name, effort: settings.bootstrapModel.effort }
+      : {}),
   };
-  if (settings.bootstrapModel) {
-    ctx.model = settings.bootstrapModel.name;
-    ctx.effort = settings.bootstrapModel.effort;
-  }
-  if (opts.include !== undefined) ctx.include = opts.include;
-  if (opts.exclude !== undefined) ctx.exclude = opts.exclude;
-  if (opts.dryRun) ctx.dryRun = true;
-  if (opts.timeoutMs !== undefined) ctx.timeoutMs = opts.timeoutMs;
 
   log.info(
     opts.dryRun

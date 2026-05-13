@@ -335,9 +335,9 @@ After every task is complete, run these specific verifications:
 - ✔️ Task 002: Split `node-add` into prompt + `writeNewNode`; drop `preset?`; rewrite preset tests against `writeNewNode`. (status: completed)
 - ✔️ Task 003: Add `intArg` helper; make CLI numeric parsers throw `InvalidArgumentError`; collapse the five conditional-spread `.action()` rebuild blocks. (status: completed)
 
-### Phase 2: Context shape consolidation
+### ✅ Phase 2: Context shape consolidation
 **Parallel Tasks:**
-- Task 004: Replace per-context path fields with `paths: RepoPaths`; remove `now?` / `pid?` from `BootstrapContext`, `CurateContext`, `DrainContext`; add one-line `src/lib/process.ts` indirection for `process.pid`; migrate the three lib test files to fake timers + module mock (depends on: 003).
+- ✔️ Task 004: Replace per-context path fields with `paths: RepoPaths`; remove `now?` / `pid?` from `BootstrapContext`, `CurateContext`, `DrainContext`; add one-line `src/lib/process.ts` indirection for `process.pid`; migrate the three lib test files to fake timers + module mock (depends on: 003). (status: completed)
 
 ### Phase 3: Verification and documentation
 **Parallel Tasks:**

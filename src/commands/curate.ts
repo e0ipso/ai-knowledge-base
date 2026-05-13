@@ -49,11 +49,7 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
 
   const heartbeats = new Map<number, { timer: NodeJS.Timeout; started: number }>();
   const baseOpts = {
-    kbDir: paths.kbDir,
-    sessionsDir: paths.sessionsDir,
-    nodesDir: paths.nodesDir,
-    logsDir: paths.logsDir,
-    stateFile: join(paths.stateDir, 'state.json'),
+    paths,
     promptTemplate,
     runner,
     logFile,

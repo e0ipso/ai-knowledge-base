@@ -18,6 +18,8 @@ import { chunk } from './chunk-batch.js';
 import { acquireLock, releaseLock } from './state.js';
 import { atomicWriteJson, readJsonValidated } from './fs-atomic.js';
 import { deriveNodeId, ensureUniqueId, nodeFileExists, writeNodeFile } from './nodes.js';
+import type { RepoPaths } from './paths.js';
+import { currentPid } from './process.js';
 import { compactStamp } from './time.js';
 
 export const BOOTSTRAP_LOCK_NAME = 'bootstrap-incremental';
@@ -41,18 +43,8 @@ export type BootstrapRunner = <T>(
 export interface BootstrapContext {
   /** Root directory whose docs we scan (e.g. resolved `--from`). */
   sourceDir: string;
-  /** Repo root (used to resolve `.gitignore` and shape `derived_from` paths). */
-  repoRoot: string;
-  /** `.ai/knowledge-base` directory (parent of `nodes/`, `_logs/`). */
-  kbDir: string;
-  /** `nodes/` directory; bootstrap writes new nodes here directly. */
-  nodesDir: string;
-  /** `_logs/` directory. */
-  logsDir: string;
-  /** Path to `.ai/knowledge-base/.state/state.json`. */
-  stateFile: string;
-  /** Path to `.ai/knowledge-base/.state/bootstrap-state.json`. */
-  bootstrapStateFile: string;
+  /** Repo + KB paths resolved from the repo root. */
+  paths: RepoPaths;
   /** Bootstrap-incremental prompt body. */
   promptTemplate: string;
   /** Subprocess runner (`claude -p` adapter). Unused when `dryRun: true`. */
@@ -62,8 +54,6 @@ export interface BootstrapContext {
   dryRun?: boolean;
   timeoutMs?: number;
   lockTtlMs?: number;
-  now?: () => Date;
-  pid?: number;
   model?: ModelFamily;
   effort?: EffortLevel;
 }
@@ -224,19 +214,19 @@ export function buildPrompt(template: string, chunk: string): string {
  * proposal writes; state is not mutated.
  */
 export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<BootstrapResult> {
-  const now = ctx.now ?? (() => new Date());
-  const pid = ctx.pid ?? process.pid;
   const timeoutMs = ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const runId = randomUUID();
+  const stateFile = join(ctx.paths.stateDir, 'state.json');
+  const bootstrapStateFile = join(ctx.paths.stateDir, 'bootstrap-state.json');
 
-  const gitignorePath = join(ctx.repoRoot, '.gitignore');
+  const gitignorePath = join(ctx.paths.root, '.gitignore');
   const gitignoreInstance = existsSync(gitignorePath)
     ? ignore().add(readFileSync(gitignorePath, 'utf8'))
     : undefined;
 
   const discoverOpts: DiscoverOptions = {
     sourceDir: ctx.sourceDir,
-    repoRoot: ctx.repoRoot,
+    repoRoot: ctx.paths.root,
   };
   if (gitignoreInstance) discoverOpts.gitignore = gitignoreInstance;
   if (ctx.include !== undefined) discoverOpts.include = ctx.include;
@@ -256,11 +246,11 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
     };
   }
 
-  const state = readBootstrapState(ctx.bootstrapStateFile);
+  const state = readBootstrapState(bootstrapStateFile);
   const candidates: DocCandidateFile[] = [];
   const unchanged: BootstrapDocResult[] = [];
   for (const rel of relPaths) {
-    const abs = join(ctx.repoRoot, rel);
+    const abs = join(ctx.paths.root, rel);
     let content: string;
     try {
       content = readFileSync(abs, 'utf8');
@@ -317,10 +307,11 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
     throw new Error('bootstrap-incremental: runner is required when dryRun is false');
   }
 
-  const acquired = acquireLock(ctx.stateFile, {
+  const pid = currentPid();
+  const acquired = acquireLock(stateFile, {
     name: BOOTSTRAP_LOCK_NAME,
     pid,
-    now: now(),
+    now: new Date(),
     ...(ctx.lockTtlMs !== undefined ? { ttlMs: ctx.lockTtlMs } : {}),
   });
   if (!acquired) {
@@ -337,8 +328,8 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
     };
   }
 
-  const startStamp = compactStamp(now());
-  const logFile = join(ctx.logsDir, 'bootstrap-incremental', `${runId}__${startStamp}.jsonl`);
+  const startStamp = compactStamp(new Date());
+  const logFile = join(ctx.paths.logsDir, 'bootstrap-incremental', `${runId}__${startStamp}.jsonl`);
   mkdirSync(dirname(logFile), { recursive: true });
 
   const processed: BootstrapDocResult[] = [];
@@ -390,7 +381,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
         const written = writeBootstrapNode({
           candidate: cand,
           derivedFrom,
-          nodesDir: ctx.nodesDir,
+          nodesDir: ctx.paths.nodesDir,
           existingIds,
           seenSlugs,
         });
@@ -421,19 +412,19 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
       if (r.status !== 'processed') continue;
       nextDocs[r.relPath] = {
         content_sha256: r.sha256,
-        last_processed_at: now().toISOString(),
+        last_processed_at: new Date().toISOString(),
         produced_nodes: r.producedNodes,
       };
     }
     const nextState: BootstrapState = {
       schema_version: 1,
       last_full_bootstrap_at: state.last_full_bootstrap_at ?? null,
-      last_incremental_at: now().toISOString(),
+      last_incremental_at: new Date().toISOString(),
       docs: nextDocs,
     };
-    writeBootstrapState(ctx.bootstrapStateFile, nextState);
+    writeBootstrapState(bootstrapStateFile, nextState);
   } finally {
-    releaseLock(ctx.stateFile, BOOTSTRAP_LOCK_NAME, pid);
+    releaseLock(stateFile, BOOTSTRAP_LOCK_NAME, pid);
   }
 
   return {

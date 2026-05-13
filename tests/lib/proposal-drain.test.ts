@@ -1,8 +1,10 @@
 import matter from 'gray-matter';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { join } from 'node:path';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { repoPaths, type RepoPaths } from '../../src/lib/paths.js';
+import * as processModule from '../../src/lib/process.js';
 import { renderSessionLog } from '../../src/lib/session-log.js';
 import {
   buildProposalPrompt,
@@ -15,6 +17,7 @@ import { acquireLock, readState } from '../../src/lib/state.js';
 
 interface Harness {
   root: string;
+  paths: RepoPaths;
   sessionsDir: string;
   logsDir: string;
   stateFile: string;
@@ -22,13 +25,18 @@ interface Harness {
 
 function makeHarness(): Harness {
   const root = mkdtempSync(join(tmpdir(), 'kb-drain-'));
-  const sessionsDir = join(root, '.ai/knowledge-base/_sessions');
-  const logsDir = join(root, '.ai/knowledge-base/_logs');
-  const stateFile = join(root, '.ai/knowledge-base/.state/state.json');
-  mkdirSync(sessionsDir, { recursive: true });
-  mkdirSync(logsDir, { recursive: true });
-  mkdirSync(dirname(stateFile), { recursive: true });
-  return { root, sessionsDir, logsDir, stateFile };
+  const paths = repoPaths(root);
+  const stateFile = join(paths.stateDir, 'state.json');
+  mkdirSync(paths.sessionsDir, { recursive: true });
+  mkdirSync(paths.logsDir, { recursive: true });
+  mkdirSync(paths.stateDir, { recursive: true });
+  return {
+    root,
+    paths,
+    sessionsDir: paths.sessionsDir,
+    logsDir: paths.logsDir,
+    stateFile,
+  };
 }
 
 function seedSession(harness: Harness, sessionId: string, transcript: string): string {
@@ -109,9 +117,7 @@ describe('drainProposalQueue', () => {
     const file = seedSession(harness, 's1', '[USER]: use bravo_pii.cache for PII\n[AGENT]: ok');
 
     const summary = await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
+      paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner: successRunner(),
     });
@@ -134,9 +140,7 @@ describe('drainProposalQueue', () => {
     const pendingFile = seedSession(harness, 'fresh', '[USER]: hi');
 
     const summary = await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
+      paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner: successRunner(),
     });
@@ -154,9 +158,7 @@ describe('drainProposalQueue', () => {
     seedSession(harness, 'visible', '[USER]: hi');
 
     const summary = await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
+      paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner: successRunner(),
     });
@@ -174,9 +176,7 @@ describe('drainProposalQueue', () => {
     };
 
     await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
+      paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner,
     });
@@ -193,19 +193,22 @@ describe('drainProposalQueue', () => {
       pid: 999_999,
       now: lockTime,
     });
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(lockTime.getTime() + 60_000));
+    vi.spyOn(processModule, 'currentPid').mockReturnValue(12345);
+    try {
+      const summary = await drainProposalQueue({
+        paths: harness.paths,
+        promptTemplate: PROMPT_TEMPLATE,
+        runner: successRunner(),
+      });
 
-    const summary = await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
-      promptTemplate: PROMPT_TEMPLATE,
-      runner: successRunner(),
-      pid: 12345,
-      now: () => new Date(lockTime.getTime() + 60_000),
-    });
-
-    expect(summary.status).toBe('locked');
-    expect(summary.remaining).toBe(1);
+      expect(summary.status).toBe('locked');
+      expect(summary.remaining).toBe(1);
+    } finally {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    }
   });
 
   it('respects maxEntries and leaves remaining pending logs untouched', async () => {
@@ -213,9 +216,7 @@ describe('drainProposalQueue', () => {
       seedSession(harness, id, `[USER]: hi-${id}`);
     }
     const summary = await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
+      paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner: successRunner(),
       maxEntries: 2,
@@ -233,9 +234,7 @@ describe('drainProposalQueue', () => {
     };
 
     const summary = await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
+      paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner,
     });
@@ -251,9 +250,7 @@ describe('drainProposalQueue', () => {
   it('releases the lock after completion', async () => {
     seedSession(harness, 's3', '[USER]: hi');
     await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
+      paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner: successRunner(),
     });
@@ -263,9 +260,7 @@ describe('drainProposalQueue', () => {
   it('releases the lock even if a runner throws an unexpected error', async () => {
     seedSession(harness, 's4', '[USER]: hi');
     await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
+      paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner: failingRunner('boom'),
     });
@@ -274,9 +269,7 @@ describe('drainProposalQueue', () => {
 
   it('does nothing and reports remaining=0 when no pending logs exist', async () => {
     const summary = await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
+      paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner: successRunner(),
     });
@@ -293,9 +286,7 @@ describe('drainProposalQueue', () => {
       return { practice: [], map: [] };
     };
     await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
+      paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner,
       model: 'haiku',
@@ -306,9 +297,7 @@ describe('drainProposalQueue', () => {
     seedSession(harness, 's-no-model', '[USER]: hi');
     captured = {};
     await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
+      paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner,
     });

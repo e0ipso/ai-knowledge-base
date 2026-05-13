@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import matter from 'gray-matter';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   BATCH_PLACEHOLDER,
   CURATOR_LOCK_NAME,
@@ -14,11 +14,14 @@ import {
   type CuratorBatchPayload,
   type CuratorRunner,
 } from '../../src/lib/curate.js';
+import { repoPaths, type RepoPaths } from '../../src/lib/paths.js';
+import * as processModule from '../../src/lib/process.js';
 import type { CuratorAction, NodeFrontmatter, ProposalCandidate } from '../../src/lib/schemas.js';
 import { acquireLock, readState } from '../../src/lib/state.js';
 
 interface Harness {
   root: string;
+  paths: RepoPaths;
   kbDir: string;
   sessionsDir: string;
   nodesDir: string;
@@ -28,16 +31,21 @@ interface Harness {
 
 function makeHarness(): Harness {
   const root = mkdtempSync(join(tmpdir(), 'kb-curate-'));
-  const kbDir = join(root, '.ai/knowledge-base');
-  const sessionsDir = join(kbDir, '_sessions');
-  const nodesDir = join(kbDir, 'nodes');
-  const logsDir = join(kbDir, '_logs');
-  const stateFile = join(root, '.ai/knowledge-base/.state/state.json');
-  mkdirSync(sessionsDir, { recursive: true });
-  mkdirSync(nodesDir, { recursive: true });
-  mkdirSync(logsDir, { recursive: true });
-  mkdirSync(dirname(stateFile), { recursive: true });
-  return { root, kbDir, sessionsDir, nodesDir, logsDir, stateFile };
+  const paths = repoPaths(root);
+  const stateFile = join(paths.stateDir, 'state.json');
+  mkdirSync(paths.sessionsDir, { recursive: true });
+  mkdirSync(paths.nodesDir, { recursive: true });
+  mkdirSync(paths.logsDir, { recursive: true });
+  mkdirSync(paths.stateDir, { recursive: true });
+  return {
+    root,
+    paths,
+    kbDir: paths.kbDir,
+    sessionsDir: paths.sessionsDir,
+    nodesDir: paths.nodesDir,
+    logsDir: paths.logsDir,
+    stateFile,
+  };
 }
 
 function seedSession(
@@ -198,11 +206,7 @@ describe('runCurate', () => {
 
   function ctx(runner: CuratorRunner) {
     return {
-      kbDir: harness.kbDir,
-      sessionsDir: harness.sessionsDir,
-      nodesDir: harness.nodesDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
+      paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner,
     };
@@ -355,11 +359,13 @@ describe('runCurate', () => {
       pid: 999_999,
       now: new Date(),
     });
-    const result = await runCurate({
-      ...ctx(async () => []),
-      pid: 12345,
-    });
-    expect(result.status).toBe('locked');
+    vi.spyOn(processModule, 'currentPid').mockReturnValue(12345);
+    try {
+      const result = await runCurate(ctx(async () => []));
+      expect(result.status).toBe('locked');
+    } finally {
+      vi.restoreAllMocks();
+    }
   });
 
   it('releases the lock after completion', async () => {

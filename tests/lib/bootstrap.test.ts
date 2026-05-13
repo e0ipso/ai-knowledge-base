@@ -8,9 +8,9 @@ import {
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import matter from 'gray-matter';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ignore from 'ignore';
 import {
   BOOTSTRAP_LOCK_NAME,
@@ -24,6 +24,8 @@ import {
   writeBootstrapState,
   type BootstrapRunner,
 } from '../../src/lib/bootstrap.js';
+import { repoPaths, type RepoPaths } from '../../src/lib/paths.js';
+import * as processModule from '../../src/lib/process.js';
 import type {
   BootstrapCandidate,
   BootstrapOutput,
@@ -34,9 +36,8 @@ import { acquireLock, readState } from '../../src/lib/state.js';
 interface Harness {
   root: string;
   sourceDir: string;
-  kbDir: string;
+  paths: RepoPaths;
   nodesDir: string;
-  logsDir: string;
   stateFile: string;
   bootstrapStateFile: string;
 }
@@ -44,21 +45,18 @@ interface Harness {
 function makeHarness(): Harness {
   const root = mkdtempSync(join(tmpdir(), 'kb-bootstrap-'));
   const sourceDir = join(root, 'docs');
-  const kbDir = join(root, '.ai/knowledge-base');
-  const nodesDir = join(kbDir, 'nodes');
-  const logsDir = join(kbDir, '_logs');
-  const stateFile = join(root, '.ai/knowledge-base/.state/state.json');
-  const bootstrapStateFile = join(root, '.ai/knowledge-base/.state/bootstrap-state.json');
+  const paths = repoPaths(root);
+  const stateFile = join(paths.stateDir, 'state.json');
+  const bootstrapStateFile = join(paths.stateDir, 'bootstrap-state.json');
   mkdirSync(sourceDir, { recursive: true });
-  mkdirSync(nodesDir, { recursive: true });
-  mkdirSync(logsDir, { recursive: true });
-  mkdirSync(dirname(stateFile), { recursive: true });
+  mkdirSync(paths.nodesDir, { recursive: true });
+  mkdirSync(paths.logsDir, { recursive: true });
+  mkdirSync(paths.stateDir, { recursive: true });
   return {
     root,
     sourceDir,
-    kbDir,
-    nodesDir,
-    logsDir,
+    paths,
+    nodesDir: paths.nodesDir,
     stateFile,
     bootstrapStateFile,
   };
@@ -95,12 +93,7 @@ function runnerOf(output: BootstrapOutput | BootstrapOutput[]): BootstrapRunner 
 function ctxFor(harness: Harness, runner: BootstrapRunner) {
   return {
     sourceDir: harness.sourceDir,
-    repoRoot: harness.root,
-    kbDir: harness.kbDir,
-    nodesDir: harness.nodesDir,
-    logsDir: harness.logsDir,
-    stateFile: harness.stateFile,
-    bootstrapStateFile: harness.bootstrapStateFile,
+    paths: harness.paths,
     promptTemplate: PROMPT_TEMPLATE,
     runner,
   };
@@ -326,12 +319,18 @@ describe('runBootstrapIncremental', () => {
       pid: 999_999,
       now: new Date('2030-01-01T00:00:00Z'),
     });
-    const result = await runBootstrapIncremental({
-      ...ctxFor(harness, runnerOf({ practice: [], map: [] })),
-      pid: 12345,
-      now: () => new Date('2030-01-01T00:00:01Z'),
-    });
-    expect(result.status).toBe('locked');
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2030-01-01T00:00:01Z'));
+    vi.spyOn(processModule, 'currentPid').mockReturnValue(12345);
+    try {
+      const result = await runBootstrapIncremental(
+        ctxFor(harness, runnerOf({ practice: [], map: [] }))
+      );
+      expect(result.status).toBe('locked');
+    } finally {
+      vi.useRealTimers();
+      vi.restoreAllMocks();
+    }
   });
 
   it('releases the lock after completion', async () => {

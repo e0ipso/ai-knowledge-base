@@ -1,11 +1,12 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import matter from 'gray-matter';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { runCurate, type CuratorRunner } from '../../src/lib/curate.js';
+import { repoPaths, type RepoPaths } from '../../src/lib/paths.js';
 import {
   PendingConflictsFileSchema,
   type CuratorAction,
@@ -18,25 +19,24 @@ const exec = promisify(execFile);
 
 interface Harness {
   root: string;
-  kbDir: string;
+  paths: RepoPaths;
   sessionsDir: string;
   nodesDir: string;
-  logsDir: string;
-  stateFile: string;
 }
 
 function makeHarness(): Harness {
   const root = mkdtempSync(join(tmpdir(), 'kb-conflicts-'));
-  const kbDir = join(root, '.ai/knowledge-base');
-  const sessionsDir = join(kbDir, '_sessions');
-  const nodesDir = join(kbDir, 'nodes');
-  const logsDir = join(kbDir, '_logs');
-  const stateFile = join(root, '.ai/knowledge-base/.state/state.json');
-  mkdirSync(sessionsDir, { recursive: true });
-  mkdirSync(nodesDir, { recursive: true });
-  mkdirSync(logsDir, { recursive: true });
-  mkdirSync(dirname(stateFile), { recursive: true });
-  return { root, kbDir, sessionsDir, nodesDir, logsDir, stateFile };
+  const paths = repoPaths(root);
+  mkdirSync(paths.sessionsDir, { recursive: true });
+  mkdirSync(paths.nodesDir, { recursive: true });
+  mkdirSync(paths.logsDir, { recursive: true });
+  mkdirSync(paths.stateDir, { recursive: true });
+  return {
+    root,
+    paths,
+    sessionsDir: paths.sessionsDir,
+    nodesDir: paths.nodesDir,
+  };
 }
 
 function seedSession(harness: Harness, sessionId: string, candidates: ProposalCandidate[]): void {
@@ -103,11 +103,7 @@ describe('conflict side-channel', () => {
     seedSession(harness, 'x', [makeCandidate('X')]);
     const runner: CuratorRunner = async () => [contradictAction('practice-old-target')];
     const result = await runCurate({
-      kbDir: harness.kbDir,
-      sessionsDir: harness.sessionsDir,
-      nodesDir: harness.nodesDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
+      paths: harness.paths,
       promptTemplate: PROMPT,
       runner,
     });

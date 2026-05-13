@@ -7,6 +7,8 @@ import {
   type EffortLevel,
   type ModelFamily,
 } from './schemas.js';
+import type { RepoPaths } from './paths.js';
+import { currentPid } from './process.js';
 import { acquireLock, releaseLock } from './state.js';
 import { compactStamp } from './time.js';
 
@@ -29,16 +31,12 @@ export type ProposalRunner = <T>(
 ) => Promise<T>;
 
 export interface DrainContext {
-  sessionsDir: string;
-  logsDir: string;
-  stateFile: string;
+  paths: RepoPaths;
   promptTemplate: string;
   runner: ProposalRunner;
-  now?: () => Date;
   maxEntries?: number;
   timeoutMs?: number;
   lockTtlMs?: number;
-  pid?: number;
   model?: ModelFamily;
   effort?: EffortLevel;
 }
@@ -74,33 +72,32 @@ interface PendingSessionLog {
  * log stays `failed` until a human intervenes.
  */
 export async function drainProposalQueue(ctx: DrainContext): Promise<DrainSummary> {
-  const now = ctx.now ?? (() => new Date());
   const maxEntries = ctx.maxEntries ?? DEFAULT_MAX_ENTRIES;
   const timeoutMs = ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const pid = ctx.pid ?? process.pid;
+  const pid = currentPid();
+  const stateFile = join(ctx.paths.stateDir, 'state.json');
 
-  const lockHeld = acquireLock(ctx.stateFile, {
+  const lockHeld = acquireLock(stateFile, {
     name: PROPOSAL_LOCK_NAME,
     pid,
-    now: now(),
+    now: new Date(),
     ...(ctx.lockTtlMs !== undefined ? { ttlMs: ctx.lockTtlMs } : {}),
   });
   if (!lockHeld) {
-    return { status: 'locked', processed: [], remaining: countPending(ctx.sessionsDir) };
+    return { status: 'locked', processed: [], remaining: countPending(ctx.paths.sessionsDir) };
   }
 
   const processed: DrainEntryResult[] = [];
   try {
-    const pending = listPending(ctx.sessionsDir);
+    const pending = listPending(ctx.paths.sessionsDir);
     for (const entry of pending) {
       if (processed.length >= maxEntries) break;
       const result = await processSessionLog({
         entry,
-        sessionsDir: ctx.sessionsDir,
-        logsDir: ctx.logsDir,
+        sessionsDir: ctx.paths.sessionsDir,
+        logsDir: ctx.paths.logsDir,
         promptTemplate: ctx.promptTemplate,
         runner: ctx.runner,
-        now,
         timeoutMs,
         ...(ctx.model !== undefined ? { model: ctx.model } : {}),
         ...(ctx.effort !== undefined ? { effort: ctx.effort } : {}),
@@ -108,10 +105,10 @@ export async function drainProposalQueue(ctx: DrainContext): Promise<DrainSummar
       processed.push(result);
     }
   } finally {
-    releaseLock(ctx.stateFile, PROPOSAL_LOCK_NAME, pid);
+    releaseLock(stateFile, PROPOSAL_LOCK_NAME, pid);
   }
 
-  const remaining = countPending(ctx.sessionsDir);
+  const remaining = countPending(ctx.paths.sessionsDir);
   return { status: 'completed', processed, remaining };
 }
 
@@ -151,19 +148,17 @@ interface ProcessArgs {
   logsDir: string;
   promptTemplate: string;
   runner: ProposalRunner;
-  now: () => Date;
   timeoutMs: number;
   model?: ModelFamily;
   effort?: EffortLevel;
 }
 
 async function processSessionLog(args: ProcessArgs): Promise<DrainEntryResult> {
-  const { entry, sessionsDir, logsDir, promptTemplate, runner, now, timeoutMs, model, effort } =
-    args;
+  const { entry, sessionsDir, logsDir, promptTemplate, runner, timeoutMs, model, effort } = args;
   const parsed = matter(readFileSync(entry.file, 'utf8'));
   const transcript = extractTranscript(parsed.content);
   const prompt = buildProposalPrompt(promptTemplate, transcript);
-  const startedAt = now();
+  const startedAt = new Date();
   const logFile = proposalLogPath(logsDir, entry.sessionId, startedAt);
 
   try {
@@ -176,7 +171,7 @@ async function processSessionLog(args: ProcessArgs): Promise<DrainEntryResult> {
     });
     writeSessionLogFrontmatter(entry.file, parsed, {
       proposal_status: 'done',
-      proposal_completed_at: now().toISOString(),
+      proposal_completed_at: new Date().toISOString(),
       proposal_error: null,
       proposal_log: relativeLogPath(sessionsDir, logFile),
       proposals: { practice: out.practice, map: out.map },
@@ -189,7 +184,7 @@ async function processSessionLog(args: ProcessArgs): Promise<DrainEntryResult> {
       : message;
     writeSessionLogFrontmatter(entry.file, parsed, {
       proposal_status: 'failed',
-      proposal_completed_at: now().toISOString(),
+      proposal_completed_at: new Date().toISOString(),
       proposal_error: truncated,
       proposal_log: relativeLogPath(sessionsDir, logFile),
     });
