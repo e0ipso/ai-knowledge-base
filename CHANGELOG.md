@@ -1,5 +1,9 @@
 ## Unreleased
 
+### Added
+
+* `ai-knowledge-base conflict list` and `ai-knowledge-base conflict resolve <id> --action <replace|reject>` subcommands. `list` prints `.ai/knowledge-base/.state/pending-conflicts.json` as JSON on stdout (or `[]` when missing). `resolve replace` deletes the existing node, writes the proposed node via `writeNodeFile`, atomically rewrites `pending-conflicts.json` with the resolved entry removed, and regenerates `INDEX.md`/`GRAPH.md`. `resolve reject` does the same minus the node-side work. The `kb-curate` skill template no longer touches `pending-conflicts.json` or `nodes/` directly; its `allowed-tools` tightens to `Bash(ai-knowledge-base curate:*), Bash(ai-knowledge-base conflict:*), Read` (no more `Edit`, `Write`, or `Bash(rm:*)`). Existing installations: run `ai-knowledge-base init --upgrade` to pick up the new skill template.
+
 ### Changed
 
 * Numeric CLI options now throw `commander.InvalidArgumentError` on non-integer input. Passing `--timeout abc` to `curate` or `bootstrap-incremental` exits non-zero with `error: option '--timeout <ms>' argument 'abc' is invalid. --timeout must be an integer (got "abc")` instead of silently coercing to `NaN`.

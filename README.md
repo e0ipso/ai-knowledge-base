@@ -47,6 +47,11 @@ The lint also runs automatically every `lintEveryNSessions` sessions (default 50
 
 `doctor` checks install health (Node version, `claude` on PATH, hook wiring, INDEX freshness); `lint` checks content health (graph integrity, naming, tag hygiene, orphans).
 
+### `ai-knowledge-base conflict list` / `conflict resolve`
+
+- `ai-knowledge-base conflict list` prints pending conflicts from `.ai/knowledge-base/.state/pending-conflicts.json` as JSON on stdout (or `[]` when there are none).
+- `ai-knowledge-base conflict resolve <id> --action <replace|reject>` applies the user's decision for a single conflict. `replace` overwrites the existing node with the proposed one and drops the entry from `pending-conflicts.json`; `reject` drops the entry and leaves the node tree alone. Either way, `INDEX.md` and `GRAPH.md` are regenerated. The `kb-curate` skill calls these in-session so the LLM never edits state files or rewrites node markdown directly.
+
 ## Documentation
 
 Full documentation lives at the docs site: [How it works](docs/how-it-works.md), [Installation](docs/installation.md), [Daily use](docs/daily-use.md), [CLI reference](docs/cli-reference.md), [Troubleshooting](docs/troubleshooting.md).

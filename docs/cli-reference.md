@@ -42,6 +42,15 @@ npx @e0ipso/ai-knowledge-base curate [--batch-size <n>] [--timeout <ms>]
 
 Run the curator over all session logs that have been processed but not yet curated. The curator writes new node files directly to `nodes/<kind>/<id>.md` for `add` actions and overwrites the target file for `modify` actions. `contradict` actions are recorded in `.ai/knowledge-base/.state/pending-conflicts.json` for the `/kb-curate` skill to resolve in-session with the user. Review the resulting changes with `git diff nodes/`.
 
+## `conflict list` / `conflict resolve`
+
+```sh
+npx @e0ipso/ai-knowledge-base conflict list
+npx @e0ipso/ai-knowledge-base conflict resolve <id> --action <replace|reject>
+```
+
+`conflict list` prints the contents of `.ai/knowledge-base/.state/pending-conflicts.json` as JSON on stdout (or `[]` when the file is missing or empty). `conflict resolve` applies the user's decision for a single conflict: `replace` deletes the existing node, writes the proposed node, and drops the entry from `pending-conflicts.json`; `reject` drops the entry and leaves the node tree alone. Both actions regenerate `INDEX.md` and `GRAPH.md`. The `/kb-curate` skill calls these subcommands in-session so the LLM never edits state files or node markdown directly.
+
 ## `node add`
 
 ```sh

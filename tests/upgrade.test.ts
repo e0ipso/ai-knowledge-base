@@ -87,6 +87,34 @@ describe('init --upgrade', () => {
     expect(after.version).not.toBe('0.0.0-test-old');
   });
 
+  it('ships the tightened kb-curate allowed-tools after upgrade', async () => {
+    await runCli(sandbox, ['init', '--assistants', 'claude']);
+
+    const versionFile = join(sandbox, '.ai/knowledge-base/.state/installed-version');
+    const installed = JSON.parse(readFileSync(versionFile, 'utf8'));
+    installed.version = '0.0.0-test-old';
+    writeFileSync(versionFile, JSON.stringify(installed, null, 2) + '\n');
+
+    // Pre-populate the installed skill with the previous (looser) allowed-tools
+    // to prove that upgrade rewrites the file rather than leaving it untouched.
+    const skillFile = join(sandbox, '.claude/skills/kb-curate/SKILL.md');
+    writeFileSync(
+      skillFile,
+      '---\nname: kb-curate\nallowed-tools: Bash(rm:*), Read, Edit, Write\n---\nold\n'
+    );
+
+    const result = await runCli(sandbox, ['init', '--assistants', 'claude', '--upgrade']);
+    expect(result.exitCode).toBe(0);
+
+    const skill = readFileSync(skillFile, 'utf8');
+    expect(skill).toContain(
+      'allowed-tools: Bash(ai-knowledge-base curate:*), Bash(ai-knowledge-base conflict:*), Read'
+    );
+    expect(skill).not.toContain('Bash(rm:*)');
+    expect(skill).not.toMatch(/allowed-tools:[^\n]*\bEdit\b/);
+    expect(skill).not.toMatch(/allowed-tools:[^\n]*\bWrite\b/);
+  });
+
   it('preserves a customized local prompt override', async () => {
     await runCli(sandbox, ['init', '--assistants', 'claude']);
 
