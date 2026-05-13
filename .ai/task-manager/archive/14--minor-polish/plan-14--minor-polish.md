@@ -316,3 +316,31 @@ After Phase 5, the plan's **Success Criteria** and **Self Validation** sections 
 ### Execution Summary
 - Total Phases: 5
 - Total Tasks: 5
+
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-13
+
+### Results
+
+All five phases landed across five commits on `feature/14--minor-polish`:
+
+- `FailureReportSchema` is gone; `FailureReport` is a plain TypeScript interface in `src/lib/schemas.ts`. The other inner schemas (`DedupCacheEntrySchema`, `QueueEntrySchema`, `BootstrapDocEntrySchema`) stay as Zod values per the plan's clarifications.
+- `state.json` is locked by `proper-lockfile` (with a shared `STATE_LOCK_OPTIONS = { stale: 30 * 60 * 1000, realpath: false }` exported from `src/lib/state.ts`). `acquireLock`, `releaseLock`, `DEFAULT_LOCK_TTL_MS`, `LockOptions`, the three `*_LOCK_NAME` constants, `StateLockSchema`, the `lock` field on `StateFileSchema`, the `lockTtlMs?` fields on every context, and the orphan `currentPid` helper (`src/lib/process.ts`) are all deleted. `runCurate`, `runBootstrapIncremental`, and `drainProposalQueue` use `proper-lockfile.lock(stateFile, STATE_LOCK_OPTIONS)` directly and catch `ELOCKED` to surface the existing locked-result shape. Tests acquire the lock through `proper-lockfile` to drive the "another holder" scenarios.
+- The `curate` heartbeat printer, `makeVerbosePrinter`, the hand-rolled `AssistantContentBlock` / `AssistantMessage` interfaces, the `isObject` helper, and the `-v, --verbose` flag are removed. The run prints `  curator log: <path>` followed immediately by `  follow live: tail -f <path>`. `curate --help` no longer lists `--verbose`.
+- `buildBatchPayload` no longer reads `INDEX.md` or includes `index_summary`; the `kbDir` parameter is dropped. The curator prompt bumps to `Version: 5`, lists two inputs instead of three, and instructs the curator to emit a `drop` action when a candidate appears to overlap a node not provided in `existing_nodes`. Both `src/templates-source/prompts/curator.md` and `templates/prompts/curator.md` are byte-identical (the latter regenerates from the former via `npm run build:templates`).
+- `CHANGELOG.md` documents the four removals under `### Changed` / `### Removed`. `docs/internals/prompts.md` drops the `index_summary` key from the example curator payload and reflects the new drop-on-overlap instruction.
+- `npm run lint && npx tsc --noEmit && npm test` exits 0 (222/222 tests). CLI smoke (`ai-knowledge-base init --assistants claude` in a fresh dir) succeeds; `curate` prints the new `follow live: tail -f` hint with no heartbeat lines and `--help` carries no `--verbose`.
+
+### Noteworthy Events
+
+- `lockTtlMs` was already absent from `SettingsSchema` and `SETTINGS_DEFAULTS` (cleaned up in plan 11), so the deletion list for finding 16 reduced to the `CurateContext` / `BootstrapContext` / `DrainContext` fields and their spreads at call sites. The CHANGELOG entry reflects the actual state.
+- `proper-lockfile` requires the target file to exist by default; passing `realpath: false` lets it operate on paths that may not exist yet. Verified empirically against a non-existent state.json before changing call sites. No `writeState` priming was needed.
+- One transient test failure during phase 4's first `npm test` run (1/222 failed, immediate re-run was 222/222). No retry pattern in the failing output and could not reproduce; treated as flakiness, not a regression.
+- The `feature/10--remove-defensive-code-branches` branch was finally retired: plan 11 archival, the plan 12 execution summary touch-up, and the new plan 14-19 drafts were committed together on `feature/10`, after which `feature/14--minor-polish` was cut from that tip so plan 14 lands on a clean branch named after the plan it executes.
+
+### Necessary follow-ups
+
+- None. The plan's binding success criteria are met; CHANGELOG / `docs/internals/prompts.md` reflect the new state; KB nodes carry no references to the removed surfaces.
