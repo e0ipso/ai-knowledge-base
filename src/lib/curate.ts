@@ -27,6 +27,7 @@ import {
 import { chunk } from './chunk-batch.js';
 import { acquireLock, releaseLock } from './state.js';
 import { ulid } from './ulid.js';
+import { compactStamp } from './time.js';
 
 export const CURATOR_LOCK_NAME = 'curator';
 export const CURATE_BATCH_SIZE = 10;
@@ -500,10 +501,3 @@ export function curatorLogFile(logsDir: string, runId: string, now: Date): strin
   return join(logsDir, 'curator', `${runId}__${compactStamp(now)}.jsonl`);
 }
 
-function compactStamp(d: Date): string {
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  return (
-    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}` +
-    `T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
-  );
-}

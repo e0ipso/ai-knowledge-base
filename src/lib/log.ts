@@ -1,23 +1,16 @@
+import pc from 'picocolors';
+
 type Level = 'info' | 'warn' | 'error' | 'success';
 
-const useColor =
-  process.stdout.isTTY && process.env['NO_COLOR'] !== '1' && process.env['FORCE_COLOR'] !== '0';
-
-const colors: Record<Level, string> = {
-  info: '[36m', // cyan
-  warn: '[33m', // yellow
-  error: '[31m', // red
-  success: '[32m', // green
+const paint: Record<Level, (s: string) => string> = {
+  info: pc.cyan,
+  warn: pc.yellow,
+  error: pc.red,
+  success: pc.green,
 };
-const reset = '[0m';
-
-function paint(level: Level, label: string): string {
-  if (!useColor) return label;
-  return `${colors[level]}${label}${reset}`;
-}
 
 function emit(level: Level, prefix: string, message: string): void {
-  const line = `${paint(level, prefix)} ${message}`;
+  const line = `${paint[level](prefix)} ${message}`;
   if (level === 'error' || level === 'warn') {
     console.error(line);
   } else {

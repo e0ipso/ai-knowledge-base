@@ -8,6 +8,7 @@ import {
   type ModelFamily,
 } from './schemas.js';
 import { acquireLock, releaseLock } from './state.js';
+import { compactStamp } from './time.js';
 
 export const DEFAULT_MAX_ENTRIES = 5;
 export const DEFAULT_TIMEOUT_MS = 60_000;
@@ -216,16 +217,8 @@ export function buildProposalPrompt(template: string, transcript: string): strin
 }
 
 export function proposalLogPath(logsDir: string, sessionId: string, when: Date): string {
-  const stamp = isoToCompactStamp(when);
+  const stamp = compactStamp(when);
   return join(logsDir, 'proposal', `${sessionId}__${stamp}.jsonl`);
-}
-
-function isoToCompactStamp(d: Date): string {
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  return (
-    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}` +
-    `T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
-  );
 }
 
 function relativeLogPath(sessionsDir: string, logFile: string): string {

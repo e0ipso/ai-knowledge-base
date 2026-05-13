@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { dump } from 'js-yaml';
 import type { CaptureTrigger, SecretScanStatus } from './schemas.js';
 
 export interface SessionLogInput {
@@ -11,30 +12,22 @@ export interface SessionLogInput {
   body: string;
 }
 
-/**
- * Renders the session log markdown including frontmatter. We emit YAML by
- * hand (rather than via a dump library) because the frontmatter shape is
- * small and stable, and the hook ships as compiled JS — avoiding extra
- * runtime deps keeps the bundled hook small.
- */
 export function renderSessionLog(input: SessionLogInput): string {
-  const lines = [
-    '---',
-    'schema_version: 1',
-    `session_id: ${yamlString(input.sessionId)}`,
-    `captured_by: ${input.capturedBy}`,
-    `captured_at: ${yamlString(input.capturedAt)}`,
-    `transcript_hash: ${yamlString(input.transcriptHash)}`,
-    'proposal_status: pending',
-    'proposal_completed_at: null',
-    'proposal_error: null',
-    'proposal_log: null',
-    `secret_scan_status: ${input.secretScanStatus}`,
-    'proposals:',
-    '  practice: []',
-    '  map: []',
-    '---',
-    '',
+  const frontmatter = {
+    schema_version: 1,
+    session_id: input.sessionId,
+    captured_by: input.capturedBy,
+    captured_at: input.capturedAt,
+    transcript_hash: input.transcriptHash,
+    proposal_status: 'pending',
+    proposal_completed_at: null,
+    proposal_error: null,
+    proposal_log: null,
+    secret_scan_status: input.secretScanStatus,
+    proposals: { practice: [], map: [] },
+  };
+  const yaml = dump(frontmatter, { lineWidth: -1, noRefs: true, sortKeys: false });
+  const bodyLines = [
     '## Transcript',
     '',
     input.body.trimEnd(),
@@ -44,13 +37,7 @@ export function renderSessionLog(input: SessionLogInput): string {
     '(populated by proposal worker)',
     '',
   ];
-  return lines.join('\n');
-}
-
-function yamlString(value: string): string {
-  // Always quote with JSON-style double quotes for safety; escapes special
-  // characters and ensures the value round-trips through gray-matter.
-  return JSON.stringify(value);
+  return `---\n${yaml}---\n${bodyLines.join('\n')}`;
 }
 
 export function writeSessionLog(sessionsDir: string, filename: string, contents: string): string {

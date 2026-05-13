@@ -23,6 +23,7 @@ import { chunk } from './chunk-batch.js';
 import { acquireLock, releaseLock } from './state.js';
 import { deriveNodeId, ensureUniqueId, nodeFileExists, writeNodeFile } from './nodes.js';
 import { ulid } from './ulid.js';
+import { compactStamp } from './time.js';
 
 export const BOOTSTRAP_LOCK_NAME = 'bootstrap-incremental';
 export const BOOTSTRAP_BATCH_SIZE = 20;
@@ -580,10 +581,3 @@ function writeBootstrapNode(args: WriteBootstrapNodeArgs): string | 'collision' 
   return join(candidate.kind, `${id}.md`);
 }
 
-function compactStamp(d: Date): string {
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  return (
-    `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}` +
-    `T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`
-  );
-}

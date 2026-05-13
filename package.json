@@ -78,6 +78,7 @@
     "execa": "^9.5.2",
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.1.0",
+    "picocolors": "^1.1.1",
     "secretlint": "^13.0.0",
     "split2": "^4.2.0",
     "zod": "^3.24.1"
@@ -85,6 +86,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.8.1",
     "@commitlint/config-conventional": "^19.8.1",
+    "@secretlint/secretlint-rule-preset-recommend": "^13.0.0",
     "@semantic-release/changelog": "^6.0.3",
     "@semantic-release/commit-analyzer": "^13.0.1",
     "@semantic-release/git": "^10.0.1",
@@ -101,11 +103,10 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.0.4",
     "prettier": "^3.4.2",
+    "secretlint": "^13.0.0",
     "semantic-release": "^25.0.2",
     "tsup": "^8.3.5",
     "typescript": "^5.7.3",
-    "vitest": "^2.1.8",
-    "secretlint": "^13.0.0",
-    "@secretlint/secretlint-rule-preset-recommend": "^13.0.0"
+    "vitest": "^2.1.8"
   }
 }
