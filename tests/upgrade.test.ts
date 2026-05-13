@@ -176,7 +176,9 @@ describe('doctor: installed-version currency', () => {
 
     const result = await runCli(sandbox, ['doctor']);
     expect(result.exitCode).toBe(0);
-    expect(result.stdout + result.stderr).toMatch(/installed-version is current/);
-    expect(result.stdout + result.stderr).toMatch(/init --upgrade/);
+    const combined = result.stdout + result.stderr;
+    expect(combined).toMatch(/installed-version/);
+    expect(combined).toMatch(/installed 0\.0\.0-test-old/);
+    expect(combined).toMatch(/init --upgrade/);
   });
 });

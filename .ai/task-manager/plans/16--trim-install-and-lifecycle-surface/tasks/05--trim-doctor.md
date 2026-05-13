@@ -2,7 +2,7 @@
 id: 5
 group: "doctor"
 dependencies: [1, 3]
-status: "pending"
+status: "completed"
 created: 2026-05-13
 skills:
   - typescript

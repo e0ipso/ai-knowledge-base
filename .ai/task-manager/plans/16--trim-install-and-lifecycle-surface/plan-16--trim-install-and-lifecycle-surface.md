@@ -310,9 +310,9 @@ graph TD
 **Parallel Tasks:**
 - ✔️ Task 003: Remove husky / secretlint scaffolding (depends on: 002)
 
-### Phase 4: Doctor trim
+### ✅ Phase 4: Doctor trim
 **Parallel Tasks:**
-- Task 005: Trim `doctor` (depends on: 001, 003)
+- ✔️ Task 005: Trim `doctor` (depends on: 001, 003)
 
 ### Phase 5: Documentation
 **Parallel Tasks:**

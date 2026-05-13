@@ -4,6 +4,7 @@ import { isAbsolute, join } from 'node:path';
 import { promisify } from 'node:util';
 import matter from 'gray-matter';
 import yaml from 'js-yaml';
+import { HOOK_SPECS } from '../lib/hook-spec.js';
 import { log } from '../lib/log.js';
 import {
   computeNodesHash,
@@ -16,6 +17,8 @@ import { IndexFrontmatterSchema, SettingsSchema } from '../lib/schemas.js';
 import { packageVersion } from '../lib/version.js';
 
 const exec = promisify(execFile);
+const EXPECTED_SKILLS = ['kb-add', 'kb-bootstrap', 'kb-curate'];
+const EXPECTED_PROMPTS = ['proposal-extract.md', 'curator.md', 'bootstrap-incremental.md'];
 
 export interface DoctorOptions {
   verbose?: boolean;
@@ -30,83 +33,67 @@ interface NamedCheck {
   result: CheckResult;
 }
 
+interface DanglingRef {
+  nodeId: string;
+  reference: string;
+}
+
+interface FrontmatterCheck {
+  result: CheckResult;
+  canEnumerate: boolean;
+  error?: InvalidNodeFrontmatterError;
+}
+
+const ok = (detail: string): CheckResult => ({ ok: true, detail });
+const err = (detail: string): CheckResult => ({ ok: false, level: 'error', detail });
+const warn = (detail: string): CheckResult => ({ ok: false, level: 'warn', detail });
+
 export async function runDoctor(opts: DoctorOptions): Promise<number> {
   const root = findRepoRoot();
   const paths = repoPaths(root);
-
-  const checks: NamedCheck[] = [];
-  checks.push({ name: 'Node.js >= 22', result: checkNodeVersion() });
-  checks.push({ name: 'claude CLI on PATH', result: await checkClaude() });
-  checks.push({
-    name: '.ai/knowledge-base/.state/installed-version',
-    result: checkInstalledVersion(paths.installedVersionFile),
-  });
-  checks.push({
-    name: 'installed-version is current',
-    result: checkInstalledVersionCurrent(paths.installedVersionFile),
-  });
-  checks.push({
-    name: '.gitignore lists ai-knowledge-base paths',
-    result: checkGitignore(paths.gitignoreFile),
-  });
-
-  checks.push({
-    name: 'Claude hooks registered',
-    result: checkClaudeHooks(paths.claudeSettingsFile, paths.claudeHooksDir),
-  });
-  checks.push({
-    name: 'Claude skills installed',
-    result: checkClaudeSkills(paths.claudeSkillsDir),
-  });
-  checks.push({
-    name: 'shipped prompts present',
-    result: checkPrompts(paths.promptsDir),
-  });
-  checks.push({
-    name: 'settings file is valid',
-    result: checkSettings(paths.projectConfigFile),
-  });
-  checks.push({
-    name: 'INDEX.md is fresh',
-    result: checkIndexFreshness(join(paths.kbDir, 'INDEX.md'), paths.nodesDir),
-  });
-
   const frontmatterCheck = checkNodeFrontmatter(paths.nodesDir);
-  checks.push({ name: 'node frontmatter valid', result: frontmatterCheck.result });
-
   let dangling: DanglingRef[] = [];
-  if (frontmatterCheck.canEnumerate) {
-    dangling = collectDanglingDerivedFrom(root, paths.nodesDir, paths.sessionsDir);
-    checks.push({
-      name: 'derived_from references resolve',
-      result:
-        dangling.length === 0
-          ? { ok: true, detail: 'no dangling references' }
-          : {
-              ok: false,
-              level: 'warn',
-              detail: `${dangling.length} dangling reference(s)${
-                opts.verbose ? '' : ' — re-run with --verbose to list them'
-              }`,
-            },
-    });
-  } else {
-    checks.push({
-      name: 'derived_from references resolve',
-      result: {
-        ok: false,
-        level: 'warn',
-        detail: 'skipped — nodes failed frontmatter validation; fix those first.',
-      },
-    });
-  }
+  const danglingResult: CheckResult = !frontmatterCheck.canEnumerate
+    ? warn('skipped; nodes failed frontmatter validation, fix those first.')
+    : (dangling = collectDanglingDerivedFrom(root, paths.nodesDir, paths.sessionsDir)).length === 0
+      ? ok('no dangling references')
+      : warn(
+          `${dangling.length} dangling reference(s)${
+            opts.verbose ? '' : '; re-run with --verbose to list them'
+          }`
+        );
+
+  const checks: NamedCheck[] = [
+    { name: 'Node.js >= 22', result: checkNodeVersion() },
+    { name: 'claude CLI on PATH', result: await checkClaude() },
+    {
+      name: '.ai/knowledge-base/.state/installed-version',
+      result: checkInstalled(paths.installedVersionFile),
+    },
+    {
+      name: '.gitignore lists ai-knowledge-base paths',
+      result: checkGitignore(paths.gitignoreFile),
+    },
+    {
+      name: 'Claude hooks registered',
+      result: checkClaudeHooks(paths.claudeSettingsFile, paths.claudeHooksDir),
+    },
+    { name: 'Claude skills installed', result: checkClaudeSkills(paths.claudeSkillsDir) },
+    { name: 'shipped prompts present', result: checkPrompts(paths.promptsDir) },
+    { name: 'settings file is valid', result: checkSettings(paths.projectConfigFile) },
+    {
+      name: 'INDEX.md is fresh',
+      result: checkIndexFreshness(join(paths.kbDir, 'INDEX.md'), paths.nodesDir),
+    },
+    { name: 'node frontmatter valid', result: frontmatterCheck.result },
+    { name: 'derived_from references resolve', result: danglingResult },
+  ];
 
   let failures = 0;
   let warnings = 0;
   for (const c of checks) {
-    if (c.result.ok) {
-      log.success(`${c.name}: ${c.result.detail}`);
-    } else if (c.result.level === 'warn') {
+    if (c.result.ok) log.success(`${c.name}: ${c.result.detail}`);
+    else if (c.result.level === 'warn') {
       log.warn(`${c.name}: ${c.result.detail}`);
       warnings += 1;
     } else {
@@ -115,23 +102,18 @@ export async function runDoctor(opts: DoctorOptions): Promise<number> {
     }
   }
 
-  if (opts.verbose && !frontmatterCheck.result.ok && frontmatterCheck.error) {
+  if (opts.verbose && frontmatterCheck.error) {
     log.plain('');
     log.plain('Invalid node frontmatter:');
     for (const failure of frontmatterCheck.error.failures) {
       log.plain(`  ${failure.file}: ${failure.reason}`);
-      for (const issue of failure.issues) {
-        log.plain(`    - ${formatIssue(issue)}`);
-      }
+      for (const issue of failure.issues) log.plain(`    - ${formatIssue(issue)}`);
     }
   }
-
   if (opts.verbose && dangling.length > 0) {
     log.plain('');
     log.plain('Dangling derived_from references:');
-    for (const d of dangling) {
-      log.plain(`  - ${d.nodeId}: ${d.reference}`);
-    }
+    for (const d of dangling) log.plain(`  - ${d.nodeId}: ${d.reference}`);
   }
 
   log.plain('');
@@ -145,11 +127,6 @@ export async function runDoctor(opts: DoctorOptions): Promise<number> {
   }
   log.error(`${failures} error(s), ${warnings} warning(s).`);
   return 1;
-}
-
-interface DanglingRef {
-  nodeId: string;
-  reference: string;
 }
 
 /**
@@ -183,262 +160,156 @@ function resolvesOnDisk(ref: string, root: string, sessionsDir: string): boolean
   return false;
 }
 
-interface FrontmatterCheck {
-  result: CheckResult;
-  canEnumerate: boolean;
-  error?: InvalidNodeFrontmatterError;
-}
-
 function checkNodeFrontmatter(nodesDir: string): FrontmatterCheck {
-  if (!existsSync(nodesDir)) {
-    return { result: { ok: true, detail: 'no nodes/ directory yet' }, canEnumerate: true };
-  }
+  if (!existsSync(nodesDir)) return { result: ok('no nodes/ directory yet'), canEnumerate: true };
   try {
     const nodes = readAllNodes(nodesDir);
     return {
-      result: { ok: true, detail: `${nodes.length} node file(s), all parse cleanly` },
+      result: ok(`${nodes.length} node file(s), all parse cleanly`),
       canEnumerate: true,
     };
-  } catch (err) {
-    if (err instanceof InvalidNodeFrontmatterError) {
+  } catch (e) {
+    if (e instanceof InvalidNodeFrontmatterError) {
       return {
-        result: {
-          ok: false,
-          level: 'error',
-          detail: `${err.failures.length} file(s) failed validation — re-run with --verbose to list them.`,
-        },
+        result: err(
+          `${e.failures.length} file(s) failed validation; re-run with --verbose to list them.`
+        ),
         canEnumerate: false,
-        error: err,
+        error: e,
       };
     }
-    throw err;
+    throw e;
   }
 }
 
 function checkNodeVersion(): CheckResult {
   const major = Number(process.versions.node.split('.')[0]);
-  if (Number.isFinite(major) && major >= 22) {
-    return { ok: true, detail: `Node ${process.versions.node}` };
-  }
-  return { ok: false, level: 'error', detail: `Node ${process.versions.node} (need >= 22)` };
+  return Number.isFinite(major) && major >= 22
+    ? ok(`Node ${process.versions.node}`)
+    : err(`Node ${process.versions.node} (need >= 22)`);
 }
 
 async function checkClaude(): Promise<CheckResult> {
   try {
     const { stdout } = await exec('claude', ['--version'], { timeout: 5000 });
-    return { ok: true, detail: stdout.trim() || 'present' };
-  } catch (err) {
-    return {
-      ok: false,
-      level: 'error',
-      detail: `not runnable (${(err as Error).message.split('\n')[0]})`,
-    };
+    return ok(stdout.trim() || 'present');
+  } catch (e) {
+    return err(`not runnable (${(e as Error).message.split('\n')[0]})`);
   }
 }
 
-function checkInstalledVersion(file: string): CheckResult {
+function checkInstalled(file: string): CheckResult {
   if (!existsSync(file)) {
-    return {
-      ok: false,
-      level: 'error',
-      detail: 'missing. Run `ai-knowledge-base init --assistants claude` from the repo root.',
-    };
+    return err('missing. Run `ai-knowledge-base init --assistants claude` from the repo root.');
   }
+  let parsed: { version?: string };
   try {
-    const parsed = JSON.parse(readFileSync(file, 'utf8')) as { version?: string };
-    return { ok: true, detail: parsed.version ?? 'present (no version field)' };
-  } catch (err) {
-    return { ok: false, level: 'error', detail: `unreadable: ${(err as Error).message}` };
+    parsed = JSON.parse(readFileSync(file, 'utf8')) as { version?: string };
+  } catch (e) {
+    return err(`unreadable: ${(e as Error).message}`);
   }
+  const installed = typeof parsed.version === 'string' ? parsed.version : null;
+  const current = packageVersion();
+  if (installed === null) return warn('installed-version has no `version` field.');
+  if (installed === current) return ok(current);
+  return warn(
+    `installed ${installed}, package ${current}. Run \`ai-knowledge-base init --upgrade\` to refresh templates.`
+  );
 }
-
-function checkInstalledVersionCurrent(file: string): CheckResult {
-  if (!existsSync(file)) {
-    return {
-      ok: false,
-      level: 'warn',
-      detail: 'no installed-version stamp; skipping currency check.',
-    };
-  }
-  try {
-    const parsed = JSON.parse(readFileSync(file, 'utf8')) as { version?: string };
-    const installed = typeof parsed.version === 'string' ? parsed.version : null;
-    const current = packageVersion();
-    if (installed === null) {
-      return { ok: false, level: 'warn', detail: 'installed-version has no `version` field.' };
-    }
-    if (installed === current) {
-      return { ok: true, detail: `${current}` };
-    }
-    return {
-      ok: false,
-      level: 'warn',
-      detail: `installed ${installed} ≠ package ${current}. Run \`ai-knowledge-base init --upgrade\` to refresh templates.`,
-    };
-  } catch (err) {
-    return { ok: false, level: 'warn', detail: `unreadable: ${(err as Error).message}` };
-  }
-}
-
-const EXPECTED_HOOK_SCRIPTS: Record<string, string[]> = {
-  Stop: ['.claude/hooks/kb-capture.mjs'],
-  SessionEnd: ['.claude/hooks/kb-capture.mjs', '.claude/hooks/kb-lint-tick.mjs'],
-  PreCompact: ['.claude/hooks/kb-capture.mjs'],
-  SessionStart: ['.claude/hooks/kb-proposal-drain.mjs', '.claude/hooks/kb-session-start.mjs'],
-};
 
 function checkClaudeHooks(settingsFile: string, hooksDir: string): CheckResult {
   if (!existsSync(settingsFile)) {
-    return {
-      ok: false,
-      level: 'error',
-      detail: 'no .claude/settings.json. Run `ai-knowledge-base init --assistants claude --force`.',
-    };
+    return err('no .claude/settings.json. Run `ai-knowledge-base init --assistants claude --force`.');
   }
-  let settings: {
-    hooks?: Record<string, Array<{ hooks: Array<{ command?: string }> }>>;
-  };
+  let settings: { hooks?: Record<string, Array<{ hooks: Array<{ command?: string }> }>> };
   try {
     settings = JSON.parse(readFileSync(settingsFile, 'utf8')) as typeof settings;
-  } catch (err) {
-    return { ok: false, level: 'error', detail: `unparseable: ${(err as Error).message}` };
+  } catch (e) {
+    return err(`unparseable: ${(e as Error).message}`);
   }
   const hooks = settings.hooks ?? {};
-  const missing: string[] = [];
-  for (const [event, scripts] of Object.entries(EXPECTED_HOOK_SCRIPTS)) {
-    const commands = (hooks[event] ?? []).flatMap(e => (e.hooks ?? []).map(h => h.command ?? ''));
-    for (const script of scripts) {
-      if (!commands.some(c => c.includes(script))) {
-        missing.push(`${event} → ${script}`);
-      }
+  const missingRegs: string[] = [];
+  const missingFiles = new Set<string>();
+  for (const spec of HOOK_SPECS) {
+    const cmds = (hooks[spec.event] ?? []).flatMap(e => (e.hooks ?? []).map(h => h.command ?? ''));
+    if (!cmds.some(c => c.includes(spec.scriptPath))) {
+      missingRegs.push(`${spec.event} -> ${spec.scriptPath}`);
     }
+    if (!existsSync(join(hooksDir, spec.scriptPath))) missingFiles.add(spec.scriptPath);
   }
-  const missingFiles: string[] = [];
-  for (const script of new Set(Object.values(EXPECTED_HOOK_SCRIPTS).flat())) {
-    const file = join(hooksDir, script.split('/').pop()!);
-    if (!existsSync(file)) missingFiles.push(script);
-  }
-  if (missing.length === 0 && missingFiles.length === 0) {
-    return { ok: true, detail: 'all expected hook entries and scripts present' };
+  if (missingRegs.length === 0 && missingFiles.size === 0) {
+    return ok('all expected hook entries and scripts present');
   }
   const parts: string[] = [];
-  if (missing.length > 0) parts.push(`missing registrations: ${missing.join(', ')}`);
-  if (missingFiles.length > 0) parts.push(`missing scripts: ${missingFiles.join(', ')}`);
-  return {
-    ok: false,
-    level: 'error',
-    detail: parts.join('; ') + '. Re-run `ai-knowledge-base init --assistants claude --force`.',
-  };
+  if (missingRegs.length > 0) parts.push(`missing registrations: ${missingRegs.join(', ')}`);
+  if (missingFiles.size > 0) parts.push(`missing scripts: ${[...missingFiles].join(', ')}`);
+  return err(`${parts.join('; ')}. Re-run \`ai-knowledge-base init --assistants claude --force\`.`);
 }
-
-const EXPECTED_SKILLS = ['kb-add', 'kb-bootstrap', 'kb-curate'];
 
 function checkClaudeSkills(skillsDir: string): CheckResult {
   if (!existsSync(skillsDir)) {
-    return {
-      ok: false,
-      level: 'error',
-      detail: `no .claude/skills/ directory. Re-run \`ai-knowledge-base init --assistants claude --force\`.`,
-    };
+    return err('no .claude/skills/ directory. Re-run `ai-knowledge-base init --assistants claude --force`.');
   }
   const missing = EXPECTED_SKILLS.filter(name => !existsSync(join(skillsDir, name, 'SKILL.md')));
-  if (missing.length === 0) {
-    return { ok: true, detail: EXPECTED_SKILLS.join(', ') };
-  }
-  return {
-    ok: false,
-    level: 'error',
-    detail: `missing SKILL.md for: ${missing.join(', ')}. Re-run \`ai-knowledge-base init --upgrade\`.`,
-  };
+  return missing.length === 0
+    ? ok(EXPECTED_SKILLS.join(', '))
+    : err(`missing SKILL.md for: ${missing.join(', ')}. Re-run \`ai-knowledge-base init --upgrade\`.`);
 }
 
 function checkPrompts(promptsDir: string): CheckResult {
-  const expected = ['proposal-extract.md', 'curator.md', 'bootstrap-incremental.md'];
-  const missing = expected.filter(p => !existsSync(join(promptsDir, p)));
-  if (missing.length === 0) {
-    return { ok: true, detail: 'proposal-extract, curator, bootstrap-incremental' };
-  }
-  return {
-    ok: false,
-    level: 'warn',
-    detail: `missing local override(s): ${missing.join(', ')}. The bundled package fallback is still used; re-run \`init --force\` to restore.`,
-  };
+  const missing = EXPECTED_PROMPTS.filter(p => !existsSync(join(promptsDir, p)));
+  return missing.length === 0
+    ? ok('proposal-extract, curator, bootstrap-incremental')
+    : warn(
+        `missing local override(s): ${missing.join(', ')}. The bundled package fallback is still used; re-run \`init --force\` to restore.`
+      );
 }
 
 function checkIndexFreshness(indexFile: string, nodesDir: string): CheckResult {
-  if (!existsSync(indexFile)) {
-    return {
-      ok: false,
-      level: 'warn',
-      detail: 'INDEX.md missing — run `ai-knowledge-base index rebuild`.',
-    };
-  }
+  if (!existsSync(indexFile)) return warn('INDEX.md missing; run `ai-knowledge-base index rebuild`.');
   try {
     const parsed = matter(readFileSync(indexFile, 'utf8'));
     const fm = IndexFrontmatterSchema.safeParse(parsed.data);
-    if (!fm.success) {
-      return { ok: false, level: 'warn', detail: 'INDEX.md frontmatter is invalid; rebuild it.' };
-    }
+    if (!fm.success) return warn('INDEX.md frontmatter is invalid; rebuild it.');
     const recorded = fm.data.nodes_hash.startsWith('sha256:')
       ? fm.data.nodes_hash.slice(7)
       : fm.data.nodes_hash;
-    const live = computeNodesHash(nodesDir);
-    if (recorded === live) return { ok: true, detail: `fresh (${fm.data.node_count} node(s))` };
-    return {
-      ok: false,
-      level: 'warn',
-      detail: 'stale (nodes_hash drift) — run `ai-knowledge-base index rebuild`.',
-    };
-  } catch (err) {
-    return { ok: false, level: 'warn', detail: `unreadable: ${(err as Error).message}` };
+    return recorded === computeNodesHash(nodesDir)
+      ? ok(`fresh (${fm.data.node_count} node(s))`)
+      : warn('stale (nodes_hash drift); run `ai-knowledge-base index rebuild`.');
+  } catch (e) {
+    return warn(`unreadable: ${(e as Error).message}`);
   }
 }
 
 function checkSettings(file: string): CheckResult {
   if (!existsSync(file)) {
-    return {
-      ok: false,
-      level: 'warn',
-      detail: `no .ai/knowledge-base/config.yaml, package defaults are in effect. Run \`ai-knowledge-base init --upgrade\` to create one.`,
-    };
-  }
-  let raw: string;
-  try {
-    raw = readFileSync(file, 'utf8');
-  } catch (err) {
-    return { ok: false, level: 'error', detail: `unreadable: ${(err as Error).message}` };
+    return warn(
+      'no .ai/knowledge-base/config.yaml, package defaults are in effect. Run `ai-knowledge-base init --upgrade` to create one.'
+    );
   }
   let loaded: unknown;
   try {
-    loaded = yaml.load(raw);
-  } catch (err) {
-    return { ok: false, level: 'error', detail: `invalid YAML: ${(err as Error).message}` };
+    loaded = yaml.load(readFileSync(file, 'utf8'));
+  } catch (e) {
+    return err(`invalid YAML: ${(e as Error).message}`);
   }
   const parsed = SettingsSchema.safeParse(loaded);
   if (!parsed.success) {
-    return {
-      ok: false,
-      level: 'error',
-      detail: `schema validation failed: ${parsed.error.issues
+    return err(
+      `schema validation failed: ${parsed.error.issues
         .map(i => `${i.path.join('.') || '(root)'}: ${i.message}`)
-        .join('; ')}`,
-    };
+        .join('; ')}`
+    );
   }
   const keys = Object.keys(parsed.data).filter(k => k !== 'schema_version').length;
-  return { ok: true, detail: `valid (${keys} override(s))` };
+  return ok(`valid (${keys} override(s))`);
 }
 
 function checkGitignore(file: string): CheckResult {
-  if (!existsSync(file)) {
-    return { ok: false, level: 'warn', detail: 'no .gitignore at repo root' };
-  }
+  if (!existsSync(file)) return warn('no .gitignore at repo root');
   const body = readFileSync(file, 'utf8');
-  if (body.includes('.ai/knowledge-base/_sessions') && body.includes('.ai/knowledge-base/_logs')) {
-    return { ok: true, detail: 'ai-knowledge-base block present' };
-  }
-  return {
-    ok: false,
-    level: 'warn',
-    detail: 'missing entries for `.ai/knowledge-base/_sessions/` and/or `_logs/`',
-  };
+  return body.includes('.ai/knowledge-base/_sessions') && body.includes('.ai/knowledge-base/_logs')
+    ? ok('ai-knowledge-base block present')
+    : warn('missing entries for `.ai/knowledge-base/_sessions/` and/or `_logs/`');
 }
