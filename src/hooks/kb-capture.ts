@@ -8,6 +8,7 @@
  */
 import { captureSession, type HookInput } from '../lib/capture.js';
 import { findRepoRoot, repoPaths } from '../lib/paths.js';
+import { assertValidSessionId } from '../lib/session-log.js';
 
 const HARD_DEADLINE_MS = 1000;
 const PACKAGE_TAG = '[ai-knowledge-base]';
@@ -23,21 +24,33 @@ async function main(): Promise<void> {
   deadline.unref();
 
   const raw = await readStdin();
-  let input: HookInput = {};
-  if (raw.trim().length > 0) {
-    try {
-      input = JSON.parse(raw) as HookInput;
-    } catch {
-      return;
-    }
+  if (raw.trim().length === 0) return;
+  let payload: Record<string, unknown>;
+  try {
+    payload = JSON.parse(raw) as Record<string, unknown>;
+  } catch {
+    return;
   }
 
   const startCwd =
-    typeof input.cwd === 'string' && input.cwd.length > 0 ? input.cwd : process.cwd();
+    typeof payload['cwd'] === 'string' && (payload['cwd'] as string).length > 0
+      ? (payload['cwd'] as string)
+      : process.cwd();
   const root = findRepoRoot(startCwd);
   const paths = repoPaths(root);
 
   try {
+    const sessionId = assertValidSessionId(payload['session_id']);
+    const input: HookInput = {
+      session_id: sessionId,
+      ...(typeof payload['transcript_path'] === 'string'
+        ? { transcript_path: payload['transcript_path'] as string }
+        : {}),
+      ...(typeof payload['hook_event_name'] === 'string'
+        ? { hook_event_name: payload['hook_event_name'] as string }
+        : {}),
+      ...(typeof payload['cwd'] === 'string' ? { cwd: payload['cwd'] as string } : {}),
+    };
     const result = await captureSession(input, { sessionsDir: paths.sessionsDir });
     if (result.status === 'secret-scan-blocked') {
       process.stderr.write(

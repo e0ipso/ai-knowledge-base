@@ -10,6 +10,7 @@ const exec = promisify(execFile);
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '../..');
 const hookPath = join(repoRoot, 'dist/hooks/kb-capture.mjs');
+const HOOK_SESS = '66666666-6666-4666-8666-666666666666';
 
 async function gitInit(dir: string): Promise<void> {
   await exec('git', ['init', '-q'], { cwd: dir });
@@ -88,7 +89,7 @@ describe('kb-capture hook (spawned)', () => {
     const result = await runHook(
       sandbox,
       {
-        session_id: 's1',
+        session_id: HOOK_SESS,
         transcript_path: transcript,
         hook_event_name: 'Stop',
       },
@@ -104,7 +105,7 @@ describe('kb-capture hook (spawned)', () => {
     writeTranscript(transcript);
 
     const result = await runHook(sandbox, {
-      session_id: 's1',
+      session_id: HOOK_SESS,
       transcript_path: transcript,
       hook_event_name: 'Stop',
       cwd: sandbox,
@@ -115,7 +116,7 @@ describe('kb-capture hook (spawned)', () => {
 
   it('exits 0 on missing transcript without throwing', async () => {
     const result = await runHook(sandbox, {
-      session_id: 's1',
+      session_id: HOOK_SESS,
       transcript_path: join(sandbox, 'does-not-exist.jsonl'),
       hook_event_name: 'Stop',
       cwd: sandbox,

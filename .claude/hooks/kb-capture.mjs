@@ -140,16 +140,23 @@ function writeSessionLog(sessionsDir, filename, contents) {
 function buildSessionLogFilename(capturedAt, sessionId) {
   const d = new Date(capturedAt);
   const stamp = `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}-${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}`;
-  return `${stamp}-${shortSessionId(sessionId)}.md`;
+  return `${stamp}-${sessionId}.md`;
 }
 function findSessionLogBySessionId(sessionsDir, sessionId) {
   if (!existsSync2(sessionsDir)) return null;
-  const suffix = `-${shortSessionId(sessionId)}.md`;
+  const suffix = `-${sessionId}.md`;
   const matches = readdirSync(sessionsDir).filter((f) => f.endsWith(suffix)).sort();
   return matches[0] ?? null;
 }
-function shortSessionId(sessionId) {
-  return sessionId.replace(/[^a-z0-9]/gi, "").slice(0, 12) || "session";
+var UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+function assertValidSessionId(sessionId) {
+  if (typeof sessionId !== "string" || sessionId.length === 0) {
+    throw new Error("session_id must be a non-empty string");
+  }
+  if (!UUID_V4_RE.test(sessionId)) {
+    throw new Error(`session_id "${sessionId}" is not a UUID v4`);
+  }
+  return sessionId.toLowerCase();
 }
 function pad(n) {
   return n.toString().padStart(2, "0");
@@ -232,7 +239,7 @@ async function captureSession(input, ctx) {
     };
   }
   const capturedAt = (ctx.now?.() ?? /* @__PURE__ */ new Date()).toISOString();
-  const sessionId = typeof input.session_id === "string" && input.session_id.length > 0 ? input.session_id : hash.slice(7, 19);
+  const sessionId = input.session_id;
   const existingFilename = findSessionLogBySessionId(ctx.sessionsDir, sessionId);
   const filename = existingFilename ?? buildSessionLogFilename(capturedAt, sessionId);
   const body = renderSessionLog({
@@ -307,18 +314,24 @@ async function main() {
   const deadline = setTimeout(() => process.exit(0), HARD_DEADLINE_MS);
   deadline.unref();
   const raw = await readStdin();
-  let input = {};
-  if (raw.trim().length > 0) {
-    try {
-      input = JSON.parse(raw);
-    } catch {
-      return;
-    }
+  if (raw.trim().length === 0) return;
+  let payload;
+  try {
+    payload = JSON.parse(raw);
+  } catch {
+    return;
   }
-  const startCwd = typeof input.cwd === "string" && input.cwd.length > 0 ? input.cwd : process.cwd();
+  const startCwd = typeof payload["cwd"] === "string" && payload["cwd"].length > 0 ? payload["cwd"] : process.cwd();
   const root = findRepoRoot(startCwd);
   const paths = repoPaths(root);
   try {
+    const sessionId = assertValidSessionId(payload["session_id"]);
+    const input = {
+      session_id: sessionId,
+      ...typeof payload["transcript_path"] === "string" ? { transcript_path: payload["transcript_path"] } : {},
+      ...typeof payload["hook_event_name"] === "string" ? { hook_event_name: payload["hook_event_name"] } : {},
+      ...typeof payload["cwd"] === "string" ? { cwd: payload["cwd"] } : {}
+    };
     const result = await captureSession(input, { sessionsDir: paths.sessionsDir });
     if (result.status === "secret-scan-blocked") {
       process.stderr.write(

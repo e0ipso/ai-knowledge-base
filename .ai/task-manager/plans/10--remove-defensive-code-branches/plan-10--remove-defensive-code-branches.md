@@ -307,9 +307,9 @@ graph TD
 **Parallel Tasks:**
 - ✔️ Task 4: Replace queue + retry rotation with pending-frontmatter sweep (depends on: 3) (completed)
 
-### Phase 3: SessionId boundary
+### ✅ Phase 3: SessionId boundary
 **Parallel Tasks:**
-- Task 6: Single assertValidSessionId boundary check (depends on: 4)
+- ✔️ Task 6: Single assertValidSessionId boundary check (depends on: 4) (completed)
 
 ### Phase 4: Documentation
 **Parallel Tasks:**

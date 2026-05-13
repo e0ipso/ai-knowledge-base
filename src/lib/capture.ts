@@ -12,7 +12,7 @@ import {
 import { parseTranscriptJsonl, renderRoleTagged } from './transcript.js';
 
 export interface HookInput {
-  session_id?: string;
+  session_id: string;
   transcript_path?: string;
   hook_event_name?: string;
   cwd?: string;
@@ -84,10 +84,7 @@ export async function captureSession(
   }
 
   const capturedAt = (ctx.now?.() ?? new Date()).toISOString();
-  const sessionId =
-    typeof input.session_id === 'string' && input.session_id.length > 0
-      ? input.session_id
-      : hash.slice(7, 19);
+  const sessionId = input.session_id;
   // Stop fires per-turn, so a multi-turn session would otherwise produce one
   // log file per turn. Reuse the existing file for this session_id; the new
   // transcript is a superset of the previous capture.

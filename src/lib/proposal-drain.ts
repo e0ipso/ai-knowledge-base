@@ -217,8 +217,7 @@ export function buildProposalPrompt(template: string, transcript: string): strin
 
 export function proposalLogPath(logsDir: string, sessionId: string, when: Date): string {
   const stamp = isoToCompactStamp(when);
-  const safe = sessionId.replace(/[^a-z0-9-]/gi, '').slice(0, 24) || 'session';
-  return join(logsDir, 'proposal', `${safe}__${stamp}.jsonl`);
+  return join(logsDir, 'proposal', `${sessionId}__${stamp}.jsonl`);
 }
 
 function isoToCompactStamp(d: Date): string {

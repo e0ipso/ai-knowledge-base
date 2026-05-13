@@ -33,6 +33,12 @@ function makeTranscript(dir: string): string {
   return path;
 }
 
+const SESS_1 = '11111111-1111-4111-8111-111111111111';
+const SESS_X = '22222222-2222-4222-8222-222222222222';
+const SESS_SECRET = '33333333-3333-4333-8333-333333333333';
+const SESS_MULTI = '44444444-4444-4444-8444-444444444444';
+const SESS_PC = '55555555-5555-4555-8555-555555555555';
+
 describe('captureSession', () => {
   let sandbox: string;
   let sessionsDir: string;
@@ -49,7 +55,7 @@ describe('captureSession', () => {
   it('writes a session log with pending frontmatter on a fresh capture', async () => {
     const result = await captureSession(
       {
-        session_id: 'sess-1',
+        session_id: SESS_1,
         transcript_path: transcriptPath,
         hook_event_name: 'Stop',
       },
@@ -70,7 +76,7 @@ describe('captureSession', () => {
       secret_scan_status: string;
       transcript_hash: string;
     };
-    expect(fm.session_id).toBe('sess-1');
+    expect(fm.session_id).toBe(SESS_1);
     expect(fm.captured_by).toBe('stop');
     expect(fm.proposal_status).toBe('pending');
     expect(fm.secret_scan_status).toBe('clean');
@@ -80,12 +86,12 @@ describe('captureSession', () => {
   it('overwrites the same session log when a repeat fires for the same session_id', async () => {
     const ctx = { sessionsDir, scan: fakeScanner('clean') };
     const first = await captureSession(
-      { session_id: 'x', transcript_path: transcriptPath, hook_event_name: 'Stop' },
+      { session_id: SESS_X, transcript_path: transcriptPath, hook_event_name: 'Stop' },
       ctx
     );
     expect(first.status).toBe('written');
     const second = await captureSession(
-      { session_id: 'x', transcript_path: transcriptPath, hook_event_name: 'SessionEnd' },
+      { session_id: SESS_X, transcript_path: transcriptPath, hook_event_name: 'SessionEnd' },
       ctx
     );
     expect(second.status).toBe('written');
@@ -104,7 +110,7 @@ describe('captureSession', () => {
       ].join('\n')
     );
     const result = await captureSession(
-      { session_id: 'secret-1', transcript_path: transcriptPath, hook_event_name: 'Stop' },
+      { session_id: SESS_SECRET, transcript_path: transcriptPath, hook_event_name: 'Stop' },
       { sessionsDir, scan: fakeScanner('redact') }
     );
     expect(result.status).toBe('written');
@@ -120,7 +126,7 @@ describe('captureSession', () => {
 
   it('aborts without writing when the scanner is blocked', async () => {
     const result = await captureSession(
-      { session_id: 'x', transcript_path: transcriptPath, hook_event_name: 'Stop' },
+      { session_id: SESS_X, transcript_path: transcriptPath, hook_event_name: 'Stop' },
       { sessionsDir, scan: fakeScanner('blocked') }
     );
     expect(result.status).toBe('secret-scan-blocked');
@@ -130,7 +136,7 @@ describe('captureSession', () => {
 
   it('returns no-transcript when transcript_path is missing', async () => {
     const result = await captureSession(
-      { session_id: 'x', transcript_path: '/nonexistent/path.jsonl', hook_event_name: 'Stop' },
+      { session_id: SESS_X, transcript_path: '/nonexistent/path.jsonl', hook_event_name: 'Stop' },
       { sessionsDir, scan: fakeScanner('clean') }
     );
     expect(result.status).toBe('no-transcript');
@@ -139,7 +145,7 @@ describe('captureSession', () => {
   it('returns no-content when the transcript has no user or assistant text', async () => {
     writeFileSync(transcriptPath, JSON.stringify({ type: 'system', content: 'nothing' }));
     const result = await captureSession(
-      { session_id: 'x', transcript_path: transcriptPath, hook_event_name: 'Stop' },
+      { session_id: SESS_X, transcript_path: transcriptPath, hook_event_name: 'Stop' },
       { sessionsDir, scan: fakeScanner('clean') }
     );
     expect(result.status).toBe('no-content');
@@ -148,7 +154,7 @@ describe('captureSession', () => {
   it('reuses the existing session log file when the same session_id captures again with new turns', async () => {
     const ctx = { sessionsDir, scan: fakeScanner('clean') };
     const first = await captureSession(
-      { session_id: 'multi', transcript_path: transcriptPath, hook_event_name: 'Stop' },
+      { session_id: SESS_MULTI, transcript_path: transcriptPath, hook_event_name: 'Stop' },
       ctx
     );
     expect(first.status).toBe('written');
@@ -174,7 +180,7 @@ describe('captureSession', () => {
     );
 
     const second = await captureSession(
-      { session_id: 'multi', transcript_path: transcriptPath, hook_event_name: 'Stop' },
+      { session_id: SESS_MULTI, transcript_path: transcriptPath, hook_event_name: 'Stop' },
       ctx
     );
     expect(second.status).toBe('written');
@@ -191,7 +197,7 @@ describe('captureSession', () => {
 
   it('uses captured_by derived from hook_event_name', async () => {
     const result = await captureSession(
-      { session_id: 'pc', transcript_path: transcriptPath, hook_event_name: 'PreCompact' },
+      { session_id: SESS_PC, transcript_path: transcriptPath, hook_event_name: 'PreCompact' },
       { sessionsDir, scan: fakeScanner('clean') }
     );
     expect(result.status).toBe('written');

@@ -62,15 +62,17 @@ export function writeSessionLog(sessionsDir: string, filename: string, contents:
 
 /**
  * Builds a stable, sortable filename for a session log:
- * `YYYYMMDD-HHmm-<id>.md`. The id is sanitized and truncated; the
- * timestamp comes from `capturedAt` (UTC) so logs sort chronologically.
+ * `YYYYMMDD-HHmm-<sessionId>.md`. The timestamp comes from `capturedAt`
+ * (UTC) so logs sort chronologically. `sessionId` must already be a
+ * validated UUID v4 (see `assertValidSessionId`); UUID dashes are
+ * filename-safe.
  */
 export function buildSessionLogFilename(capturedAt: string, sessionId: string): string {
   const d = new Date(capturedAt);
   const stamp =
     `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}` +
     `-${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}`;
-  return `${stamp}-${shortSessionId(sessionId)}.md`;
+  return `${stamp}-${sessionId}.md`;
 }
 
 /**
@@ -84,15 +86,27 @@ export function findSessionLogBySessionId(
   sessionId: string
 ): string | null {
   if (!existsSync(sessionsDir)) return null;
-  const suffix = `-${shortSessionId(sessionId)}.md`;
+  const suffix = `-${sessionId}.md`;
   const matches = readdirSync(sessionsDir)
     .filter(f => f.endsWith(suffix))
     .sort();
   return matches[0] ?? null;
 }
 
-function shortSessionId(sessionId: string): string {
-  return sessionId.replace(/[^a-z0-9]/gi, '').slice(0, 12) || 'session';
+const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+/**
+ * Validates a session_id once at the hook boundary. Throws on non-string,
+ * empty, or non-UUID-v4 input. Returns the lowercased UUID for downstream use.
+ */
+export function assertValidSessionId(sessionId: unknown): string {
+  if (typeof sessionId !== 'string' || sessionId.length === 0) {
+    throw new Error('session_id must be a non-empty string');
+  }
+  if (!UUID_V4_RE.test(sessionId)) {
+    throw new Error(`session_id "${sessionId}" is not a UUID v4`);
+  }
+  return sessionId.toLowerCase();
 }
 
 function pad(n: number): string {

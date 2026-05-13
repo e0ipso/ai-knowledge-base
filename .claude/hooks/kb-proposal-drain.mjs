@@ -588,8 +588,7 @@ function buildProposalPrompt(template, transcript) {
 }
 function proposalLogPath(logsDir, sessionId, when) {
   const stamp = isoToCompactStamp(when);
-  const safe = sessionId.replace(/[^a-z0-9-]/gi, "").slice(0, 24) || "session";
-  return join3(logsDir, "proposal", `${safe}__${stamp}.jsonl`);
+  return join3(logsDir, "proposal", `${sessionId}__${stamp}.jsonl`);
 }
 function isoToCompactStamp(d) {
   const pad = (n) => n.toString().padStart(2, "0");
