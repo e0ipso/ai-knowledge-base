@@ -18,7 +18,7 @@
           { "type": "ci", "release": false },
           { "type": "chore", "release": false },
           { "scope": "no-release", "release": false },
-          { "breaking": true, "release": "major" }
+          { "breaking": true, "release": "minor" }
         ]
       }
     ],
