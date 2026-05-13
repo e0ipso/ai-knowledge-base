@@ -18,6 +18,15 @@
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kb-capture.mjs\""
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kb-lint-tick.mjs\"",
+            "async": true
+          }
+        ]
       }
     ],
     "PreCompact": [

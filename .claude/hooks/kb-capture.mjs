@@ -99,24 +99,23 @@ async function scanAndRedact(text, timeoutMs = 1e3) {
 // src/lib/session-log.ts
 import { existsSync as existsSync2, mkdirSync, readdirSync, writeFileSync } from "fs";
 import { join as join2 } from "path";
+import { dump } from "js-yaml";
 function renderSessionLog(input) {
-  const lines = [
-    "---",
-    "schema_version: 1",
-    `session_id: ${yamlString(input.sessionId)}`,
-    `captured_by: ${input.capturedBy}`,
-    `captured_at: ${yamlString(input.capturedAt)}`,
-    `transcript_hash: ${yamlString(input.transcriptHash)}`,
-    "proposal_status: pending",
-    "proposal_completed_at: null",
-    "proposal_error: null",
-    "proposal_log: null",
-    `secret_scan_status: ${input.secretScanStatus}`,
-    "proposals:",
-    "  practice: []",
-    "  map: []",
-    "---",
-    "",
+  const frontmatter = {
+    schema_version: 1,
+    session_id: input.sessionId,
+    captured_by: input.capturedBy,
+    captured_at: input.capturedAt,
+    transcript_hash: input.transcriptHash,
+    proposal_status: "pending",
+    proposal_completed_at: null,
+    proposal_error: null,
+    proposal_log: null,
+    secret_scan_status: input.secretScanStatus,
+    proposals: { practice: [], map: [] }
+  };
+  const yaml = dump(frontmatter, { lineWidth: -1, noRefs: true, sortKeys: false });
+  const bodyLines = [
     "## Transcript",
     "",
     input.body.trimEnd(),
@@ -126,10 +125,9 @@ function renderSessionLog(input) {
     "(populated by proposal worker)",
     ""
   ];
-  return lines.join("\n");
-}
-function yamlString(value) {
-  return JSON.stringify(value);
+  return `---
+${yaml}---
+${bodyLines.join("\n")}`;
 }
 function writeSessionLog(sessionsDir, filename, contents) {
   mkdirSync(sessionsDir, { recursive: true });
@@ -292,17 +290,13 @@ function repoPaths(root) {
     sessionsDir: join3(kbDir, "_sessions"),
     logsDir: join3(kbDir, "_logs"),
     nodesDir: join3(kbDir, "nodes"),
+    conflictsDir: join3(kbDir, "conflicts"),
     claudeDir,
     claudeCommandsDir: join3(claudeDir, "commands"),
     claudeSkillsDir: join3(claudeDir, "skills"),
     claudeHooksDir: join3(claudeDir, "hooks"),
     claudeSettingsFile: join3(claudeDir, "settings.json"),
-    gitignoreFile: join3(root, ".gitignore"),
-    secretlintrcFile: join3(root, ".secretlintrc.json"),
-    huskyDir: join3(root, ".husky"),
-    huskyPreCommitFile: join3(root, ".husky", "pre-commit"),
-    packageJsonFile: join3(root, "package.json"),
-    lintstagedrcFile: join3(root, ".lintstagedrc.cjs")
+    gitignoreFile: join3(root, ".gitignore")
   };
 }
 

@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "package": "@e0ipso/ai-knowledge-base",
-  "version": "2.0.1",
-  "installed_at": "2026-05-12T19:37:51.376Z",
+  "version": "0.2.0",
+  "installed_at": "2026-05-13T22:20:44.178Z",
   "assistants": [
     "claude"
   ]

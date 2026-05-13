@@ -6,26 +6,8 @@ import { join as join4 } from "path";
 import { execa } from "execa";
 import { createWriteStream, mkdirSync } from "fs";
 import { dirname } from "path";
-import "stream";
 import split2 from "split2";
 var DEFAULT_TIMEOUT_MS = 6e4;
-var defaultSpawn = (command, ctx) => {
-  const proc = execa(command, ctx.args, {
-    input: ctx.stdin,
-    env: ctx.env,
-    timeout: ctx.timeoutMs,
-    stdin: "pipe",
-    stdout: "pipe",
-    reject: false
-  });
-  const stdout = proc.stdout;
-  const result = proc.then((r) => ({
-    exitCode: typeof r.exitCode === "number" ? r.exitCode : void 0,
-    failed: r.failed === true,
-    timedOut: r.timedOut === true
-  }));
-  return { stdout, result };
-};
 async function runHeadlessClaude(promptBody, stdin, schema, opts = {}) {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const allowedTools = opts.allowedTools ?? [];
@@ -44,19 +26,26 @@ async function runHeadlessClaude(promptBody, stdin, schema, opts = {}) {
     ...opts.env ?? process.env,
     KB_BUILDER_INTERNAL: "1"
   };
-  const spawn = opts.spawn ?? defaultSpawn;
   let logStream = null;
   if (opts.logFile) {
     mkdirSync(dirname(opts.logFile), { recursive: true });
     logStream = createWriteStream(opts.logFile, { encoding: "utf8", flags: "a" });
   }
   const messages = [];
-  const { stdout, result: resultPromise } = spawn("claude", {
-    args,
-    stdin,
+  const proc = execa("claude", args, {
+    input: stdin,
     env,
-    timeoutMs
+    timeout: timeoutMs,
+    stdin: "pipe",
+    stdout: "pipe",
+    reject: false
   });
+  const stdout = proc.stdout;
+  const resultPromise = proc.then((r) => ({
+    exitCode: typeof r.exitCode === "number" ? r.exitCode : void 0,
+    failed: r.failed === true,
+    timedOut: r.timedOut === true
+  }));
   const splitter = stdout.pipe(split2());
   splitter.on("data", (line) => {
     const trimmed = line.trim();
@@ -162,23 +151,18 @@ function repoPaths(root) {
     sessionsDir: join(kbDir, "_sessions"),
     logsDir: join(kbDir, "_logs"),
     nodesDir: join(kbDir, "nodes"),
+    conflictsDir: join(kbDir, "conflicts"),
     claudeDir,
     claudeCommandsDir: join(claudeDir, "commands"),
     claudeSkillsDir: join(claudeDir, "skills"),
     claudeHooksDir: join(claudeDir, "hooks"),
     claudeSettingsFile: join(claudeDir, "settings.json"),
-    gitignoreFile: join(root, ".gitignore"),
-    secretlintrcFile: join(root, ".secretlintrc.json"),
-    huskyDir: join(root, ".husky"),
-    huskyPreCommitFile: join(root, ".husky", "pre-commit"),
-    packageJsonFile: join(root, "package.json"),
-    lintstagedrcFile: join(root, ".lintstagedrc.cjs")
+    gitignoreFile: join(root, ".gitignore")
   };
 }
 
 // src/lib/settings.ts
 import { existsSync as existsSync2, readFileSync as readFileSync2 } from "fs";
-import { homedir } from "os";
 import { join as join2 } from "path";
 import yaml from "js-yaml";
 
@@ -221,15 +205,8 @@ var ProposalOutputSchema = z.object({
   practice: z.array(ProposalCandidateSchema),
   map: z.array(ProposalCandidateSchema)
 });
-var StateLockSchema = z.object({
-  name: z.string(),
-  pid: z.number().int(),
-  acquired_at: z.string(),
-  ttl_ms: z.number().int().positive()
-});
 var StateFileSchema = z.object({
   schema_version: z.literal(1),
-  lock: StateLockSchema.nullable().optional(),
   last_nudged_at: z.string().nullable().optional()
 });
 var LintStateFileSchema = z.object({
@@ -300,32 +277,9 @@ var BootstrapDocEntrySchema = z.object({
   last_processed_at: z.string(),
   produced_nodes: z.array(z.string())
 });
-var ConflictReportSchema = z.object({
-  id: z.string(),
-  detected_at: z.string(),
-  run_id: z.string(),
-  candidate_origin: z.string(),
-  target_node_id: z.string().nullable(),
-  rationale: z.string(),
-  proposed_node: CuratorProposedNodeSchema.nullable()
-});
-var PendingConflictsFileSchema = z.object({
-  schema_version: z.literal(1),
-  conflicts: z.array(ConflictReportSchema)
-});
-var FailureReportSchema = z.object({
-  reason: z.enum(["add_collision", "modify_missing_target"]),
-  candidate_origin: z.string(),
-  node_id: z.string(),
-  detail: z.string()
-});
 var SettingsSchema = z.object({
   schema_version: z.literal(1),
-  drainBound: z.number().int().positive().optional(),
-  proposalTimeout: z.number().int().positive().optional(),
-  lockTtlMs: z.number().int().positive().optional(),
   curationThreshold: z.number().int().positive().optional(),
-  bootstrapTokenBudget: z.number().int().positive().optional(),
   logsRetentionDays: z.number().int().positive().optional(),
   lintEveryNSessions: z.number().int().positive().optional(),
   proposalModel: ModelChoiceSchema.optional(),
@@ -341,29 +295,19 @@ var BootstrapStateSchema = z.object({
 
 // src/lib/settings.ts
 var SETTINGS_DEFAULTS = {
-  drainBound: 5,
-  proposalTimeout: 6e4,
-  lockTtlMs: 30 * 60 * 1e3,
   curationThreshold: 5,
-  bootstrapTokenBudget: 1e4,
   logsRetentionDays: 30,
   lintEveryNSessions: 50
 };
 var MODEL_CHOICE_KEYS = ["proposalModel", "curatorModel", "bootstrapModel"];
 function resolveSettings(opts = {}) {
   const projectFile = opts.projectFile ?? null;
-  const userFile = opts.userFile ?? defaultUserConfigPath();
-  const warnings = [];
-  const user = loadFile(userFile, warnings);
-  const project = projectFile ? loadFile(projectFile, warnings) : null;
+  const project = projectFile ? loadFile(projectFile) : null;
   const effective = { ...SETTINGS_DEFAULTS };
-  applyOverrides(effective, user);
   applyOverrides(effective, project);
   return {
     settings: effective,
-    projectFile: projectFile ?? null,
-    userFile: existsSync2(userFile) ? userFile : null,
-    warnings
+    projectFile
   };
 }
 function applyOverrides(target, src) {
@@ -379,124 +323,70 @@ function applyOverrides(target, src) {
     if (value !== void 0) target[key] = value;
   }
 }
-function loadFile(file, warnings) {
+function loadFile(file) {
   if (!existsSync2(file)) return null;
-  let raw;
-  try {
-    raw = readFileSync2(file, "utf8");
-  } catch (err) {
-    warnings.push(`settings file unreadable (${file}): ${err.message}`);
-    return null;
-  }
+  const raw = readFileSync2(file, "utf8");
   let parsed;
   try {
     parsed = yaml.load(raw);
   } catch (err) {
-    warnings.push(`settings file is not valid YAML (${file}): ${err.message}`);
-    return null;
+    throw new Error(`settings file is not valid YAML (${file}): ${err.message}`);
   }
   const result = SettingsSchema.safeParse(parsed);
   if (!result.success) {
-    warnings.push(`settings file failed schema validation (${file}): ${result.error.message}`);
-    return null;
+    throw new Error(`settings file failed schema validation (${file}): ${result.error.message}`);
   }
   return result.data;
-}
-function defaultUserConfigPath(env = process.env) {
-  const xdg = env["XDG_CONFIG_HOME"];
-  const base = xdg && xdg.length > 0 ? xdg : join2(homedir(), ".config");
-  return join2(base, "ai-knowledge-base", "config.yaml");
 }
 
 // src/lib/proposal-drain.ts
 import matter from "gray-matter";
 import { existsSync as existsSync4, readFileSync as readFileSync4, readdirSync, writeFileSync as writeFileSync2 } from "fs";
 import { join as join3 } from "path";
+import lockfile from "proper-lockfile";
 
-// src/lib/state.ts
+// src/lib/fs-atomic.ts
 import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync3, renameSync, writeFileSync } from "fs";
 import { dirname as dirname3 } from "path";
-var DEFAULT_LOCK_TTL_MS = 30 * 60 * 1e3;
-function readState(file) {
-  if (!existsSync3(file)) return { schema_version: 1 };
-  try {
-    const raw = JSON.parse(readFileSync3(file, "utf8"));
-    const parsed = StateFileSchema.safeParse(raw);
-    if (parsed.success) return parsed.data;
-    return { schema_version: 1 };
-  } catch {
-    return { schema_version: 1 };
-  }
-}
-function writeState(file, state) {
-  mkdirSync2(dirname3(file), { recursive: true });
-  const tmp = `${file}.tmp`;
-  writeFileSync(tmp, `${JSON.stringify(state, null, 2)}
-`);
-  renameSync(tmp, file);
-}
-function acquireLock(file, opts) {
-  const state = readState(file);
-  const existing = state.lock ?? null;
-  const ttlMs = opts.ttlMs ?? DEFAULT_LOCK_TTL_MS;
-  const nowMs = opts.now.getTime();
-  if (existing) {
-    const acquiredMs = Date.parse(existing.acquired_at);
-    const age = Number.isFinite(acquiredMs) ? nowMs - acquiredMs : Number.POSITIVE_INFINITY;
-    const expired = age > existing.ttl_ms;
-    if (!expired && existing.pid !== opts.pid) {
-      return false;
-    }
-  }
-  const lock = {
-    name: opts.name,
-    pid: opts.pid,
-    acquired_at: opts.now.toISOString(),
-    ttl_ms: ttlMs
-  };
-  writeState(file, { ...state, lock });
-  return true;
-}
-function releaseLock(file, name, pid) {
-  const state = readState(file);
-  if (!state.lock) return;
-  if (state.lock.name !== name || state.lock.pid !== pid) return;
-  const next = { ...state, lock: null };
-  writeState(file, next);
+
+// src/lib/state.ts
+var STATE_LOCK_OPTIONS = { stale: 30 * 60 * 1e3, realpath: false };
+
+// src/lib/time.ts
+function compactStamp(d) {
+  const pad = (n) => n.toString().padStart(2, "0");
+  return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
 }
 
 // src/lib/proposal-drain.ts
 var DEFAULT_MAX_ENTRIES = 5;
 var DEFAULT_TIMEOUT_MS2 = 6e4;
-var PROPOSAL_LOCK_NAME = "proposal-drain";
 var MAX_PROPOSAL_ERROR_LEN = 500;
 var TRANSCRIPT_PLACEHOLDER = "[TRANSCRIPT PLACEHOLDER - substituted at runtime]";
 async function drainProposalQueue(ctx) {
-  const now = ctx.now ?? (() => /* @__PURE__ */ new Date());
   const maxEntries = ctx.maxEntries ?? DEFAULT_MAX_ENTRIES;
   const timeoutMs = ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS2;
-  const pid = ctx.pid ?? process.pid;
-  const lockHeld = acquireLock(ctx.stateFile, {
-    name: PROPOSAL_LOCK_NAME,
-    pid,
-    now: now(),
-    ...ctx.lockTtlMs !== void 0 ? { ttlMs: ctx.lockTtlMs } : {}
-  });
-  if (!lockHeld) {
-    return { status: "locked", processed: [], remaining: countPending(ctx.sessionsDir) };
+  const stateFile = join3(ctx.paths.stateDir, "state.json");
+  let release;
+  try {
+    release = await lockfile.lock(stateFile, STATE_LOCK_OPTIONS);
+  } catch (err) {
+    if (err.code === "ELOCKED") {
+      return { status: "locked", processed: [], remaining: countPending(ctx.paths.sessionsDir) };
+    }
+    throw err;
   }
   const processed = [];
   try {
-    const pending = listPending(ctx.sessionsDir);
+    const pending = listPending(ctx.paths.sessionsDir);
     for (const entry of pending) {
       if (processed.length >= maxEntries) break;
       const result = await processSessionLog({
         entry,
-        sessionsDir: ctx.sessionsDir,
-        logsDir: ctx.logsDir,
+        sessionsDir: ctx.paths.sessionsDir,
+        logsDir: ctx.paths.logsDir,
         promptTemplate: ctx.promptTemplate,
         runner: ctx.runner,
-        now,
         timeoutMs,
         ...ctx.model !== void 0 ? { model: ctx.model } : {},
         ...ctx.effort !== void 0 ? { effort: ctx.effort } : {}
@@ -504,9 +394,9 @@ async function drainProposalQueue(ctx) {
       processed.push(result);
     }
   } finally {
-    releaseLock(ctx.stateFile, PROPOSAL_LOCK_NAME, pid);
+    if (release !== void 0) await release();
   }
-  const remaining = countPending(ctx.sessionsDir);
+  const remaining = countPending(ctx.paths.sessionsDir);
   return { status: "completed", processed, remaining };
 }
 function listPending(sessionsDir) {
@@ -535,11 +425,11 @@ function readFrontmatter(file) {
   }
 }
 async function processSessionLog(args) {
-  const { entry, sessionsDir, logsDir, promptTemplate, runner, now, timeoutMs, model, effort } = args;
+  const { entry, sessionsDir, logsDir, promptTemplate, runner, timeoutMs, model, effort } = args;
   const parsed = matter(readFileSync4(entry.file, "utf8"));
   const transcript = extractTranscript(parsed.content);
   const prompt = buildProposalPrompt(promptTemplate, transcript);
-  const startedAt = now();
+  const startedAt = /* @__PURE__ */ new Date();
   const logFile = proposalLogPath(logsDir, entry.sessionId, startedAt);
   try {
     const out = await runner(prompt, "", ProposalOutputSchema, {
@@ -551,7 +441,7 @@ async function processSessionLog(args) {
     });
     writeSessionLogFrontmatter(entry.file, parsed, {
       proposal_status: "done",
-      proposal_completed_at: now().toISOString(),
+      proposal_completed_at: (/* @__PURE__ */ new Date()).toISOString(),
       proposal_error: null,
       proposal_log: relativeLogPath(sessionsDir, logFile),
       proposals: { practice: out.practice, map: out.map }
@@ -562,7 +452,7 @@ async function processSessionLog(args) {
     const truncated = message.length > MAX_PROPOSAL_ERROR_LEN ? `${message.slice(0, MAX_PROPOSAL_ERROR_LEN)}...` : message;
     writeSessionLogFrontmatter(entry.file, parsed, {
       proposal_status: "failed",
-      proposal_completed_at: now().toISOString(),
+      proposal_completed_at: (/* @__PURE__ */ new Date()).toISOString(),
       proposal_error: truncated,
       proposal_log: relativeLogPath(sessionsDir, logFile)
     });
@@ -587,12 +477,8 @@ function buildProposalPrompt(template, transcript) {
   return template.replace(TRANSCRIPT_PLACEHOLDER, transcript);
 }
 function proposalLogPath(logsDir, sessionId, when) {
-  const stamp = isoToCompactStamp(when);
+  const stamp = compactStamp(when);
   return join3(logsDir, "proposal", `${sessionId}__${stamp}.jsonl`);
-}
-function isoToCompactStamp(d) {
-  const pad = (n) => n.toString().padStart(2, "0");
-  return `${d.getUTCFullYear()}${pad(d.getUTCMonth() + 1)}${pad(d.getUTCDate())}T${pad(d.getUTCHours())}${pad(d.getUTCMinutes())}${pad(d.getUTCSeconds())}Z`;
 }
 function relativeLogPath(sessionsDir, logFile) {
   const kbRoot = join3(sessionsDir, "..");
@@ -645,14 +531,9 @@ async function main() {
   try {
     const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
     const summary = await drainProposalQueue({
-      sessionsDir: paths.sessionsDir,
-      logsDir: paths.logsDir,
-      stateFile: join4(paths.stateDir, "state.json"),
+      paths,
       promptTemplate,
       runner,
-      maxEntries: settings.drainBound,
-      timeoutMs: settings.proposalTimeout,
-      lockTtlMs: settings.lockTtlMs,
       ...settings.proposalModel ? { model: settings.proposalModel.name, effort: settings.proposalModel.effort } : {}
     });
     if (summary.status === "locked") {

@@ -1,7 +1,7 @@
 ---
 name: kb-curate
 description: Curate pending session logs into knowledge-base nodes by running the `ai-knowledge-base curate` CLI, then resolve any contradictions surfaced by the curator with the user in-session. Use when the user wants to process accumulated session captures, or when the SessionStart nudge reports pending session logs.
-allowed-tools: Bash(ai-knowledge-base curate:*), Read, Edit, Write
+allowed-tools: Bash(ai-knowledge-base curate:*), Read
 ---
 
 # kb-curate
@@ -18,36 +18,38 @@ Run `ai-knowledge-base curate` in the project root. The command:
 - Batches every session log whose `proposal_status: done` and which has not yet been curated.
 - Spawns `claude -p` per batch with the curator prompt (no recursion: `KB_BUILDER_INTERNAL=1`).
 - Writes node files directly to `.ai/knowledge-base/nodes/<kind>/` for `add` and `modify` actions.
-- Records each `contradict` action in `.ai/knowledge-base/.state/pending-conflicts.json` **without writing the conflicting node to disk**.
+- Writes one markdown file per `contradict` action to `.ai/knowledge-base/conflicts/<id>.md` **without writing the conflicting node to disk**.
 - Regenerates `INDEX.md` and `GRAPH.md` from the resulting `nodes/` tree.
 
 ### 2. Report the summary
 
-Tell the user the curator's headline numbers (nodes written, drops, batches, run id). If the command reported any failures (`add_collision` or `modify_missing_target`), surface those clearly - the user may need to clean up the offending candidate manually.
+Tell the user the curator's headline numbers (nodes written, drops, batches, run id). If the command reported any failures (`add_collision` or `modify_missing_target`), surface those clearly so the user may need to clean up the offending candidate manually.
 
 ### 3. Resolve pending conflicts
 
-Read `.ai/knowledge-base/.state/pending-conflicts.json`. For every entry in `conflicts`:
+List every markdown file under `.ai/knowledge-base/conflicts/` (sorted by filename). For each file, read its frontmatter; skip files whose `status` is not `pending`. If no pending files remain, skip this section.
 
-1. Read the existing node referenced by `target_node_id` (under `nodes/<kind>/<target_node_id>.md`).
-2. Present both sides to the user concisely:
-   - **Existing node** - title, summary, the relevant body excerpt.
-   - **Proposed contradiction** - `proposed_node.title`, `summary`, `body`, plus the curator's `rationale`.
-3. Ask the user to choose one of:
-   - **Supersede** - overwrite the existing node with the proposed content. Set the new node's `supersedes` field to the old id and refresh `valid_from`/`updated`. Use `Edit` or `Write`.
-   - **Keep both** - write the proposed content as a new node (different `id`) with `relates_to: [<old-id>]`. Use `Write`.
-   - **Reject** - do nothing on disk; the conflict is dismissed.
-4. Once the user has decided and you've applied (or skipped) the change, **remove the entry from `pending-conflicts.json`**. Use `Edit` to delete just that one entry; never overwrite the whole file with a stale snapshot.
+For every pending entry:
 
-If the user defers a conflict ("I'll think about it"), leave the entry in place. `ai-knowledge-base status` reports the count, so it won't be forgotten.
+1. Read the conflict file. The frontmatter exposes `target_node_id`, `proposed_kind`, `proposed_title`, `candidate_origin`, `run_id`, and `detected_at`. The body has two sections: `## Rationale` and `## Proposed node`.
+2. Read the existing node referenced by `target_node_id` (under `nodes/<kind>/<target_node_id>.md`).
+3. Present both sides to the user concisely:
+   - **Existing node**: title, summary, the relevant body excerpt.
+   - **Proposed contradiction**: `proposed_title`, the rationale, and the proposed body.
+4. Ask the user to choose one of three outcomes:
+   - **Accept the proposal**: edit `nodes/<kind>/<target_node_id>.md` to match the proposed body and frontmatter, then ask the user to `git restore .ai/knowledge-base/conflicts/<id>.md` to discard the conflict file. The user reviews the node change with `git diff` and commits.
+   - **Reject the proposal**: ask the user to `git restore .ai/knowledge-base/conflicts/<id>.md`. The existing node stays as is and the conflict file disappears.
+   - **Keep as record**: ask the user to `git commit` the conflict file. The conflict is preserved in history for later review; the existing node stays as is.
+
+If the user defers a conflict ("I'll think about it"), leave the file alone. It remains in `.ai/knowledge-base/conflicts/` and surfaces again on the next pass.
 
 ### 4. Hand off
 
-Tell the user to review the changed nodes with `git diff nodes/` and commit when they're satisfied. The lint-staged pre-commit hook will regenerate `INDEX.md`/`GRAPH.md` and stage them into the same commit.
+Tell the user to review the changed nodes and conflict files with `git diff` and commit when they're satisfied. The lint-staged pre-commit hook regenerates `INDEX.md`/`GRAPH.md` and stages them into the same commit.
 
 ## Constraints
 
-- The curator wrapper writes directly to `nodes/`. **You** only modify `nodes/` while resolving contradictions, and only with the user's explicit decision per conflict.
-- If `ai-knowledge-base curate` reports `locked`, do not retry - explain that another curate run is in progress.
+- The curator wrapper writes directly to `nodes/`. Conflict resolution edits `nodes/` only when the user accepts a proposal; the conflict files themselves are reviewed via `git diff` and accepted with `git commit` or discarded with `git restore`.
+- If `ai-knowledge-base curate` reports `locked`, do not retry; explain that another curate run is in progress.
 - If no session logs are pending, the command still regenerates INDEX/GRAPH; that's expected, not an error.
-- If `pending-conflicts.json` is missing or has `conflicts: []`, there's nothing to resolve - skip step 3.
+- If `.ai/knowledge-base/conflicts/` is empty or every file has `status` other than `pending`, there's nothing to resolve; skip step 3.

@@ -54,15 +54,8 @@ var ProposalOutputSchema = z.object({
   practice: z.array(ProposalCandidateSchema),
   map: z.array(ProposalCandidateSchema)
 });
-var StateLockSchema = z.object({
-  name: z.string(),
-  pid: z.number().int(),
-  acquired_at: z.string(),
-  ttl_ms: z.number().int().positive()
-});
 var StateFileSchema = z.object({
   schema_version: z.literal(1),
-  lock: StateLockSchema.nullable().optional(),
   last_nudged_at: z.string().nullable().optional()
 });
 var LintStateFileSchema = z.object({
@@ -133,32 +126,9 @@ var BootstrapDocEntrySchema = z.object({
   last_processed_at: z.string(),
   produced_nodes: z.array(z.string())
 });
-var ConflictReportSchema = z.object({
-  id: z.string(),
-  detected_at: z.string(),
-  run_id: z.string(),
-  candidate_origin: z.string(),
-  target_node_id: z.string().nullable(),
-  rationale: z.string(),
-  proposed_node: CuratorProposedNodeSchema.nullable()
-});
-var PendingConflictsFileSchema = z.object({
-  schema_version: z.literal(1),
-  conflicts: z.array(ConflictReportSchema)
-});
-var FailureReportSchema = z.object({
-  reason: z.enum(["add_collision", "modify_missing_target"]),
-  candidate_origin: z.string(),
-  node_id: z.string(),
-  detail: z.string()
-});
 var SettingsSchema = z.object({
   schema_version: z.literal(1),
-  drainBound: z.number().int().positive().optional(),
-  proposalTimeout: z.number().int().positive().optional(),
-  lockTtlMs: z.number().int().positive().optional(),
   curationThreshold: z.number().int().positive().optional(),
-  bootstrapTokenBudget: z.number().int().positive().optional(),
   logsRetentionDays: z.number().int().positive().optional(),
   lintEveryNSessions: z.number().int().positive().optional(),
   proposalModel: ModelChoiceSchema.optional(),
@@ -360,8 +330,31 @@ function compareEntries(a, b) {
 }
 
 // src/lib/lint-state.ts
+import { join as join2 } from "path";
+
+// src/lib/fs-atomic.ts
 import { existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync2, renameSync as renameSync2, writeFileSync as writeFileSync2 } from "fs";
-import { dirname, join as join2 } from "path";
+import { dirname } from "path";
+function atomicWriteJson(file, data) {
+  mkdirSync2(dirname(file), { recursive: true });
+  const tmp = `${file}.tmp`;
+  writeFileSync2(tmp, `${JSON.stringify(data, null, 2)}
+`);
+  renameSync2(tmp, file);
+}
+function readJsonValidated(file, schema, fallback) {
+  if (!existsSync2(file)) return fallback;
+  try {
+    const raw = JSON.parse(readFileSync2(file, "utf8"));
+    const parsed = schema.safeParse(raw);
+    if (parsed.success) return parsed.data;
+    return fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+// src/lib/lint-state.ts
 var DEFAULT_LINT_STATE = {
   schema_version: 1,
   sessions_since_last_lint: 0,
@@ -373,22 +366,10 @@ function lintStateFile(stateDir) {
   return join2(stateDir, "lint-state.json");
 }
 function readLintState(file) {
-  if (!existsSync2(file)) return { ...DEFAULT_LINT_STATE };
-  try {
-    const raw = JSON.parse(readFileSync2(file, "utf8"));
-    const parsed = LintStateFileSchema.safeParse(raw);
-    if (parsed.success) return parsed.data;
-    return { ...DEFAULT_LINT_STATE };
-  } catch {
-    return { ...DEFAULT_LINT_STATE };
-  }
+  return readJsonValidated(file, LintStateFileSchema, { ...DEFAULT_LINT_STATE });
 }
 function writeLintState(file, state) {
-  mkdirSync2(dirname(file), { recursive: true });
-  const tmp = `${file}.tmp`;
-  writeFileSync2(tmp, `${JSON.stringify(state, null, 2)}
-`);
-  renameSync2(tmp, file);
+  atomicWriteJson(file, state);
 }
 
 // src/lib/paths.ts
@@ -425,49 +406,34 @@ function repoPaths(root) {
     sessionsDir: join3(kbDir, "_sessions"),
     logsDir: join3(kbDir, "_logs"),
     nodesDir: join3(kbDir, "nodes"),
+    conflictsDir: join3(kbDir, "conflicts"),
     claudeDir,
     claudeCommandsDir: join3(claudeDir, "commands"),
     claudeSkillsDir: join3(claudeDir, "skills"),
     claudeHooksDir: join3(claudeDir, "hooks"),
     claudeSettingsFile: join3(claudeDir, "settings.json"),
-    gitignoreFile: join3(root, ".gitignore"),
-    secretlintrcFile: join3(root, ".secretlintrc.json"),
-    huskyDir: join3(root, ".husky"),
-    huskyPreCommitFile: join3(root, ".husky", "pre-commit"),
-    packageJsonFile: join3(root, "package.json"),
-    lintstagedrcFile: join3(root, ".lintstagedrc.cjs")
+    gitignoreFile: join3(root, ".gitignore")
   };
 }
 
 // src/lib/settings.ts
 import { existsSync as existsSync4, readFileSync as readFileSync4 } from "fs";
-import { homedir } from "os";
 import { join as join4 } from "path";
 import yaml from "js-yaml";
 var SETTINGS_DEFAULTS = {
-  drainBound: 5,
-  proposalTimeout: 6e4,
-  lockTtlMs: 30 * 60 * 1e3,
   curationThreshold: 5,
-  bootstrapTokenBudget: 1e4,
   logsRetentionDays: 30,
   lintEveryNSessions: 50
 };
 var MODEL_CHOICE_KEYS = ["proposalModel", "curatorModel", "bootstrapModel"];
 function resolveSettings(opts = {}) {
   const projectFile = opts.projectFile ?? null;
-  const userFile = opts.userFile ?? defaultUserConfigPath();
-  const warnings = [];
-  const user = loadFile(userFile, warnings);
-  const project = projectFile ? loadFile(projectFile, warnings) : null;
+  const project = projectFile ? loadFile(projectFile) : null;
   const effective = { ...SETTINGS_DEFAULTS };
-  applyOverrides(effective, user);
   applyOverrides(effective, project);
   return {
     settings: effective,
-    projectFile: projectFile ?? null,
-    userFile: existsSync4(userFile) ? userFile : null,
-    warnings
+    projectFile
   };
 }
 function applyOverrides(target, src) {
@@ -483,33 +449,20 @@ function applyOverrides(target, src) {
     if (value !== void 0) target[key] = value;
   }
 }
-function loadFile(file, warnings) {
+function loadFile(file) {
   if (!existsSync4(file)) return null;
-  let raw;
-  try {
-    raw = readFileSync4(file, "utf8");
-  } catch (err) {
-    warnings.push(`settings file unreadable (${file}): ${err.message}`);
-    return null;
-  }
+  const raw = readFileSync4(file, "utf8");
   let parsed;
   try {
     parsed = yaml.load(raw);
   } catch (err) {
-    warnings.push(`settings file is not valid YAML (${file}): ${err.message}`);
-    return null;
+    throw new Error(`settings file is not valid YAML (${file}): ${err.message}`);
   }
   const result = SettingsSchema.safeParse(parsed);
   if (!result.success) {
-    warnings.push(`settings file failed schema validation (${file}): ${result.error.message}`);
-    return null;
+    throw new Error(`settings file failed schema validation (${file}): ${result.error.message}`);
   }
   return result.data;
-}
-function defaultUserConfigPath(env = process.env) {
-  const xdg = env["XDG_CONFIG_HOME"];
-  const base = xdg && xdg.length > 0 ? xdg : join4(homedir(), ".config");
-  return join4(base, "ai-knowledge-base", "config.yaml");
 }
 
 // src/hooks/kb-lint-tick.ts
