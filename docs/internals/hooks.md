@@ -80,11 +80,11 @@ After `init`, `.claude/settings.json` carries one block per event:
 {
   "hooks": {
     "Stop": [
-      { "hooks": [{ "type": "command", "command": "KB_BUILDER_HOOK=Stop node .claude/hooks/kb-capture.mjs" }] }
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kb-capture.mjs" }] }
     ],
     "SessionStart": [
-      { "hooks": [{ "type": "command", "command": "KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-proposal-drain.mjs", "async": true }] },
-      { "hooks": [{ "type": "command", "command": "KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-session-start.mjs" }] }
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kb-proposal-drain.mjs", "async": true }] },
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kb-session-start.mjs" }] }
     ]
   }
 }

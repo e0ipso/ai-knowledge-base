@@ -161,7 +161,7 @@ describe('init', () => {
       const entries = settings.hooks?.[event];
       expect(entries, `expected hook entry for ${event}`).toBeDefined();
       expect(entries?.[0]?.hooks[0]?.command).toBe(
-        `KB_BUILDER_HOOK=${event} node .claude/hooks/kb-capture.mjs`
+        `node .claude/hooks/kb-capture.mjs`
       );
     }
   });
@@ -183,11 +183,11 @@ describe('init', () => {
     expect(commands).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          command: 'KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-proposal-drain.mjs',
+          command: 'node .claude/hooks/kb-proposal-drain.mjs',
           async: true,
         }),
         expect.objectContaining({
-          command: 'KB_BUILDER_HOOK=SessionStart node .claude/hooks/kb-session-start.mjs',
+          command: 'node .claude/hooks/kb-session-start.mjs',
         }),
       ])
     );

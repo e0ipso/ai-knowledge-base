@@ -27,7 +27,7 @@ export class ClaudeAdapter implements Adapter {
   /**
    * Merges hook entries into `.claude/settings.json`. Existing user-defined
    * hooks are preserved; entries previously written by us are recognized by
-   * the `KB_BUILDER_HOOK` marker in the command string and replaced wholesale.
+   * the `.claude/hooks/kb-` script-path prefix and replaced wholesale.
    */
   async writeHookConfig(repoRoot: string, hooks: HookSpec[]): Promise<void> {
     const settingsFile = join(repoRoot, '.claude/settings.json');
@@ -41,12 +41,12 @@ export class ClaudeAdapter implements Adapter {
     }
     settings.hooks ??= {};
 
-    // Strip any entries we previously wrote.
+    const ownedPrefix = `${this.hookInstallPath()}/kb-`;
     for (const [event, entries] of Object.entries(settings.hooks)) {
       const filtered = entries
         .map(entry => ({
           ...entry,
-          hooks: entry.hooks.filter(h => !h.command.includes('KB_BUILDER_HOOK')),
+          hooks: entry.hooks.filter(h => !h.command.includes(ownedPrefix)),
         }))
         .filter(entry => entry.hooks.length > 0);
       if (filtered.length === 0) delete settings.hooks[event];
@@ -55,7 +55,7 @@ export class ClaudeAdapter implements Adapter {
 
     for (const hook of hooks) {
       const entryList = (settings.hooks[hook.event] ??= []);
-      const command = `KB_BUILDER_HOOK=${hook.event} node ${hook.scriptPath}`;
+      const command = `node ${hook.scriptPath}`;
       const entry: {
         matcher?: string;
         hooks: Array<{ type: string; command: string; async?: boolean }>;
