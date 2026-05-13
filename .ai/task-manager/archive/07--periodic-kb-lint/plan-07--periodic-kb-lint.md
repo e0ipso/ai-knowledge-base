@@ -295,3 +295,40 @@ After each phase, run `npm run typecheck && npm run build`. After Phase 3, run `
 
 - Total Phases: 3
 - Total Tasks: 8
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-13
+
+### Results
+
+Three feature commits landed on `feature/7--periodic-kb-lint`:
+
+- `1ba26ff feat(lint): add KB lint library and state plumbing` (Phase 1, 8 files, 204 insertions).
+- `e071fdb feat(lint): wire CLI, hook, and start-up nudge` (Phase 2, 12 files, 180 insertions).
+- `676a30d test(lint): add coverage and docs for new surface` (Phase 3, 12 files, 567 insertions).
+
+User-facing surface: `ai-knowledge-base lint` (with `--verbose`) and a `lint-tick` SessionEnd async hook gated by the new `lintEveryNSessions` setting (default 50). Findings surface at the next SessionStart through a single nudge line that the CLI clears.
+
+Quality gates: `npm run typecheck` clean, `npm run lint` clean, `npm test` reports 230 passing tests (up from 214), perf budget on a 1000-node sweep under 200 ms.
+
+Self-validation walk-through (all seven plan steps) executed in a scratch directory at `/tmp/kb-lint-validation-v2`:
+
+1. `npm test` clean (230/230) after Phase 3.
+2. `npm run typecheck` clean.
+3. `init --assistants claude --force` registered both `SessionEnd` entries; `.claude/hooks/kb-lint-tick.mjs` present.
+4. Fixture nodes (dangling edge, slug/id mismatch, orphan, near-duplicate tags) produced exit 1 with all four rules represented in `--verbose` output.
+5. With `lintEveryNSessions: 1`, one `kb-lint-tick.mjs` invocation wrote `lint-state.json` with `last_errors: 2, last_findings: 3`.
+6. `kb-session-start.mjs` printed `additionalContext` containing the lint nudge line `> Last KB lint 2026-05-13T...: 2 error(s), 3 finding(s). Run \`ai-knowledge-base lint --verbose\` for details.`.
+7. `doctor` reported `Claude hooks registered: all expected hook entries and scripts present`.
+
+### Noteworthy Events
+
+- Plan-08 work was already in progress on `main` when execution started. The feature-branch script refused to run with a dirty tree. The plan-08 WIP was committed as `577d648 chore(tasks): seed plan 08 tasks WIP` so the branch could be cut; a second pre-existing local edit to `.releaserc.json` and `CHANGELOG.md` was committed in parallel from a separate shell as `4b15189 chore(release): reset to 0.2.0; cap bumps at minor`. No work was lost.
+- `lint-staged` dot-file glob default did not match `.releaserc.json`; the file-path form of `git commit -- <path>` worked once the working tree settled.
+- Scratch-dir validation needed `ln -s /workspace/node_modules` so the bundled hook could resolve `gray-matter` and `js-yaml`. In real consumer installs the package's dependency tree supplies these.
+
+### Necessary follow-ups
+
+None. Plan 08 (`fix-hook-cwd-resolution`) remains queued and unrelated to this work.
