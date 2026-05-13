@@ -1,8 +1,20 @@
 ## Unreleased
 
-### Added
+### Removed
 
-* `ai-knowledge-base conflict list` and `ai-knowledge-base conflict resolve <id> --action <replace|reject>` subcommands. `list` prints `.ai/knowledge-base/.state/pending-conflicts.json` as JSON on stdout (or `[]` when missing). `resolve replace` deletes the existing node, writes the proposed node via `writeNodeFile`, atomically rewrites `pending-conflicts.json` with the resolved entry removed, and regenerates `INDEX.md`/`GRAPH.md`. `resolve reject` does the same minus the node-side work. The `kb-curate` skill template no longer touches `pending-conflicts.json` or `nodes/` directly; its `allowed-tools` tightens to `Bash(ai-knowledge-base curate:*), Bash(ai-knowledge-base conflict:*), Read` (no more `Edit`, `Write`, or `Bash(rm:*)`). Existing installations: run `ai-knowledge-base init --upgrade` to pick up the new skill template.
+* **BREAKING** `--dry-run` flag on `init --upgrade`. The upgrade path applies changes directly; review with `git diff` before committing.
+* **BREAKING** `.ai/knowledge-base/.state/pending-conflicts.json`. Curator `contradict` outcomes are written as one markdown file per conflict under `.ai/knowledge-base/conflicts/<runId>-<n>.md`. The reviewer accepts with `git commit` and rejects with `git restore`. `ai-knowledge-base conflict list` / `conflict resolve` subcommands are gone with the file. `PendingConflictsFileSchema`, `ConflictReportSchema`, and `countPendingConflicts` are removed from the public schema surface.
+* **BREAKING** husky, lint-staged, and secretlint scaffolding from `init`. `init` no longer adds `husky`, `lint-staged`, or `secretlint` packages or scripts to the consumer `package.json`, and no longer writes `.husky/`, `.secretlintrc.json`, or `.lintstagedrc.cjs`. Consumers wanting commit-time secret scanning install their own husky hook; see the README for the recommended CI pattern.
+* **BREAKING** `init` no longer requires `package.json` at the repo root; non-Node repositories install cleanly.
+* `doctor` checks for husky / lint-staged / `.secretlintrc.json` wiring (`checkCommitTimeSecretScan`, `checkSecretlint`).
+
+### Changed
+
+* `doctor` consolidates the two installed-version checks into a single check that reports the installed CLI version and flags drift from the package on disk.
+
+### Internal
+
+* `src/lib/hook-spec.ts` is the single source of truth for the three Claude Code hook registrations (`kb-capture`, `kb-proposal-drain`, `kb-session-start`). `init`, `init --upgrade`, and `doctor` read from `HOOK_SPECS`; the duplicated `EXPECTED_HOOK_COMMANDS` and `EXPECTED_HOOK_SCRIPTS` constants are gone.
 
 ### Changed
 
@@ -85,7 +97,7 @@
 ### Features
 
 * `ai-knowledge-base index rebuild --stage` regenerates `INDEX.md`/`GRAPH.md` and runs `git add` on the result. Wired into the lint-staged pre-commit step on `nodes/**/*.md` so the index lands in the same commit as any node change. No-ops outside a git repo.
-* Curator surfaces contradictions via `.ai/knowledge-base/.state/pending-conflicts.json`. The `/kb-curate` skill walks each entry with the user in-session and applies the chosen resolution.
+* Curator surfaces contradictions as one markdown file per conflict under `.ai/knowledge-base/conflicts/<runId>-<n>.md`. The reviewer reads each file with `git diff`, accepts the proposed replacement with `git commit`, and rejects it with `git restore`.
 * `add` actions targeting an existing node and `modify` actions whose target is missing are reported as structured failures (`add_collision`, `modify_missing_target`) rather than silently overwriting or dropping.
 * `ai-knowledge-base status` reports curator-conflict count and a per-kind node tally.
 

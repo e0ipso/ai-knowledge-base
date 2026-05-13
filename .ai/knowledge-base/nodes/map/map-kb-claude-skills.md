@@ -8,7 +8,7 @@ derived_from:
   - docs/cli-reference.md
   - docs/daily-use.md
   - PRD.md
-relates_to: [map-ai-knowledge-base-cli, map-pending-conflicts-file]
+relates_to: [map-ai-knowledge-base-cli]
 depends_on: []
 confidence: high
 summary: "init --assistants claude installs three skills. /kb-curate and /kb-add map to CLI subcommands; /kb-bootstrap is agent-driven only and has no CLI equivalent."
@@ -20,7 +20,7 @@ summary: "init --assistants claude installs three skills. /kb-curate and /kb-add
 
 | Command | Equivalent | Notes |
 |---|---|---|
-| `/kb-curate` | `ai-knowledge-base curate` | Runs the curator, then walks `.state/pending-conflicts.json` with the user in-session, applying chosen resolutions by editing nodes. |
+| `/kb-curate` | `ai-knowledge-base curate` | Runs the curator. Contradictions land as one markdown file per conflict under `.ai/knowledge-base/conflicts/`, reviewed by the user via `git diff`. |
 | `/kb-add` | `ai-knowledge-base node add` | Interactive prompt to write a new node. Fails loud if the id already exists. |
 | `/kb-bootstrap [path]` | (none) | Agent-driven only. Surveys existing docs, writes new nodes, never overwrites; supervised by the user in-session. |
 

@@ -23,7 +23,7 @@ Two shapes:
 
 Subcommands of note:
 
-- `init --assistants claude [--force] [--upgrade [--dry-run]]`: first-time setup; requires `package.json` at the repo root.
-- `doctor [--verbose]`: checks Node, `claude` on PATH, secretlint resolvable, commit-time scan wired, settings validity, INDEX freshness, dangling refs.
+- `init --assistants claude [--force] [--upgrade]`: first-time setup. Runs in any directory; `package.json` is not required.
+- `doctor [--verbose]`: checks Node, `claude` on PATH, hook wiring against `HOOK_SPECS`, installed CLI version, settings validity, INDEX freshness, dangling refs.
 - `index rebuild [--stage]`: pure regen from `nodes/`; `--stage` is used by the lint-staged pre-commit hook.
-- `logs prune [--older-than <duration>] [--dry-run]`: deletes `_logs/` traces older than the threshold (default 30 days; `30d`/`2w`/`12h`/`45m` accepted).
+- `logs prune`: deletes `_logs/` traces older than `settings.logsRetentionDays` (default 30).

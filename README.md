@@ -47,10 +47,27 @@ The lint also runs automatically every `lintEveryNSessions` sessions (default 50
 
 `doctor` checks install health (Node version, `claude` on PATH, hook wiring, INDEX freshness); `lint` checks content health (graph integrity, naming, tag hygiene, orphans).
 
-### `ai-knowledge-base conflict list` / `conflict resolve`
+### Conflicts
 
-- `ai-knowledge-base conflict list` prints pending conflicts from `.ai/knowledge-base/.state/pending-conflicts.json` as JSON on stdout (or `[]` when there are none).
-- `ai-knowledge-base conflict resolve <id> --action <replace|reject>` applies the user's decision for a single conflict. `replace` overwrites the existing node with the proposed one and drops the entry from `pending-conflicts.json`; `reject` drops the entry and leaves the node tree alone. Either way, `INDEX.md` and `GRAPH.md` are regenerated. The `kb-curate` skill calls these in-session so the LLM never edits state files or rewrites node markdown directly.
+When the curator detects that a candidate contradicts an existing node, it writes one markdown file per conflict under `.ai/knowledge-base/conflicts/<id>.md`. Review each file with `git diff`, accept the proposed replacement with `git commit`, and reject it with `git restore`.
+
+### Secret scanning in CI
+
+This package does not install a commit-time secret scanner into your repo. Run `secretlint` in CI instead:
+
+```yaml
+# .github/workflows/secret-scan.yml
+name: secret-scan
+on: [pull_request, push]
+jobs:
+  secretlint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 20 }
+      - run: npx secretlint "**/*"
+```
 
 ## Documentation
 

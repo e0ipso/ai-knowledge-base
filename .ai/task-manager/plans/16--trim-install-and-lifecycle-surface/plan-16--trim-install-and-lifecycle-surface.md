@@ -314,9 +314,9 @@ graph TD
 **Parallel Tasks:**
 - ✔️ Task 005: Trim `doctor` (depends on: 001, 003)
 
-### Phase 5: Documentation
+### ✅ Phase 5: Documentation
 **Parallel Tasks:**
-- Task 006: Update CHANGELOG, README, AGENTS.md, KB nodes (depends on: 002, 003, 004, 005)
+- ✔️ Task 006: Update CHANGELOG, README, AGENTS.md, KB nodes (depends on: 002, 003, 004, 005)
 
 ### Post-phase Actions
 

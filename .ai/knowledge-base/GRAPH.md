@@ -1,11 +1,11 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:f5a5219bef8761c50c3155d63aefee8f76a6fd78e471f3f796405b3d81dc8adb'
-node_count: 38
+nodes_hash: 'sha256:5b4d00eb27ba683f136a921b22470ecfe7192427bfd54cd3066a805d594502c8'
+node_count: 37
 ---
 # KB Graph
 
-Total nodes: 38
+Total nodes: 37
 
 ## map-ai-knowledge-base-cli
 
@@ -68,7 +68,7 @@ Total nodes: 38
 - **kind:** map
 - **title:** Claude Code skills: /kb-curate, /kb-add, /kb-bootstrap
 - **tags:** skills, claude-code, curate, add, bootstrap
-- **relates_to:** map-ai-knowledge-base-cli, map-pending-conflicts-file
+- **relates_to:** map-ai-knowledge-base-cli
 - **derived_from:** docs/cli-reference.md, docs/daily-use.md, PRD.md
 
 ## map-kb-proposal-drain
@@ -94,14 +94,6 @@ Total nodes: 38
 - **tags:** storage, nodes, canonical, git
 - **relates_to:** map-practice-node, map-map-node, map-index-and-graph-files
 - **derived_from:** docs/how-it-works.md, docs/internals/architecture.md
-
-## map-pending-conflicts-file
-
-- **kind:** map
-- **title:** .state/pending-conflicts.json: curator-detected contradictions
-- **tags:** state, curator, contradictions, kb-curate
-- **relates_to:** map-claude-hooks, map-kb-claude-skills, practice-curator-read-only-tool
-- **derived_from:** docs/internals/schemas.md, docs/how-it-works.md
 
 ## map-practice-node
 

@@ -20,7 +20,7 @@ All node writes are performed by the wrapper after parsing the curator's JSON ou
 
 - `add` writes `nodes/<kind>/<id>.md`; the wrapper records an `add_collision` failure if the file already exists.
 - `modify` overwrites `nodes/<kind>/<target_node_id>.md`; the wrapper records `modify_missing_target` if the target is absent.
-- `contradict` writes nothing; the conflict is appended to `.state/pending-conflicts.json`.
+- `contradict` writes a single markdown file under `.ai/knowledge-base/conflicts/<runId>-<n>.md`; the reviewer accepts with `git commit` or rejects with `git restore`.
 - `drop` is a no-op.
 
 The curator never edits files itself. Do not extend the curator's tool list without a deliberate design change, since the wrapper is also the only place where the human-in-the-loop guarantee is enforced.
