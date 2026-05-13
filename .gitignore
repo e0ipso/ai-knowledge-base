@@ -16,6 +16,7 @@ settings.local.json
 .ai/knowledge-base/_logs/
 .ai/knowledge-base/.state/state.json
 .ai/knowledge-base/.state/bootstrap-state.json
+.ai/knowledge-base/.state/lint-state.json
 # <<< @e0ipso/ai-knowledge-base <<<
 
 
