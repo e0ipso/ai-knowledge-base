@@ -2,7 +2,7 @@
 id: 4
 group: "curate-conflicts"
 dependencies: []
-status: "pending"
+status: "completed"
 created: 2026-05-13
 skills:
   - typescript

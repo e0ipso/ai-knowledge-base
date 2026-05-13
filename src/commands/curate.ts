@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
   curatorLogFile,
@@ -10,7 +10,6 @@ import {
 import { runHeadlessClaude, type RunHeadlessOptions } from '../lib/headless.js';
 import { log } from '../lib/log.js';
 import { findRepoRoot, packageTemplatesDir, repoPaths } from '../lib/paths.js';
-import { type ConflictReport, type PendingConflictsFile } from '../lib/schemas.js';
 import { resolveSettings } from '../lib/settings.js';
 
 export interface CurateCommandOptions {
@@ -79,10 +78,6 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
     ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
   });
 
-  // Always (re)write the side-channel so a completed run with zero conflicts
-  // clears any stale entries from a previous run.
-  writePendingConflicts(join(paths.stateDir, 'pending-conflicts.json'), result.conflicts);
-
   switch (result.status) {
     case 'locked':
       log.warn(`Curator is locked: ${result.reason ?? 'another run holds the lock'}.`);
@@ -99,21 +94,14 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
         log.warn(`${result.failures.length} action(s) failed:`);
         for (const f of result.failures) log.plain(`  ! [${f.reason}] ${f.detail}`);
       }
-      if (result.conflicts.length > 0) {
-        log.warn(
-          `${result.conflicts.length} contradiction(s) require resolution; see ` +
-            '`.ai/knowledge-base/.state/pending-conflicts.json` (the kb-curate skill resolves these in-session).'
+      if (result.conflicts > 0) {
+        log.plain(
+          `${result.conflicts} conflict(s) written to .ai/knowledge-base/conflicts/. Review with git diff.`
         );
       }
       log.plain('Review changed files with `git diff nodes/` before committing.');
       return 0;
   }
-}
-
-function writePendingConflicts(file: string, conflicts: ConflictReport[]): void {
-  mkdirSync(join(file, '..'), { recursive: true });
-  const payload: PendingConflictsFile = { schema_version: 1, conflicts };
-  writeFileSync(file, `${JSON.stringify(payload, null, 2)}\n`);
 }
 
 function loadCuratorPrompt(promptsDir: string): string | null {

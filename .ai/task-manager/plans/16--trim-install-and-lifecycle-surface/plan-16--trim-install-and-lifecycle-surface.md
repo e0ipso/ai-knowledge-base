@@ -297,10 +297,10 @@ graph TD
     005 --> 006
 ```
 
-### Phase 1: Foundations (parallel)
+### ✅ Phase 1: Foundations (parallel)
 **Parallel Tasks:**
-- Task 001: Create centralized `src/lib/hook-spec.ts` module
-- Task 004: Replace `pending-conflicts.json` with markdown conflict files
+- ✔️ Task 001: Create centralized `src/lib/hook-spec.ts` module
+- ✔️ Task 004: Replace `pending-conflicts.json` with markdown conflict files
 
 ### Phase 2: Init preflight removal
 **Parallel Tasks:**

@@ -1,4 +1,12 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import matter from 'gray-matter';
@@ -234,7 +242,7 @@ describe('runCurate', () => {
     expect(result.status).toBe('completed');
     expect(result.nodesWritten).toBe(1);
     expect(result.failures).toEqual([]);
-    expect(result.conflicts).toEqual([]);
+    expect(result.conflicts).toBe(0);
     const nodeFile = join(harness.nodesDir, 'practice', 'practice-use-x.md');
     expect(existsSync(nodeFile)).toBe(true);
     // Frontmatter is the pure node shape — no `proposal:` block.
@@ -276,7 +284,7 @@ describe('runCurate', () => {
     const result = await runCurate(ctx(runner));
 
     expect(result.nodesWritten).toBe(1);
-    expect(result.conflicts).toHaveLength(1);
+    expect(result.conflicts).toBe(1);
     expect(result.failures).toEqual([]);
     // modify overwrote the original.
     const mod = matter(
@@ -290,11 +298,66 @@ describe('runCurate', () => {
       'utf8'
     );
     expect(contra).toContain('orig contra');
-    // Conflict report is shaped correctly.
-    const c = result.conflicts[0]!;
-    expect(c.target_node_id).toBe('practice-contra-target');
-    expect(c.rationale).toBe('because');
-    expect(c.proposed_node?.id).toBe('practice-contradict-node');
+    // The conflict markdown file was written.
+    const conflictFiles = existsSync(harness.paths.conflictsDir)
+      ? readdirSync(harness.paths.conflictsDir)
+      : [];
+    expect(conflictFiles).toHaveLength(1);
+    const conflictBody = readFileSync(
+      join(harness.paths.conflictsDir, conflictFiles[0]!),
+      'utf8'
+    );
+    const parsedConflict = matter(conflictBody);
+    expect((parsedConflict.data as Record<string, unknown>).target_node_id).toBe(
+      'practice-contra-target'
+    );
+    expect(parsedConflict.content).toContain('## Rationale');
+    expect(parsedConflict.content).toContain('because');
+  });
+
+  it('writes a per-conflict markdown file with the documented frontmatter and body', async () => {
+    seedExistingNode(harness, 'practice', 'practice-target', '# orig\n');
+    seedSession(harness, 's', [makeCandidate('practice', 'X')], []);
+    const runner: CuratorRunner = async () => [
+      makeAction('contradict', {
+        candidate_origin: '_sessions/session-s.md:practice:0',
+        target_node_id: 'practice-target',
+        rationale: 'The user reversed the earlier decision.',
+        proposed_node: {
+          id: 'practice-target',
+          title: 'New practice title',
+          kind: 'practice',
+          tags: ['t'],
+          summary: 'new summary',
+          body: '# New practice\n\nThe new rule.\n',
+          confidence: 'high',
+          derived_from: [],
+          relates_to: [],
+        },
+      }),
+    ];
+
+    const result = await runCurate(ctx(runner));
+
+    expect(result.conflicts).toBe(1);
+    const files = readdirSync(harness.paths.conflictsDir);
+    expect(files).toHaveLength(1);
+    const file = files[0]!;
+    expect(file).toMatch(new RegExp(`^${result.runId}-1\\.md$`));
+    const parsed = matter(readFileSync(join(harness.paths.conflictsDir, file), 'utf8'));
+    const fm = parsed.data as Record<string, unknown>;
+    expect(fm['id']).toBe(`${result.runId}-1`);
+    expect(fm['status']).toBe('pending');
+    expect(fm['run_id']).toBe(result.runId);
+    expect(fm['candidate_origin']).toBe('_sessions/session-s.md:practice:0');
+    expect(fm['target_node_id']).toBe('practice-target');
+    expect(fm['proposed_kind']).toBe('practice');
+    expect(fm['proposed_title']).toBe('New practice title');
+    expect(typeof fm['detected_at']).toBe('string');
+    expect(parsed.content).toContain('## Rationale');
+    expect(parsed.content).toContain('The user reversed the earlier decision.');
+    expect(parsed.content).toContain('## Proposed node');
+    expect(parsed.content).toContain('The new rule.');
   });
 
   it('add against an existing node is a fail-loud failure (no overwrite)', async () => {
@@ -441,7 +504,7 @@ describe('runCurate', () => {
     const result = await runCurate(ctx(async () => []));
     expect(result.status).toBe('no-pending');
     expect(result.failures).toEqual([]);
-    expect(result.conflicts).toEqual([]);
+    expect(result.conflicts).toBe(0);
     expect(existsSync(join(harness.kbDir, 'INDEX.md'))).toBe(true);
   });
 

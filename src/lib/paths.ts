@@ -55,6 +55,12 @@ export interface RepoPaths {
   sessionsDir: string;
   logsDir: string;
   nodesDir: string;
+  /**
+   * Conflicts directory under the KB root: `.ai/knowledge-base/conflicts/`.
+   * Holds one markdown file per curator-detected contradiction; reviewed via
+   * `git diff` and committed or `git restore`d like any other tracked file.
+   */
+  conflictsDir: string;
   claudeDir: string;
   claudeCommandsDir: string;
   claudeSkillsDir: string;
@@ -87,6 +93,7 @@ export function repoPaths(root: string): RepoPaths {
     sessionsDir: join(kbDir, '_sessions'),
     logsDir: join(kbDir, '_logs'),
     nodesDir: join(kbDir, 'nodes'),
+    conflictsDir: join(kbDir, 'conflicts'),
     claudeDir,
     claudeCommandsDir: join(claudeDir, 'commands'),
     claudeSkillsDir: join(claudeDir, 'skills'),

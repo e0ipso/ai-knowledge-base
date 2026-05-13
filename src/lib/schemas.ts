@@ -171,29 +171,6 @@ export const BootstrapDocEntrySchema = z.object({
 export type BootstrapDocEntry = z.infer<typeof BootstrapDocEntrySchema>;
 
 /**
- * Conflict surfaced by the curator when a `contradict` action is emitted.
- * The curator does not write conflicting nodes to disk; instead, runs
- * append entries here and the kb-curate skill resolves them in-session
- * with the user. Persisted to `.ai/knowledge-base/.state/pending-conflicts.json`.
- */
-export const ConflictReportSchema = z.object({
-  id: z.string(),
-  detected_at: z.string(),
-  run_id: z.string(),
-  candidate_origin: z.string(),
-  target_node_id: z.string().nullable(),
-  rationale: z.string(),
-  proposed_node: CuratorProposedNodeSchema.nullable(),
-});
-export type ConflictReport = z.infer<typeof ConflictReportSchema>;
-
-export const PendingConflictsFileSchema = z.object({
-  schema_version: z.literal(1),
-  conflicts: z.array(ConflictReportSchema),
-});
-export type PendingConflictsFile = z.infer<typeof PendingConflictsFileSchema>;
-
-/**
  * Persistence failure surfaced by the curator: an `add` whose target file
  * already exists, or a `modify` whose `target_node_id` is missing on disk.
  * Reported in run output; not persisted across runs.

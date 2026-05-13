@@ -3,7 +3,6 @@ import { join } from 'node:path';
 import matter from 'gray-matter';
 import { log } from '../lib/log.js';
 import { findRepoRoot, repoPaths } from '../lib/paths.js';
-import { PendingConflictsFileSchema } from '../lib/schemas.js';
 
 export async function runStatus(): Promise<void> {
   const root = findRepoRoot();
@@ -22,7 +21,6 @@ export async function runStatus(): Promise<void> {
   };
 
   const sessionStats = scanSessions(paths.sessionsDir);
-  const conflictCount = countPendingConflicts(join(paths.stateDir, 'pending-conflicts.json'));
   const nodeCounts = countNodes(paths.nodesDir);
 
   log.plain(
@@ -37,12 +35,6 @@ export async function runStatus(): Promise<void> {
   log.plain(`  Session logs (pending):  ${sessionStats.pending}`);
   log.plain(`  Session logs (done):     ${sessionStats.done}`);
   log.plain(`  Session logs (failed):   ${sessionStats.failed}`);
-  log.plain(
-    `  Curator conflicts:       ${conflictCount}` +
-      (conflictCount > 0
-        ? ' (resolve via the kb-curate skill or by editing the affected nodes)'
-        : '')
-  );
 }
 
 function scanSessions(dir: string): { pending: number; done: number; failed: number } {
@@ -68,16 +60,6 @@ function scanSessions(dir: string): { pending: number; done: number; failed: num
     }
   }
   return out;
-}
-
-function countPendingConflicts(file: string): number {
-  if (!existsSync(file)) return 0;
-  try {
-    const parsed = PendingConflictsFileSchema.safeParse(JSON.parse(readFileSync(file, 'utf8')));
-    return parsed.success ? parsed.data.conflicts.length : 0;
-  } catch {
-    return 0;
-  }
 }
 
 function countNodes(dir: string): { practice: number; map: number } {

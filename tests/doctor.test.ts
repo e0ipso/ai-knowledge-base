@@ -116,6 +116,5 @@ describe('status', () => {
     expect(result.stdout).toContain('Practice nodes: 0');
     expect(result.stdout).toContain('Map nodes:      0');
     expect(result.stdout).toContain('Session logs (pending):  0');
-    expect(result.stdout).toContain('Curator conflicts:       0');
   });
 });

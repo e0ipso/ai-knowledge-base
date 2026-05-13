@@ -1,6 +1,5 @@
 import { Command } from 'commander';
 import { runBootstrapIncrementalCommand } from './commands/bootstrap-incremental.js';
-import { runConflictList, runConflictResolve } from './commands/conflict.js';
 import { runCurateCommand } from './commands/curate.js';
 import { runDoctor } from './commands/doctor.js';
 import { runIndexRebuild } from './commands/index-rebuild.js';
@@ -52,7 +51,7 @@ async function main(): Promise<void> {
 
   program
     .command('status')
-    .description('Show pending session logs, pending curator conflicts, and KB stats.')
+    .description('Show pending session logs and KB stats.')
     .action(async () => {
       await runStatus();
     });
@@ -146,33 +145,6 @@ async function main(): Promise<void> {
     .allowExcessArguments(true)
     .action(async (opts: { stage: boolean }) => {
       const code = await runIndexRebuild(opts);
-      process.exit(code);
-    });
-
-  const conflictGroup = program
-    .command('conflict')
-    .description('Resolve conflicts surfaced by the curator.');
-  conflictGroup
-    .command('list')
-    .description(
-      'Print pending conflicts from .ai/knowledge-base/.state/pending-conflicts.json as JSON.'
-    )
-    .action(async () => {
-      const code = await runConflictList();
-      process.exit(code);
-    });
-  conflictGroup
-    .command('resolve <conflictId>')
-    .description(
-      'Apply the user decision for a single conflict: replace the existing node or reject the proposal.'
-    )
-    .requiredOption('--action <action>', 'replace | reject')
-    .action(async (conflictId: string, opts: { action: string }) => {
-      if (opts.action !== 'replace' && opts.action !== 'reject') {
-        log.error(`--action must be 'replace' or 'reject' (got '${opts.action}')`);
-        process.exit(1);
-      }
-      const code = await runConflictResolve({ conflictId, action: opts.action });
       process.exit(code);
     });
 

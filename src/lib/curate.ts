@@ -11,7 +11,6 @@ import {
   writeNodeFile,
 } from './nodes.js';
 import {
-  type ConflictReport,
   CuratorOutputSchema,
   type CuratorAction,
   type CuratorOutput,
@@ -74,7 +73,7 @@ export interface CurateResult {
   drops: number;
   pendingSessions: number;
   failures: FailureReport[];
-  conflicts: ConflictReport[];
+  conflicts: number;
   reason?: string;
 }
 
@@ -233,7 +232,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
       drops: 0,
       pendingSessions: 0,
       failures: [],
-      conflicts: [],
+      conflicts: 0,
     };
   }
 
@@ -251,7 +250,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
         drops: 0,
         pendingSessions: pending.length,
         failures: [],
-        conflicts: [],
+        conflicts: 0,
         reason: 'another curate run holds the lock',
       };
     }
@@ -299,15 +298,18 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
     let nodesWritten = 0;
     let drops = 0;
     const failures: FailureReport[] = [];
-    const conflicts: ConflictReport[] = [];
+    let conflicts = 0;
+    let conflictCounter = 0;
 
     for (const action of merged) {
       const outcome = persistAction(action, {
         nodesDir: ctx.paths.nodesDir,
+        conflictsDir: ctx.paths.conflictsDir,
         existingIds,
         seenSlugs,
         runId,
         now: new Date(),
+        nextConflictIndex: () => ++conflictCounter,
       });
       switch (outcome.kind) {
         case 'wrote':
@@ -320,7 +322,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
           failures.push(outcome.failure);
           break;
         case 'conflict':
-          conflicts.push(outcome.conflict);
+          conflicts += 1;
           break;
       }
     }
@@ -349,17 +351,19 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
 
 interface PersistContext {
   nodesDir: string;
+  conflictsDir: string;
   existingIds: Set<string>;
   seenSlugs: Set<string>;
   runId: string;
   now: Date;
+  nextConflictIndex: () => number;
 }
 
 type PersistOutcome =
   | { kind: 'wrote' }
   | { kind: 'dropped' }
   | { kind: 'failed'; failure: FailureReport }
-  | { kind: 'conflict'; conflict: ConflictReport };
+  | { kind: 'conflict' };
 
 function persistAction(action: CuratorAction, ctx: PersistContext): PersistOutcome {
   if (action.action === 'drop' || !action.proposed_node) {
@@ -368,18 +372,23 @@ function persistAction(action: CuratorAction, ctx: PersistContext): PersistOutco
   const proposedNode = action.proposed_node;
 
   if (action.action === 'contradict') {
-    return {
-      kind: 'conflict',
-      conflict: {
-        id: `${ctx.runId}-${ctx.existingIds.size + ctx.seenSlugs.size + 1}`,
-        detected_at: ctx.now.toISOString(),
-        run_id: ctx.runId,
-        candidate_origin: action.candidate_origin,
-        target_node_id: action.target_node_id ?? null,
-        rationale: action.rationale,
-        proposed_node: proposedNode,
-      },
+    const n = ctx.nextConflictIndex();
+    const conflictId = `${ctx.runId}-${n}`;
+    mkdirSync(ctx.conflictsDir, { recursive: true });
+    const frontmatter = {
+      id: conflictId,
+      status: 'pending',
+      detected_at: ctx.now.toISOString(),
+      run_id: ctx.runId,
+      candidate_origin: action.candidate_origin,
+      target_node_id: action.target_node_id ?? null,
+      proposed_kind: proposedNode.kind,
+      proposed_title: proposedNode.title,
     };
+    const body =
+      `## Rationale\n\n${action.rationale}\n\n## Proposed node\n\n${proposedNode.body}\n`;
+    writeFileSync(join(ctx.conflictsDir, `${conflictId}.md`), matter.stringify(body, frontmatter));
+    return { kind: 'conflict' };
   }
 
   const kind: NodeKind = proposedNode.kind;

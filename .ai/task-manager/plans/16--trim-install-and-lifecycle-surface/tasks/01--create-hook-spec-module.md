@@ -2,7 +2,7 @@
 id: 1
 group: "hook-spec"
 dependencies: []
-status: "pending"
+status: "completed"
 created: 2026-05-13
 skills:
   - typescript
