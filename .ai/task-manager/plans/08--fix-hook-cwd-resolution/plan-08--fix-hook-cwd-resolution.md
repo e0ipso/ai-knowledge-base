@@ -258,10 +258,10 @@ graph TD
 **Parallel Tasks:**
 - ✔️ Task 001: Emit `$CLAUDE_PROJECT_DIR`-prefixed hook commands in the adapter, mirror `EXPECTED_HOOK_COMMANDS`, rewrite committed `.claude/settings.json`. (completed)
 
-### Phase 2: Test parity and regression coverage
+### ✅ Phase 2: Test parity and regression coverage
 
 **Parallel Tasks:**
-- Task 002: Update existing assertions and add the subdirectory-CWD regression test (depends on: 001).
+- ✔️ Task 002: Update existing assertions and add the subdirectory-CWD regression test (depends on: 001). (completed)
 
 ### Post-phase Actions
 

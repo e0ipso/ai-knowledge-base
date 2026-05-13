@@ -1,12 +1,14 @@
-import { execFile } from 'node:child_process';
-import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { execFile, spawnSync } from 'node:child_process';
+import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { dirname, join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import yaml from 'js-yaml';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanSandbox, makeSandbox, runCli } from './helpers.js';
 
 const exec = promisify(execFile);
+const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 describe('init', () => {
   let sandbox: string;
@@ -191,6 +193,52 @@ describe('init', () => {
         }),
       ])
     );
+  });
+
+  it('emits every owned hook command with the $CLAUDE_PROJECT_DIR prefix', async () => {
+    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    const settings = JSON.parse(readFileSync(join(sandbox, '.claude/settings.json'), 'utf8')) as {
+      hooks?: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
+    };
+    const ownedEvents = ['Stop', 'SessionEnd', 'PreCompact', 'SessionStart'] as const;
+    for (const event of ownedEvents) {
+      const entries = settings.hooks?.[event] ?? [];
+      const flat = entries.flatMap(e => e.hooks);
+      expect(flat.length, `expected hook entries for ${event}`).toBeGreaterThan(0);
+      for (const h of flat) {
+        expect(h.command).toContain('"$CLAUDE_PROJECT_DIR/.claude/hooks/');
+      }
+    }
+  });
+
+  it('emitted Stop hook command loads when invoked from a subdirectory CWD', async () => {
+    await runCli(sandbox, ['init', '--assistants', 'claude']);
+
+    const settings = JSON.parse(readFileSync(join(sandbox, '.claude/settings.json'), 'utf8')) as {
+      hooks?: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
+    };
+    const stopCommand = settings.hooks?.['Stop']?.[0]?.hooks[0]?.command;
+    expect(stopCommand).toBeDefined();
+
+    // Hooks ship as bundles that still depend on a few externals (e.g. zod).
+    // In a consumer install these resolve through npm-installed transitive
+    // deps; the sandbox has no node_modules of its own, so point Node at the
+    // workspace tree by symlinking it.
+    symlinkSync(join(repoRoot, 'node_modules'), join(sandbox, 'node_modules'), 'dir');
+
+    const subdir = join(sandbox, 'nested/leaf');
+    mkdirSync(subdir, { recursive: true });
+
+    const result = spawnSync('sh', ['-c', stopCommand as string], {
+      cwd: subdir,
+      env: { ...process.env, CLAUDE_PROJECT_DIR: sandbox },
+      encoding: 'utf8',
+      input: '',
+    });
+
+    const combined = `${result.stdout ?? ''}${result.stderr ?? ''}`;
+    expect(combined).not.toContain('MODULE_NOT_FOUND');
+    expect(combined).not.toContain('Cannot find module');
   });
 
   it('writes a default config.yaml populated with defaults', async () => {
