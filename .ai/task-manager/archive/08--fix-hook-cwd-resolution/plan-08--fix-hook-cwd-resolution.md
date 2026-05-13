@@ -271,3 +271,27 @@ After Phase 2, run `npm run build && npm test` from `/workspace` and the manual 
 
 - Total Phases: 2
 - Total Tasks: 2
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-13
+
+### Results
+
+- `src/adapters/claude.ts:58` now emits `node "$CLAUDE_PROJECT_DIR/${hook.scriptPath}"`.
+- `EXPECTED_HOOK_COMMANDS` in `src/commands/init.ts` mirrors the adapter byte-for-byte for all five owned entries.
+- `/workspace/.claude/settings.json` was rewritten in place for the five owned hook entries; idempotent strip via the `.claude/hooks/kb-` substring filter is unchanged.
+- `tests/init.test.ts` carries two new assertions: a substring guard across all owned events, and an integration test that runs `init` in a sandbox, symlinks the workspace `node_modules` so the bundle's externals resolve, then spawns the `Stop` command via `sh -c` from a nested subdirectory and asserts no `MODULE_NOT_FOUND`. The regression test was verified to fail on the pre-fix adapter form.
+- `npm run lint`, `npm run build`, and `npm test` (232 tests) all green.
+- Manual repro (`cd /tmp/kb-cwd-repro && CLAUDE_PROJECT_DIR=/workspace sh -c 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/kb-capture.mjs" </dev/null'`) now exits 0.
+
+### Noteworthy Events
+
+- Phase 1's first commit attempt was blocked by the pre-commit `husky → vitest` chain because the three existing test assertions in `tests/init.test.ts:164,186,190` still expected the old command strings. Resolution: bundle those three string updates into the Phase 1 commit (they are the test side of the same string change). Phase 2 added only the genuinely new assertions (substring guard + subdirectory regression test).
+- The initial regression test used the plan's literal substring check (`not.toContain('MODULE_NOT_FOUND')`) and failed even on fixed code because the test sandbox has no `node_modules`, so the bundled hook's external `zod` import emits `ERR_MODULE_NOT_FOUND`. Resolution: symlink the workspace `node_modules` into the sandbox before spawning, mirroring how a real consumer install resolves transitive deps. With the symlink, the assertion correctly distinguishes the bug (script path unresolvable) from unrelated failure modes.
+- Self-validation step 5 surfaced a pre-existing dogfood drift unrelated to this plan: `init --assistants claude` emits a `SessionEnd` `kb-lint-tick.mjs` entry (introduced by Plan 7) that is not present in the committed `/workspace/.claude/settings.json`. The five entries in Plan 8's scope match byte-for-byte; the lint-tick gap is a Plan 7 dogfood follow-up, not a Plan 8 regression.
+
+### Necessary follow-ups
+
+- Add the `SessionEnd` `kb-lint-tick.mjs` entry to the committed `/workspace/.claude/settings.json` so the dogfood matches `init` output fully. Currently this repo's own lint-tick hook does not fire; a one-line patch closes that gap. Out of scope for Plan 8.
