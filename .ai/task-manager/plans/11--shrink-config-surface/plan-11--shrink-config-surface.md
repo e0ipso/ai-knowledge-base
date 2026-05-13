@@ -306,3 +306,29 @@ After each phase, run `npm run build`. After phase 4, run `npm run test`, `npm r
 - Total Phases: 4
 - Total Tasks: 6
 
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-13
+
+### Results
+
+All four phases landed across two commits on `feature/10--remove-defensive-code-branches`:
+
+- `SettingsSchema` and `SETTINGS_DEFAULTS` reduced to `schema_version`, `curationThreshold`, `logsRetentionDays`, `lintEveryNSessions`, and the three model-choice keys. Schema stays `.strict()`; unknown keys throw a Zod error naming the offender.
+- `resolveSettings` returns `{ settings, projectFile }`. The user-level XDG layer (`defaultUserConfigPath`, `userFile`) and the `warnings` array were removed across all consumers (`commands/curate.ts`, `commands/bootstrap-incremental.ts`, `commands/index-rebuild.ts`, `commands/logs-prune.ts`, `commands/init.ts`, `commands/doctor.ts`).
+- `src/lib/chunk-batch.ts` exports `chunk(items, size)`. Bootstrap calls `chunk(docs, 20)`, curate calls `chunk(sessions, 10)`. `CHARS_PER_TOKEN`, `DEFAULT_TOKEN_BUDGET`, `chunkDocs`, `batchSessions`, `estimateSessionTokens`, and the `--token-budget` CLI flag are gone.
+- `logs prune` is flagless: walks `_logs/` recursively, deletes `*.jsonl` older than `settings.logsRetentionDays`, prints `pruned N files`. `parseDurationMs`, `formatBytes`, `LOG_BUCKETS`, `BucketReport`, `PruneResult` are gone.
+- 225/225 tests pass; lint clean; build clean. All nine self-validation checks pass.
+
+### Noteworthy Events
+
+- Tasks 1 to 4 (settings, consumers, batching, logs prune) were implemented and committed before this blueprint run as commits `783111a` and `5dfee1f`. The blueprint run executed only phase 4 (tests + docs).
+- `tests/lib/lint.test.ts` has a 200ms perf threshold for the 1000-node lint that flakes under parallel test load (observed 246ms once, passed at 88ms in isolation). Unrelated to this plan; left untouched.
+- The plan listed a `node dist/cli.js init --kb-dir /tmp/...` self-validation step; the CLI has no `--kb-dir` flag, so validation runs were performed by `cd`-ing into a temp dir with `git init` and `npm init -y` first (the secret-scan precondition requires `package.json`).
+- The `feature/10--remove-defensive-code-branches` branch was retained for this plan since prior plan-11 commits already lived there; no new branch was created.
+
+### Necessary follow-ups
+
+- None for plan 11. The remaining plans 13 to 19 in `plans/` are independent.
