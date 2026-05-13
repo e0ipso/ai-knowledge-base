@@ -252,19 +252,19 @@ graph TD
     003 --> 005
 ```
 
-### Phase 1: Independent foundations
+### ✅ Phase 1: Independent foundations
 **Parallel Tasks:**
-- Task 001: Implement `src/commands/conflict.ts` with `runConflictList` / `runConflictResolve`.
-- Task 003: Rewrite `kb-curate` SKILL.md to call the CLI and tighten `allowed-tools`.
+- ✔️ Task 001: Implement `src/commands/conflict.ts` with `runConflictList` / `runConflictResolve`.
+- ✔️ Task 003: Rewrite `kb-curate` SKILL.md to call the CLI and tighten `allowed-tools`.
 
-### Phase 2: CLI wiring
+### ✅ Phase 2: CLI wiring
 **Parallel Tasks:**
-- Task 002: Wire `conflict list` / `conflict resolve` into `src/cli.ts` (depends on: 001).
+- ✔️ Task 002: Wire `conflict list` / `conflict resolve` into `src/cli.ts` (depends on: 001).
 
-### Phase 3: Verification and documentation
+### ✅ Phase 3: Verification and documentation
 **Parallel Tasks:**
-- Task 004: Integration tests at `tests/commands/conflict.test.ts` + upgrade assertion in `tests/upgrade.test.ts` (depends on: 001, 002, 003).
-- Task 005: README + CHANGELOG entries (depends on: 001, 002, 003).
+- ✔️ Task 004: Integration tests at `tests/commands/conflict.test.ts` + upgrade assertion in `tests/upgrade.test.ts` (depends on: 001, 002, 003).
+- ✔️ Task 005: README + CHANGELOG entries (depends on: 001, 002, 003).
 
 ### Post-phase Actions
 
@@ -273,3 +273,22 @@ After Phase 3, run the plan's Self Validation section: `tsc --noEmit`, full test
 ### Execution Summary
 - Total Phases: 3
 - Total Tasks: 5
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-13
+
+### Results
+- New CLI module `src/commands/conflict.ts` exposing `runConflictList` and `runConflictResolve`. `replace` deletes the existing node, writes the proposed node via `writeNodeFile`, atomically rewrites `pending-conflicts.json` via the shared `atomicWriteJson` helper, and regenerates `INDEX.md`/`GRAPH.md`; `reject` does the same minus the node-side work.
+- CLI wiring in `src/cli.ts` registers a `conflict` command group with `list` and `resolve <id> --action <replace|reject>` subcommands. Invalid `--action` values fail before touching state.
+- `src/templates-source/claude/skills/kb-curate/SKILL.md` rewritten: step 3 calls the CLI; `allowed-tools` is now `Bash(ai-knowledge-base curate:*), Bash(ai-knowledge-base conflict:*), Read`. The stale-snapshot warning is gone.
+- New integration tests at `tests/commands/conflict.test.ts` cover all six scenarios from the plan. `tests/upgrade.test.ts` gains an assertion that `init --upgrade` ships the tightened skill `allowed-tools`. Full suite: 32 files / 229 tests green; `tsc --noEmit` and `eslint .` pass.
+- Documentation updated in `README.md`, `docs/cli-reference.md`, and `CHANGELOG.md` (Unreleased / Added).
+
+### Noteworthy Events
+- The plan's implementation note proposed duplicating an `atomicWriteJson` helper inline; the helper already lives at `src/lib/fs-atomic.ts` (added in plan 12), so the implementation imports it directly rather than copying four lines. Net result is identical on-disk behaviour with one fewer near-duplicate to maintain.
+- `commitlint` enforces a 50-char subject and 72-char body lines locally; subject lines were trimmed accordingly. No functional impact.
+
+### Necessary follow-ups
+- None. The plan's self-validation expectations (build, full test suite, scratch smoke flow) are satisfied by the green test suite; the smoke flow is exercised end-to-end inside `tests/commands/conflict.test.ts` against a real sandbox install.
