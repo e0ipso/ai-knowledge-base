@@ -361,3 +361,31 @@ graph TD
 ### Execution Summary
 - Total Phases: 3
 - Total Tasks: 5
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-13
+
+### Results
+
+All four test-seam removals landed cleanly across three phases.
+
+- `RunHeadlessOptions.spawn?` and the `SpawnFn`/`SpawnContext`/`SpawnResult`/`defaultSpawn` indirection deleted from `src/lib/headless.ts`; the `execa(...)` call is inlined. `tests/lib/headless.test.ts` migrates to `vi.mock('execa')` with per-test `vi.mocked(execa).mockImplementationOnce(...)`.
+- `NodeAddOptions/preset?` deleted from `src/commands/node-add.ts`. The write path is now a public `writeNewNode(answers: NodeAnswers, deps: { paths }): Promise<NodeWriteResult>`; `runNodeAdd()` is a thin wrapper. The two preset tests call `writeNewNode` directly with the same answer shape.
+- `intArg(name)` helper added at `src/lib/cli-args.ts` (with its own test file). Both `v => parseInt(v, 10)` parsers in `src/cli.ts` (curate `--timeout`, bootstrap-incremental `--timeout`) now throw `commander.InvalidArgumentError` on non-integer input. Every conditional-spread `cmdOpts` rebuild block (`init`, `doctor`, `curate`, `bootstrap-incremental`, `index rebuild`) collapsed; option bags forward directly. `CurateCommandOptions` and `BootstrapIncrementalOptions` field types relaxed to `T | undefined` to match commander's parsing under `exactOptionalPropertyTypes`.
+- `BootstrapContext`, `CurateContext`, and `DrainContext` shed `now?`/`pid?` plus six-or-seven discrete path fields each. Each now declares `paths: RepoPaths`; `stateFile`/`bootstrapStateFile` are derived locally from `ctx.paths.stateDir`. `currentPid()` from a new one-line `src/lib/process.ts` replaces `ctx.pid ?? process.pid`. Construction sites in `src/commands/bootstrap-incremental.ts`, `src/commands/curate.ts`, and `src/hooks/kb-proposal-drain.ts` collapse to single direct constructions with optional spreads only for genuinely-optional fields. Test migrations use `vi.useFakeTimers({ toFake: ['Date'] })` + `vi.setSystemTime(...)` plus `vi.spyOn(processModule, 'currentPid').mockReturnValue(...)`.
+
+Static sweeps all clean: `Test seam`, `preset?:`, `spawn?:`, `now?:`, `pid?:`, `Number.isNaN` in `src/cli.ts` → zero hits. CLI smoke verified: `init --assistants claude` succeeds; `curate --timeout 5000` succeeds; `curate --timeout abc` exits non-zero with `error: option '--timeout <ms>' argument 'abc' is invalid. --timeout must be an integer (got "abc")`; `node add --help` lists no `--preset`. Full test suite: 226/226 passing. Lint, typecheck, and build all green.
+
+### Noteworthy Events
+
+- **Task 004 partial dropout**. The Phase 2 sub-agent disconnected mid-execution after creating `src/lib/process.ts`, finishing `src/lib/bootstrap.ts`, and partially editing `src/lib/curate.ts` (interface shape only). The coordinator completed the remaining edits directly: `curate.ts` body migration, full `proposal-drain.ts` migration, three construction sites, and four test files (`bootstrap`, `curate`, `proposal-drain`, `conflicts`). No work was lost or duplicated.
+- **Flaky perf benchmark**. `tests/lib/lint.test.ts` had a 1000-node lint benchmark with a 200ms ceiling that consistently exceeded the budget (215-242ms) under full-suite load on this host but passed in isolation (~98ms). Pre-existing flake unrelated to plan 13. With user approval, the threshold was bumped to 500ms — the assertion still guards against accidental algorithmic regressions but tolerates host jitter.
+- **No external consumers of deleted seams**. `rg` confirmed `SpawnFn|SpawnContext|SpawnResult|defaultSpawn` had no callers outside `src/lib/headless.ts` and its tests; deletion was straightforward.
+- **Branch state**. Plan 13 was executed on `feature/10--remove-defensive-code-branches` (existing feature branch), not a fresh `feature/13--...` branch — `create-feature-branch.cjs` correctly skipped creation because we were already on a feature branch.
+
+### Necessary follow-ups
+
+- The pre-commit hook re-runs the full test suite for every commit; the new 500ms ceiling on the 1000-node lint benchmark may still need future re-tuning if it flakes under heavier load. Consider moving the benchmark out of pre-commit and into a dedicated `npm run bench` script.
+- `now?: () => Date` still exists in `src/lib/capture.ts`, `src/lib/session-start.ts`, and `src/lib/logs-prune.ts`. The plan explicitly scoped these out per the issue's acceptance criteria — a follow-up ticket could address them if the project decides those seams also belong gone.
