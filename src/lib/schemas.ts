@@ -6,7 +6,7 @@ export type CaptureTrigger = z.infer<typeof CaptureTriggerSchema>;
 export const SecretScanStatusSchema = z.enum(['clean', 'redacted', 'blocked', 'skipped']);
 export type SecretScanStatus = z.infer<typeof SecretScanStatusSchema>;
 
-export const ProposalStatusSchema = z.enum(['pending', 'done', 'failed', 'skipped']);
+export const ProposalStatusSchema = z.enum(['pending', 'done', 'failed']);
 export type ProposalStatus = z.infer<typeof ProposalStatusSchema>;
 
 export const SessionLogFrontmatterSchema = z.object({
@@ -27,23 +27,6 @@ export const SessionLogFrontmatterSchema = z.object({
 });
 
 export type SessionLogFrontmatter = z.infer<typeof SessionLogFrontmatterSchema>;
-
-export const QueueEntrySchema = z.object({
-  session_id: z.string(),
-  session_log: z.string(),
-  captured_by: CaptureTriggerSchema,
-  captured_at: z.string(),
-  attempts: z.number().int().nonnegative(),
-});
-
-export type QueueEntry = z.infer<typeof QueueEntrySchema>;
-
-export const QueueFileSchema = z.object({
-  schema_version: z.literal(1),
-  entries: z.array(QueueEntrySchema),
-});
-
-export type QueueFile = z.infer<typeof QueueFileSchema>;
 
 export const ConfidenceSchema = z.enum(['low', 'medium', 'high']);
 export type Confidence = z.infer<typeof ConfidenceSchema>;
@@ -251,7 +234,6 @@ export const SettingsSchema = z
   .object({
     schema_version: z.literal(1),
     drainBound: z.number().int().positive().optional(),
-    maxAttempts: z.number().int().positive().optional(),
     proposalTimeout: z.number().int().positive().optional(),
     lockTtlMs: z.number().int().positive().optional(),
     curationThreshold: z.number().int().positive().optional(),

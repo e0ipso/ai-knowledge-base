@@ -2,7 +2,7 @@
 id: 4
 group: "drain"
 dependencies: [3]
-status: "pending"
+status: "completed"
 created: 2026-05-13
 skills:
   - typescript
@@ -18,20 +18,20 @@ Delete `.queue.json` and its surrounding machinery. Replace the drain body with 
 - typescript: large edit across `proposal-drain.ts`, `queue.ts` (delete), `schemas.ts`, `capture.ts`, plus tests
 
 ## Acceptance Criteria
-- [ ] `src/lib/queue.ts` is deleted. No source file imports from it.
-- [ ] `QueueFileSchema`, `QueueEntrySchema`, and types `QueueFile`, `QueueEntry` are removed from `src/lib/schemas.ts`.
-- [ ] In `src/lib/proposal-drain.ts`: `bumpAndRotate`, `removeFromQueueHead`, `DEFAULT_MAX_ATTEMPTS`, the `attempts` field, the `maxAttempts` ctx field, and the `appendToQueue` re-export are all removed.
-- [ ] `drainProposalQueue` reads files under `_sessions/` via the filesystem, filters by `proposal_status: 'pending'` in frontmatter, derives `sessionId` / `capturedBy` / `capturedAt` from frontmatter, processes each, and writes `proposal_status: 'done'` on success or `'failed'` on error. `proposal_error` and `proposal_log` keep their current shape.
-- [ ] The drain is capped by `maxEntries` (existing ctx field); iteration stops once the cap is hit.
-- [ ] `DrainEntryStatus` no longer includes `'skipped'`. New shape is `'done' | 'failed' | 'missing-log'` (or `'done' | 'failed'` if the missing-log branch folds into `failed` cleanly — pick whichever keeps the existing call sites simpler).
-- [ ] In `src/lib/capture.ts`: the `appendToQueue` / `hasQueueEntry` call block and its import are removed.
-- [ ] Tests that asserted queue-file shape, rotation, or `attempts` increment are deleted or rewritten. New tests cover:
+- [x] `src/lib/queue.ts` is deleted. No source file imports from it.
+- [x] `QueueFileSchema`, `QueueEntrySchema`, and types `QueueFile`, `QueueEntry` are removed from `src/lib/schemas.ts`.
+- [x] In `src/lib/proposal-drain.ts`: `bumpAndRotate`, `removeFromQueueHead`, `DEFAULT_MAX_ATTEMPTS`, the `attempts` field, the `maxAttempts` ctx field, and the `appendToQueue` re-export are all removed.
+- [x] `drainProposalQueue` reads files under `_sessions/` via the filesystem, filters by `proposal_status: 'pending'` in frontmatter, derives `sessionId` / `capturedBy` / `capturedAt` from frontmatter, processes each, and writes `proposal_status: 'done'` on success or `'failed'` on error. `proposal_error` and `proposal_log` keep their current shape.
+- [x] The drain is capped by `maxEntries` (existing ctx field); iteration stops once the cap is hit.
+- [x] `DrainEntryStatus` no longer includes `'skipped'`. New shape is `'done' | 'failed' | 'missing-log'` (or `'done' | 'failed'` if the missing-log branch folds into `failed` cleanly — pick whichever keeps the existing call sites simpler).
+- [x] In `src/lib/capture.ts`: the `appendToQueue` / `hasQueueEntry` call block and its import are removed.
+- [x] Tests that asserted queue-file shape, rotation, or `attempts` increment are deleted or rewritten. New tests cover:
   - Drain ignores logs whose frontmatter has `proposal_status` other than `'pending'` (or absent).
   - Drain marks `done` on success.
   - Drain marks `failed` on a runner error and does not retry within the same drain.
   - Drain respects `maxEntries`.
-- [ ] No reference to `.queue.json` remains in `src/`, `bin/`, `scripts/`, `.claude/`.
-- [ ] `npm run lint`, `npm run typecheck`, and `npm test` pass.
+- [x] No reference to `.queue.json` remains in `src/`, `bin/`, `scripts/`, `.claude/`.
+- [x] `npm run lint`, `npm run typecheck`, and `npm test` pass.
 
 Use your internal Todo tool to track these and keep on track.
 

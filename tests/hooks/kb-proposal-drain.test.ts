@@ -53,25 +53,6 @@ function seedSession(sandbox: string, sessionId: string): string {
       body: '[USER]: use bravo_pii.cache for PII\n[AGENT]: ok',
     })
   );
-  writeFileSync(
-    join(sessionsDir, '.queue.json'),
-    JSON.stringify(
-      {
-        schema_version: 1,
-        entries: [
-          {
-            session_id: sessionId,
-            session_log: filename,
-            captured_by: 'stop',
-            captured_at: '2026-05-11T10:00:00Z',
-            attempts: 0,
-          },
-        ],
-      },
-      null,
-      2
-    )
-  );
   return filename;
 }
 
@@ -111,16 +92,16 @@ describe('kb-proposal-drain hook (spawned)', () => {
   });
 
   it('exits silently with KB_BUILDER_INTERNAL=1 (recursion guard)', async () => {
-    seedSession(sandbox, 'guarded');
+    const file = seedSession(sandbox, 'guarded');
     const result = await runHook(sandbox, { cwd: sandbox }, { KB_BUILDER_INTERNAL: '1' });
     expect(result.exitCode).toBe(0);
-    const queue = JSON.parse(
-      readFileSync(join(sandbox, '.ai/knowledge-base/_sessions/.queue.json'), 'utf8')
+    const after = matter(
+      readFileSync(join(sandbox, '.ai/knowledge-base/_sessions', file), 'utf8')
     );
-    expect(queue.entries).toHaveLength(1);
+    expect(after.data['proposal_status']).toBe('pending');
   });
 
-  it('drains a queued entry using a stubbed claude binary on PATH', async () => {
+  it('drains a pending session log using a stubbed claude binary on PATH', async () => {
     if (process.platform === 'win32') return;
     const file = seedSession(sandbox, 'drained');
     const result = JSON.stringify({
@@ -151,11 +132,6 @@ describe('kb-proposal-drain hook (spawned)', () => {
     expect(after.data['proposal_status']).toBe('done');
     const proposals = after.data['proposals'] as { practice: unknown[]; map: unknown[] };
     expect(proposals.practice).toHaveLength(1);
-
-    const queueAfter = JSON.parse(
-      readFileSync(join(sandbox, '.ai/knowledge-base/_sessions/.queue.json'), 'utf8')
-    );
-    expect(queueAfter.entries).toHaveLength(0);
 
     const logFile = after.data['proposal_log'] as string;
     expect(existsSync(join(sandbox, '.ai/knowledge-base', logFile))).toBe(true);

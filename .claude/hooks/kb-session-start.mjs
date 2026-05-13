@@ -1,10 +1,10 @@
 // src/hooks/kb-session-start.ts
-import { existsSync as existsSync6 } from "fs";
-import { join as join5 } from "path";
+import { existsSync as existsSync7 } from "fs";
+import { join as join6 } from "path";
 
 // src/lib/session-start.ts
-import { existsSync as existsSync3, readFileSync as readFileSync3, readdirSync as readdirSync2 } from "fs";
-import { join as join2 } from "path";
+import { existsSync as existsSync4, readFileSync as readFileSync4, readdirSync as readdirSync2 } from "fs";
+import { join as join3 } from "path";
 import matter2 from "gray-matter";
 
 // src/lib/nodes.ts
@@ -25,7 +25,7 @@ import "zod";
 import { z } from "zod";
 var CaptureTriggerSchema = z.enum(["stop", "session_end", "pre_compact", "manual"]);
 var SecretScanStatusSchema = z.enum(["clean", "redacted", "blocked", "skipped"]);
-var ProposalStatusSchema = z.enum(["pending", "done", "failed", "skipped"]);
+var ProposalStatusSchema = z.enum(["pending", "done", "failed"]);
 var SessionLogFrontmatterSchema = z.object({
   schema_version: z.literal(1),
   session_id: z.string(),
@@ -37,30 +37,10 @@ var SessionLogFrontmatterSchema = z.object({
   proposal_error: z.string().nullable(),
   proposal_log: z.string().nullable(),
   secret_scan_status: SecretScanStatusSchema,
-  topics: z.array(z.string()),
   proposals: z.object({
     practice: z.array(z.unknown()),
     map: z.array(z.unknown())
   })
-});
-var QueueEntrySchema = z.object({
-  session_id: z.string(),
-  session_log: z.string(),
-  captured_by: CaptureTriggerSchema,
-  captured_at: z.string(),
-  attempts: z.number().int().nonnegative()
-});
-var QueueFileSchema = z.object({
-  schema_version: z.literal(1),
-  entries: z.array(QueueEntrySchema)
-});
-var DedupCacheEntrySchema = z.object({
-  hash: z.string(),
-  expires_at: z.string()
-});
-var DedupCacheFileSchema = z.object({
-  schema_version: z.literal(1),
-  entries: z.array(DedupCacheEntrySchema)
 });
 var ConfidenceSchema = z.enum(["low", "medium", "high"]);
 var ModelFamilySchema = z.enum(["haiku", "sonnet", "opus"]);
@@ -91,6 +71,13 @@ var StateFileSchema = z.object({
   lock: StateLockSchema.nullable().optional(),
   last_nudged_at: z.string().nullable().optional()
 });
+var LintStateFileSchema = z.object({
+  schema_version: z.literal(1),
+  sessions_since_last_lint: z.number().int().nonnegative(),
+  last_lint_at: z.string().nullable(),
+  last_errors: z.number().int().nonnegative(),
+  last_findings: z.number().int().nonnegative()
+});
 var NodeKindSchema = z.enum(["practice", "map"]);
 var NodeFrontmatterSchema = z.object({
   schema_version: z.literal(1),
@@ -98,14 +85,8 @@ var NodeFrontmatterSchema = z.object({
   title: z.string(),
   kind: NodeKindSchema,
   tags: z.array(z.string()),
-  valid_from: z.string(),
-  valid_until: z.string().nullable(),
-  updated: z.string(),
-  supersedes: z.string().nullable(),
-  superseded_by: z.string().nullable(),
   derived_from: z.array(z.string()),
   relates_to: z.array(z.string()),
-  depends_on: z.array(z.string()),
   confidence: ConfidenceSchema,
   summary: z.string()
 });
@@ -118,26 +99,20 @@ var CuratorProposedNodeSchema = z.object({
   body: z.string(),
   confidence: ConfidenceSchema,
   derived_from: z.array(z.string()),
-  relates_to: z.array(z.string()),
-  supersedes: z.string().nullable(),
-  valid_from: z.string(),
-  valid_until: z.string().nullable(),
-  superseded_by: z.string().nullable()
+  relates_to: z.array(z.string())
 });
 var CuratorActionSchema = z.object({
   action: z.enum(["add", "modify", "contradict", "drop"]),
   candidate_origin: z.string(),
   target_node_id: z.string().nullable(),
   proposed_node: CuratorProposedNodeSchema.nullable(),
-  rationale: z.string(),
-  suggested_resolution: z.enum(["supersede", "keep_both", "reject"]).nullable()
+  rationale: z.string()
 });
 var CuratorOutputSchema = z.array(CuratorActionSchema);
 var IndexFrontmatterSchema = z.object({
   schema_version: z.literal(1),
   nodes_hash: z.string(),
-  node_count: z.number().int().nonnegative(),
-  budget_tokens: z.number().int().positive()
+  node_count: z.number().int().nonnegative()
 });
 var GraphFrontmatterSchema = z.object({
   schema_version: z.literal(1),
@@ -186,13 +161,12 @@ var FailureReportSchema = z.object({
 var SettingsSchema = z.object({
   schema_version: z.literal(1),
   drainBound: z.number().int().positive().optional(),
-  maxAttempts: z.number().int().positive().optional(),
   proposalTimeout: z.number().int().positive().optional(),
   lockTtlMs: z.number().int().positive().optional(),
-  indexBudgetTokens: z.number().int().positive().optional(),
   curationThreshold: z.number().int().positive().optional(),
   bootstrapTokenBudget: z.number().int().positive().optional(),
   logsRetentionDays: z.number().int().positive().optional(),
+  lintEveryNSessions: z.number().int().positive().optional(),
   proposalModel: ModelChoiceSchema.optional(),
   curatorModel: ModelChoiceSchema.optional(),
   bootstrapModel: ModelChoiceSchema.optional()
@@ -227,14 +201,39 @@ function walkMarkdown(rootDir, currentDir, out) {
   }
 }
 
-// src/lib/state.ts
+// src/lib/lint-state.ts
 import { existsSync as existsSync2, mkdirSync as mkdirSync2, readFileSync as readFileSync2, renameSync as renameSync2, writeFileSync as writeFileSync2 } from "fs";
-import { dirname } from "path";
-var DEFAULT_LOCK_TTL_MS = 30 * 60 * 1e3;
-function readState(file) {
-  if (!existsSync2(file)) return { schema_version: 1 };
+import { dirname, join as join2 } from "path";
+var DEFAULT_LINT_STATE = {
+  schema_version: 1,
+  sessions_since_last_lint: 0,
+  last_lint_at: null,
+  last_errors: 0,
+  last_findings: 0
+};
+function lintStateFile(stateDir) {
+  return join2(stateDir, "lint-state.json");
+}
+function readLintState(file) {
+  if (!existsSync2(file)) return { ...DEFAULT_LINT_STATE };
   try {
     const raw = JSON.parse(readFileSync2(file, "utf8"));
+    const parsed = LintStateFileSchema.safeParse(raw);
+    if (parsed.success) return parsed.data;
+    return { ...DEFAULT_LINT_STATE };
+  } catch {
+    return { ...DEFAULT_LINT_STATE };
+  }
+}
+
+// src/lib/state.ts
+import { existsSync as existsSync3, mkdirSync as mkdirSync3, readFileSync as readFileSync3, renameSync as renameSync3, writeFileSync as writeFileSync3 } from "fs";
+import { dirname as dirname2 } from "path";
+var DEFAULT_LOCK_TTL_MS = 30 * 60 * 1e3;
+function readState(file) {
+  if (!existsSync3(file)) return { schema_version: 1 };
+  try {
+    const raw = JSON.parse(readFileSync3(file, "utf8"));
     const parsed = StateFileSchema.safeParse(raw);
     if (parsed.success) return parsed.data;
     return { schema_version: 1 };
@@ -243,11 +242,11 @@ function readState(file) {
   }
 }
 function writeState(file, state) {
-  mkdirSync2(dirname(file), { recursive: true });
+  mkdirSync3(dirname2(file), { recursive: true });
   const tmp = `${file}.tmp`;
-  writeFileSync2(tmp, `${JSON.stringify(state, null, 2)}
+  writeFileSync3(tmp, `${JSON.stringify(state, null, 2)}
 `);
-  renameSync2(tmp, file);
+  renameSync3(tmp, file);
 }
 
 // src/lib/session-start.ts
@@ -280,12 +279,24 @@ function buildSessionStartContext(ctx) {
       `> You have ${pending} pending session log(s). Run \`/kb-curate\` (or \`ai-knowledge-base curate\`) when ready.`
     );
   }
+  let lintNudged = false;
+  if (ctx.lintStateFile !== void 0) {
+    const lintState = readLintState(ctx.lintStateFile);
+    if (lintState.last_errors > 0 || lintState.last_findings > 0) {
+      lines.push("");
+      lines.push(
+        `> Last KB lint ${lintState.last_lint_at}: ${lintState.last_errors} error(s), ${lintState.last_findings} finding(s). Run \`ai-knowledge-base lint --verbose\` for details.`
+      );
+      lintNudged = true;
+    }
+  }
   if (shouldNudge) {
     writeState(ctx.stateFile, { ...state, last_nudged_at: nowDate.toISOString() });
   }
   return {
     additionalContext: lines.join("\n") + "\n",
     nudged: shouldNudge,
+    lintNudged,
     indexMissing: missing,
     indexStale,
     pendingSessions: pending
@@ -293,14 +304,14 @@ function buildSessionStartContext(ctx) {
 }
 function loadIndex(kbDir) {
   const indexFile = `${kbDir.replace(/[\\/]$/, "")}/INDEX.md`;
-  if (!existsSync3(indexFile)) {
+  if (!existsSync4(indexFile)) {
     return {
       content: stubIndex(),
       frontmatterHash: null,
       missing: true
     };
   }
-  const raw = readFileSync3(indexFile, "utf8");
+  const raw = readFileSync4(indexFile, "utf8");
   const parsed = matter2(raw);
   const result = IndexFrontmatterSchema.safeParse(parsed.data);
   const hash = result.success ? normalizeNodesHash(result.data.nodes_hash) : null;
@@ -321,13 +332,13 @@ function normalizeNodesHash(value) {
   return value.startsWith("sha256:") ? value.slice(7) : value;
 }
 function countPendingSessions(sessionsDir) {
-  if (!existsSync3(sessionsDir)) return 0;
+  if (!existsSync4(sessionsDir)) return 0;
   let count = 0;
   for (const name of readdirSync2(sessionsDir)) {
     if (!name.endsWith(".md")) continue;
-    const file = join2(sessionsDir, name);
+    const file = join3(sessionsDir, name);
     try {
-      const parsed = matter2(readFileSync3(file, "utf8"));
+      const parsed = matter2(readFileSync4(file, "utf8"));
       const fm = SessionLogFrontmatterSchema.safeParse(parsed.data);
       if (!fm.success) continue;
       if (fm.data.proposal_status !== "done") continue;
@@ -347,27 +358,27 @@ function parseLastNudgedAt(value) {
 }
 
 // src/lib/paths.ts
-import { existsSync as existsSync4, readFileSync as readFileSync4, statSync } from "fs";
-import { dirname as dirname2, join as join3, resolve } from "path";
+import { existsSync as existsSync5, readFileSync as readFileSync5, statSync } from "fs";
+import { dirname as dirname3, join as join4, resolve } from "path";
 import { fileURLToPath } from "url";
 function findRepoRoot(from = process.cwd()) {
   let cur = resolve(from);
   while (true) {
-    if (existsSync4(join3(cur, ".git")) || existsSync4(join3(cur, ".ai/knowledge-base/.state/installed-version"))) {
+    if (existsSync5(join4(cur, ".git")) || existsSync5(join4(cur, ".ai/knowledge-base/.state/installed-version"))) {
       return cur;
     }
-    const parent = dirname2(cur);
+    const parent = dirname3(cur);
     if (parent === cur) return resolve(from);
     cur = parent;
   }
 }
 function repoPaths(root) {
-  const aiDir = join3(root, ".ai");
-  const kbDir = join3(aiDir, "knowledge-base");
-  const stateDir = join3(kbDir, ".state");
-  const configDir = join3(kbDir, ".config");
-  const promptsDir = join3(configDir, "prompts");
-  const claudeDir = join3(root, ".claude");
+  const aiDir = join4(root, ".ai");
+  const kbDir = join4(aiDir, "knowledge-base");
+  const stateDir = join4(kbDir, ".state");
+  const configDir = join4(kbDir, ".config");
+  const promptsDir = join4(configDir, "prompts");
+  const claudeDir = join4(root, ".claude");
   return {
     root,
     aiDir,
@@ -375,39 +386,38 @@ function repoPaths(root) {
     stateDir,
     configDir,
     promptsDir,
-    installedVersionFile: join3(stateDir, "installed-version"),
-    projectConfigFile: join3(kbDir, "config.yaml"),
-    sessionsDir: join3(kbDir, "_sessions"),
-    logsDir: join3(kbDir, "_logs"),
-    nodesDir: join3(kbDir, "nodes"),
+    installedVersionFile: join4(stateDir, "installed-version"),
+    projectConfigFile: join4(kbDir, "config.yaml"),
+    sessionsDir: join4(kbDir, "_sessions"),
+    logsDir: join4(kbDir, "_logs"),
+    nodesDir: join4(kbDir, "nodes"),
     claudeDir,
-    claudeCommandsDir: join3(claudeDir, "commands"),
-    claudeSkillsDir: join3(claudeDir, "skills"),
-    claudeHooksDir: join3(claudeDir, "hooks"),
-    claudeSettingsFile: join3(claudeDir, "settings.json"),
-    gitignoreFile: join3(root, ".gitignore"),
-    secretlintrcFile: join3(root, ".secretlintrc.json"),
-    huskyDir: join3(root, ".husky"),
-    huskyPreCommitFile: join3(root, ".husky", "pre-commit"),
-    packageJsonFile: join3(root, "package.json"),
-    lintstagedrcFile: join3(root, ".lintstagedrc.cjs")
+    claudeCommandsDir: join4(claudeDir, "commands"),
+    claudeSkillsDir: join4(claudeDir, "skills"),
+    claudeHooksDir: join4(claudeDir, "hooks"),
+    claudeSettingsFile: join4(claudeDir, "settings.json"),
+    gitignoreFile: join4(root, ".gitignore"),
+    secretlintrcFile: join4(root, ".secretlintrc.json"),
+    huskyDir: join4(root, ".husky"),
+    huskyPreCommitFile: join4(root, ".husky", "pre-commit"),
+    packageJsonFile: join4(root, "package.json"),
+    lintstagedrcFile: join4(root, ".lintstagedrc.cjs")
   };
 }
 
 // src/lib/settings.ts
-import { existsSync as existsSync5, readFileSync as readFileSync5 } from "fs";
+import { existsSync as existsSync6, readFileSync as readFileSync6 } from "fs";
 import { homedir } from "os";
-import { join as join4 } from "path";
+import { join as join5 } from "path";
 import yaml from "js-yaml";
 var SETTINGS_DEFAULTS = {
   drainBound: 5,
-  maxAttempts: 3,
   proposalTimeout: 6e4,
   lockTtlMs: 30 * 60 * 1e3,
-  indexBudgetTokens: 2e3,
   curationThreshold: 5,
   bootstrapTokenBudget: 1e4,
-  logsRetentionDays: 30
+  logsRetentionDays: 30,
+  lintEveryNSessions: 50
 };
 var MODEL_CHOICE_KEYS = ["proposalModel", "curatorModel", "bootstrapModel"];
 function resolveSettings(opts = {}) {
@@ -422,7 +432,7 @@ function resolveSettings(opts = {}) {
   return {
     settings: effective,
     projectFile: projectFile ?? null,
-    userFile: existsSync5(userFile) ? userFile : null,
+    userFile: existsSync6(userFile) ? userFile : null,
     warnings
   };
 }
@@ -440,10 +450,10 @@ function applyOverrides(target, src) {
   }
 }
 function loadFile(file, warnings) {
-  if (!existsSync5(file)) return null;
+  if (!existsSync6(file)) return null;
   let raw;
   try {
-    raw = readFileSync5(file, "utf8");
+    raw = readFileSync6(file, "utf8");
   } catch (err) {
     warnings.push(`settings file unreadable (${file}): ${err.message}`);
     return null;
@@ -464,8 +474,8 @@ function loadFile(file, warnings) {
 }
 function defaultUserConfigPath(env = process.env) {
   const xdg = env["XDG_CONFIG_HOME"];
-  const base = xdg && xdg.length > 0 ? xdg : join4(homedir(), ".config");
-  return join4(base, "ai-knowledge-base", "config.yaml");
+  const base = xdg && xdg.length > 0 ? xdg : join5(homedir(), ".config");
+  return join5(base, "ai-knowledge-base", "config.yaml");
 }
 
 // src/hooks/kb-session-start.ts
@@ -487,14 +497,15 @@ async function main() {
   const startCwd = typeof input.cwd === "string" && input.cwd.length > 0 ? input.cwd : process.cwd();
   const root = findRepoRoot(startCwd);
   const paths = repoPaths(root);
-  if (!existsSync6(paths.installedVersionFile)) return;
+  if (!existsSync7(paths.installedVersionFile)) return;
   try {
     const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
     const result = buildSessionStartContext({
       kbDir: paths.kbDir,
       nodesDir: paths.nodesDir,
       sessionsDir: paths.sessionsDir,
-      stateFile: join5(paths.stateDir, "state.json"),
+      stateFile: join6(paths.stateDir, "state.json"),
+      lintStateFile: lintStateFile(paths.stateDir),
       threshold: settings.curationThreshold
     });
     process.stdout.write(

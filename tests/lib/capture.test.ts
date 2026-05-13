@@ -46,7 +46,7 @@ describe('captureSession', () => {
   });
   afterEach(() => cleanSandbox(sandbox));
 
-  it('writes a session log and queue entry on a fresh capture', async () => {
+  it('writes a session log with pending frontmatter on a fresh capture', async () => {
     const result = await captureSession(
       {
         session_id: 'sess-1',
@@ -58,7 +58,6 @@ describe('captureSession', () => {
     expect(result.status).toBe('written');
     expect(result.secretScanStatus).toBe('clean');
 
-    // session log file exists with the expected frontmatter
     const files = readdirSync(sessionsDir).filter(f => f.endsWith('.md'));
     expect(files).toHaveLength(1);
     const logName = files[0];
@@ -76,14 +75,6 @@ describe('captureSession', () => {
     expect(fm.proposal_status).toBe('pending');
     expect(fm.secret_scan_status).toBe('clean');
     expect(fm.transcript_hash).toMatch(/^sha256:[0-9a-f]{64}$/);
-
-    // queue populated
-    const queue = JSON.parse(readFileSync(join(sessionsDir, '.queue.json'), 'utf8')) as {
-      entries: Array<{ session_id: string; session_log: string }>;
-    };
-    expect(queue.entries).toHaveLength(1);
-    expect(queue.entries[0]?.session_id).toBe('sess-1');
-    expect(queue.entries[0]?.session_log).toBe(logName);
   });
 
   it('overwrites the same session log when a repeat fires for the same session_id', async () => {
@@ -196,53 +187,6 @@ describe('captureSession', () => {
     const log = readFileSync(join(sessionsDir, firstName), 'utf8');
     expect(log).toContain('now what about X?');
     expect(log).toContain('here is X');
-
-    // Queue has exactly one entry for this session.
-    const queue = JSON.parse(readFileSync(join(sessionsDir, '.queue.json'), 'utf8')) as {
-      entries: Array<{ session_id: string; session_log: string }>;
-    };
-    expect(queue.entries).toHaveLength(1);
-    expect(queue.entries[0]?.session_id).toBe('multi');
-    expect(queue.entries[0]?.session_log).toBe(firstName);
-  });
-
-  it('re-queues an already-drained session when new turns arrive', async () => {
-    const ctx = { sessionsDir, scan: fakeScanner('clean') };
-    const first = await captureSession(
-      { session_id: 'drained', transcript_path: transcriptPath, hook_event_name: 'Stop' },
-      ctx
-    );
-    expect(first.status).toBe('written');
-
-    // Simulate the drainer consuming the queue entry (file stays).
-    writeFileSync(
-      join(sessionsDir, '.queue.json'),
-      `${JSON.stringify({ schema_version: 1, entries: [] }, null, 2)}\n`
-    );
-
-    // New turn → new transcript hash → capture proceeds.
-    writeFileSync(
-      transcriptPath,
-      [
-        JSON.stringify({ type: 'user', message: { role: 'user', content: 'use bravo_pii.cache' } }),
-        JSON.stringify({
-          type: 'assistant',
-          message: { role: 'assistant', content: [{ type: 'text', text: 'understood' }] },
-        }),
-        JSON.stringify({ type: 'user', message: { role: 'user', content: 'follow-up' } }),
-      ].join('\n')
-    );
-    const second = await captureSession(
-      { session_id: 'drained', transcript_path: transcriptPath, hook_event_name: 'SessionEnd' },
-      ctx
-    );
-    expect(second.status).toBe('written');
-
-    const queue = JSON.parse(readFileSync(join(sessionsDir, '.queue.json'), 'utf8')) as {
-      entries: Array<{ session_id: string }>;
-    };
-    expect(queue.entries).toHaveLength(1);
-    expect(queue.entries[0]?.session_id).toBe('drained');
   });
 
   it('uses captured_by derived from hook_event_name', async () => {

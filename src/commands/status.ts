@@ -5,10 +5,6 @@ import { log } from '../lib/log.js';
 import { findRepoRoot, repoPaths } from '../lib/paths.js';
 import { PendingConflictsFileSchema } from '../lib/schemas.js';
 
-interface QueueFile {
-  entries?: Array<{ session_id: string; attempts?: number }>;
-}
-
 export async function runStatus(): Promise<void> {
   const root = findRepoRoot();
   const paths = repoPaths(root);
@@ -25,11 +21,6 @@ export async function runStatus(): Promise<void> {
     installed_at: string;
   };
 
-  const queueFile = join(paths.sessionsDir, '.queue.json');
-  const queue = existsSync(queueFile)
-    ? (JSON.parse(readFileSync(queueFile, 'utf8')) as QueueFile)
-    : { entries: [] };
-
   const sessionStats = scanSessions(paths.sessionsDir);
   const conflictCount = countPendingConflicts(join(paths.stateDir, 'pending-conflicts.json'));
   const nodeCounts = countNodes(paths.nodesDir);
@@ -43,7 +34,6 @@ export async function runStatus(): Promise<void> {
   log.plain(`  Map nodes:      ${nodeCounts.map}`);
   log.plain('');
   log.plain('Pending work');
-  log.plain(`  Proposal queue:          ${queue.entries?.length ?? 0}`);
   log.plain(`  Session logs (pending):  ${sessionStats.pending}`);
   log.plain(`  Session logs (done):     ${sessionStats.done}`);
   log.plain(`  Session logs (failed):   ${sessionStats.failed}`);

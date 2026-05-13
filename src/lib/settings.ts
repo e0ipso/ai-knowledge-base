@@ -11,7 +11,6 @@ import { SettingsSchema, type ModelChoice, type SettingsFile } from './schemas.j
  */
 export const SETTINGS_DEFAULTS = {
   drainBound: 5,
-  maxAttempts: 3,
   proposalTimeout: 60_000,
   lockTtlMs: 30 * 60 * 1000,
   curationThreshold: 5,
@@ -135,7 +134,6 @@ export function defaultProjectConfigBody(): string {
   const body: SettingsFile = {
     schema_version: 1,
     drainBound: SETTINGS_DEFAULTS.drainBound,
-    maxAttempts: SETTINGS_DEFAULTS.maxAttempts,
     proposalTimeout: SETTINGS_DEFAULTS.proposalTimeout,
     lockTtlMs: SETTINGS_DEFAULTS.lockTtlMs,
     curationThreshold: SETTINGS_DEFAULTS.curationThreshold,

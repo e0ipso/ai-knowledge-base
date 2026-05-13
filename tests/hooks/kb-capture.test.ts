@@ -99,7 +99,7 @@ describe('kb-capture hook (spawned)', () => {
     expect(sessionLogs(sandbox)).toHaveLength(0);
   });
 
-  it('writes a session log + queue entry when secretlint finds no secrets', async () => {
+  it('writes a session log when secretlint finds no secrets', async () => {
     const transcript = join(sandbox, 't.jsonl');
     writeTranscript(transcript);
 
@@ -111,8 +111,6 @@ describe('kb-capture hook (spawned)', () => {
     });
     expect(result.exitCode).toBe(0);
     expect(sessionLogs(sandbox).length).toBeGreaterThan(0);
-    const queueFile = join(sandbox, '.ai/knowledge-base/_sessions/.queue.json');
-    expect(existsSync(queueFile)).toBe(true);
   });
 
   it('exits 0 on missing transcript without throwing', async () => {

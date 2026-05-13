@@ -3,7 +3,6 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { appendToQueue, readQueue } from '../../src/lib/queue.js';
 import { renderSessionLog } from '../../src/lib/session-log.js';
 import {
   buildProposalPrompt,
@@ -19,7 +18,6 @@ interface Harness {
   sessionsDir: string;
   logsDir: string;
   stateFile: string;
-  queueFile: string;
 }
 
 function makeHarness(): Harness {
@@ -30,7 +28,7 @@ function makeHarness(): Harness {
   mkdirSync(sessionsDir, { recursive: true });
   mkdirSync(logsDir, { recursive: true });
   mkdirSync(dirname(stateFile), { recursive: true });
-  return { root, sessionsDir, logsDir, stateFile, queueFile: join(sessionsDir, '.queue.json') };
+  return { root, sessionsDir, logsDir, stateFile };
 }
 
 function seedSession(harness: Harness, sessionId: string, transcript: string): string {
@@ -44,13 +42,21 @@ function seedSession(harness: Harness, sessionId: string, transcript: string): s
     body: transcript,
   });
   writeFileSync(join(harness.sessionsDir, filename), body);
-  appendToQueue(harness.queueFile, {
-    session_id: sessionId,
-    session_log: filename,
-    captured_by: 'stop',
-    captured_at: '2026-05-11T10:00:00Z',
-    attempts: 0,
-  });
+  return filename;
+}
+
+function seedSessionWithStatus(
+  harness: Harness,
+  sessionId: string,
+  status: 'done' | 'failed' | null
+): string {
+  const filename = seedSession(harness, sessionId, '[USER]: hi');
+  if (status === null) return filename;
+  const filePath = join(harness.sessionsDir, filename);
+  const parsed = matter(readFileSync(filePath, 'utf8'));
+  const data = { ...(parsed.data as Record<string, unknown>) };
+  data['proposal_status'] = status;
+  writeFileSync(filePath, matter.stringify(parsed.content, data));
   return filename;
 }
 
@@ -99,7 +105,7 @@ describe('drainProposalQueue', () => {
   });
   afterEach(() => rmSync(harness.root, { recursive: true, force: true }));
 
-  it('processes a queued session log on success and updates frontmatter', async () => {
+  it('processes a pending session log on success and updates frontmatter', async () => {
     const file = seedSession(harness, 's1', '[USER]: use bravo_pii.cache for PII\n[AGENT]: ok');
 
     const summary = await drainProposalQueue({
@@ -120,7 +126,43 @@ describe('drainProposalQueue', () => {
     const proposals = after.data['proposals'] as { practice: unknown[]; map: unknown[] };
     expect(proposals.practice).toHaveLength(1);
     expect(proposals.map).toHaveLength(1);
-    expect(readQueue(harness.queueFile).entries).toHaveLength(0);
+  });
+
+  it('ignores session logs whose proposal_status is not pending', async () => {
+    seedSessionWithStatus(harness, 'already-done', 'done');
+    seedSessionWithStatus(harness, 'already-failed', 'failed');
+    const pendingFile = seedSession(harness, 'fresh', '[USER]: hi');
+
+    const summary = await drainProposalQueue({
+      sessionsDir: harness.sessionsDir,
+      logsDir: harness.logsDir,
+      stateFile: harness.stateFile,
+      promptTemplate: PROMPT_TEMPLATE,
+      runner: successRunner(),
+    });
+
+    expect(summary.processed).toHaveLength(1);
+    expect(summary.processed[0]?.sessionId).toBe('fresh');
+    const after = matter(
+      readFileSync(join(harness.sessionsDir, pendingFile), 'utf8')
+    );
+    expect(after.data['proposal_status']).toBe('done');
+  });
+
+  it('skips dotfiles in the sessions directory', async () => {
+    writeFileSync(join(harness.sessionsDir, '.hidden.md'), 'irrelevant');
+    seedSession(harness, 'visible', '[USER]: hi');
+
+    const summary = await drainProposalQueue({
+      sessionsDir: harness.sessionsDir,
+      logsDir: harness.logsDir,
+      stateFile: harness.stateFile,
+      promptTemplate: PROMPT_TEMPLATE,
+      runner: successRunner(),
+    });
+
+    expect(summary.processed).toHaveLength(1);
+    expect(summary.processed[0]?.sessionId).toBe('visible');
   });
 
   it('substitutes the transcript into the prompt template before invoking the runner', async () => {
@@ -159,16 +201,14 @@ describe('drainProposalQueue', () => {
       promptTemplate: PROMPT_TEMPLATE,
       runner: successRunner(),
       pid: 12345,
-      // Pin "now" inside the lock's TTL so this test is deterministic
-      // regardless of wall-clock drift from the fixture timestamp above.
       now: () => new Date(lockTime.getTime() + 60_000),
     });
 
     expect(summary.status).toBe('locked');
-    expect(readQueue(harness.queueFile).entries).toHaveLength(1);
+    expect(summary.remaining).toBe(1);
   });
 
-  it('respects maxEntries and leaves remaining entries on the queue', async () => {
+  it('respects maxEntries and leaves remaining pending logs untouched', async () => {
     for (const id of ['a', 'b', 'c', 'd']) {
       seedSession(harness, id, `[USER]: hi-${id}`);
     }
@@ -184,15 +224,12 @@ describe('drainProposalQueue', () => {
     expect(summary.remaining).toBe(2);
   });
 
-  it('retries a failure (attempts<max) and rotates the entry to the back of the queue', async () => {
-    seedSession(harness, 'first', '[USER]: hi-first');
-    seedSession(harness, 'second', '[USER]: hi-second');
-
+  it('marks a session log as failed on runner error without retrying within the drain', async () => {
+    const file = seedSession(harness, 'doomed', '[USER]: hi-doomed');
     let calls = 0;
     const runner: ProposalRunner = async () => {
       calls += 1;
-      if (calls === 1) throw new Error('parse error');
-      return { practice: [], map: [] };
+      throw new Error('schema mismatch');
     };
 
     const summary = await drainProposalQueue({
@@ -201,56 +238,14 @@ describe('drainProposalQueue', () => {
       stateFile: harness.stateFile,
       promptTemplate: PROMPT_TEMPLATE,
       runner,
-      maxEntries: 2,
     });
+
+    expect(calls).toBe(1);
     expect(summary.processed[0]?.status).toBe('failed');
-    expect(summary.processed[1]?.status).toBe('done');
-    const queueAfter = readQueue(harness.queueFile);
-    expect(queueAfter.entries).toHaveLength(1);
-    expect(queueAfter.entries[0]?.session_id).toBe('first');
-    expect(queueAfter.entries[0]?.attempts).toBe(1);
-  });
-
-  it('marks a session log as skipped after the max-attempts threshold', async () => {
-    const file = seedSession(harness, 'doomed', '[USER]: hi-doomed');
-    // Pre-set attempts to 2 so the first failure here hits the cap.
-    const existing = readQueue(harness.queueFile);
-    existing.entries[0]!.attempts = 2;
-    writeFileSync(harness.queueFile, JSON.stringify(existing, null, 2));
-
-    const summary = await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
-      promptTemplate: PROMPT_TEMPLATE,
-      runner: failingRunner('schema mismatch'),
-      maxAttempts: 3,
-    });
-
-    expect(summary.processed[0]?.status).toBe('skipped');
-    expect(readQueue(harness.queueFile).entries).toHaveLength(0);
     const after = matter(readFileSync(join(harness.sessionsDir, file), 'utf8'));
-    expect(after.data['proposal_status']).toBe('skipped');
+    expect(after.data['proposal_status']).toBe('failed');
     expect(after.data['proposal_error']).toContain('schema mismatch');
-  });
-
-  it('handles a queue entry whose session log is missing on disk', async () => {
-    appendToQueue(harness.queueFile, {
-      session_id: 'ghost',
-      session_log: 'does-not-exist.md',
-      captured_by: 'stop',
-      captured_at: '2026-05-11T10:00:00Z',
-      attempts: 0,
-    });
-    const summary = await drainProposalQueue({
-      sessionsDir: harness.sessionsDir,
-      logsDir: harness.logsDir,
-      stateFile: harness.stateFile,
-      promptTemplate: PROMPT_TEMPLATE,
-      runner: successRunner(),
-    });
-    expect(summary.processed[0]?.status).toBe('missing-log');
-    expect(readQueue(harness.queueFile).entries).toHaveLength(0);
+    expect(summary.remaining).toBe(0);
   });
 
   it('releases the lock after completion', async () => {
@@ -277,7 +272,7 @@ describe('drainProposalQueue', () => {
     expect(readState(harness.stateFile).lock ?? null).toBeNull();
   });
 
-  it('does nothing and reports remaining=0 when the queue is empty', async () => {
+  it('does nothing and reports remaining=0 when no pending logs exist', async () => {
     const summary = await drainProposalQueue({
       sessionsDir: harness.sessionsDir,
       logsDir: harness.logsDir,

@@ -1,9 +1,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import type { SecretScanResult, SecretScanner } from './secret-scan.js';
 import { scanAndRedact } from './secret-scan.js';
-import { appendToQueue, hasQueueEntry } from './queue.js';
 import type { CaptureTrigger } from './schemas.js';
 import {
   buildSessionLogFilename,
@@ -91,9 +89,8 @@ export async function captureSession(
       ? input.session_id
       : hash.slice(7, 19);
   // Stop fires per-turn, so a multi-turn session would otherwise produce one
-  // log file per turn. Reuse the existing file for this session_id (the new
-  // transcript is a superset of the previous capture) and skip re-queueing
-  // when a pending entry already points at it.
+  // log file per turn. Reuse the existing file for this session_id; the new
+  // transcript is a superset of the previous capture.
   const existingFilename = findSessionLogBySessionId(ctx.sessionsDir, sessionId);
   const filename = existingFilename ?? buildSessionLogFilename(capturedAt, sessionId);
   const body = renderSessionLog({
@@ -106,17 +103,6 @@ export async function captureSession(
   });
 
   const sessionLogPath = writeSessionLog(ctx.sessionsDir, filename, body);
-
-  const queueFile = join(ctx.sessionsDir, '.queue.json');
-  if (!hasQueueEntry(queueFile, sessionId)) {
-    appendToQueue(queueFile, {
-      session_id: sessionId,
-      session_log: filename,
-      captured_by: trigger,
-      captured_at: capturedAt,
-      attempts: 0,
-    });
-  }
 
   return {
     status: 'written',

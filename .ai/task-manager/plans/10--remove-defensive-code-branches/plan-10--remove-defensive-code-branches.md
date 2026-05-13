@@ -296,16 +296,16 @@ graph TD
     T6 --> T7
 ```
 
-### Phase 1: Independent edits
+### ✅ Phase 1: Independent edits
 **Parallel Tasks:**
-- Task 1: Prompt builder hard-fail on missing placeholder
-- Task 2: Collapse parse-failure message and remove JSON fence stripping
-- Task 3: Delete the disk-persisted dedup cache
-- Task 5: Bound ensureUniqueId to 4 collisions, throw on overflow
+- ✔️ Task 1: Prompt builder hard-fail on missing placeholder (completed)
+- ✔️ Task 2: Collapse parse-failure message and remove JSON fence stripping (completed)
+- ✔️ Task 3: Delete the disk-persisted dedup cache (completed)
+- ✔️ Task 5: Bound ensureUniqueId to 4 collisions, throw on overflow (completed)
 
-### Phase 2: Drain rework
+### ✅ Phase 2: Drain rework
 **Parallel Tasks:**
-- Task 4: Replace queue + retry rotation with pending-frontmatter sweep (depends on: 3)
+- ✔️ Task 4: Replace queue + retry rotation with pending-frontmatter sweep (depends on: 3) (completed)
 
 ### Phase 3: SessionId boundary
 **Parallel Tasks:**

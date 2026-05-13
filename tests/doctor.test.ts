@@ -115,7 +115,7 @@ describe('status', () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Practice nodes: 0');
     expect(result.stdout).toContain('Map nodes:      0');
-    expect(result.stdout).toContain('Proposal queue:          0');
+    expect(result.stdout).toContain('Session logs (pending):  0');
     expect(result.stdout).toContain('Curator conflicts:       0');
   });
 });

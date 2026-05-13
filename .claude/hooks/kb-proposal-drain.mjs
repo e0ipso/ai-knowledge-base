@@ -1,5 +1,5 @@
 // src/hooks/kb-proposal-drain.ts
-import { existsSync as existsSync6, readFileSync as readFileSync6 } from "fs";
+import { existsSync as existsSync5, readFileSync as readFileSync5 } from "fs";
 import { join as join4 } from "path";
 
 // src/lib/headless.ts
@@ -98,11 +98,12 @@ async function runHeadlessClaude(promptBody, stdin, schema, opts = {}) {
     throw new Error("claude subprocess produced no final result message");
   }
   let parsedJson;
-  const jsonText = extractJsonBlock(finalResult);
   try {
-    parsedJson = JSON.parse(jsonText);
-  } catch (err) {
-    throw new Error(buildParseFailureMessage(err, jsonText, opts.logFile));
+    parsedJson = JSON.parse(finalResult.trim());
+  } catch (parseError) {
+    throw new Error(
+      `curator output was not valid JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}. See ${opts.logFile ?? "log"} for the full transcript.`
+    );
   }
   const validated = schema.safeParse(parsedJson);
   if (!validated.success) {
@@ -119,37 +120,6 @@ function findFinalResult(messages) {
     }
   }
   return null;
-}
-var SNIPPET_RADIUS = 60;
-function buildParseFailureMessage(err, jsonText, logFile) {
-  const parseMessage = err instanceof Error ? err.message : String(err);
-  const offsetMatch = /position (\d+)/.exec(parseMessage);
-  const lines = [
-    "curator JSON output is malformed.",
-    `  Parse error: ${parseMessage}`
-  ];
-  if (offsetMatch && offsetMatch[1]) {
-    const offset = Number(offsetMatch[1]);
-    const start = Math.max(0, offset - SNIPPET_RADIUS);
-    const end = Math.min(jsonText.length, offset + SNIPPET_RADIUS);
-    const snippet = jsonText.slice(start, end).replace(/\n/g, "\\n").replace(/\r/g, "\\r");
-    lines.push(`  Snippet near offset ${offset}: \u2026${snippet}\u2026`);
-  }
-  lines.push(`  Full curator transcript: ${logFile ?? "(no log file)"}`);
-  lines.push("  Next steps:");
-  lines.push(
-    "    1. Re-run `ai-knowledge-base curate` (the model may emit valid JSON on retry)."
-  );
-  lines.push(
-    '    2. Inspect the last `type:"result"` event in the transcript to see the full raw output.'
-  );
-  lines.push("    3. If this keeps happening, file an issue and attach the transcript.");
-  return lines.join("\n");
-}
-function extractJsonBlock(text) {
-  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/);
-  if (fence && fence[1]) return fence[1].trim();
-  return text.trim();
 }
 
 // src/lib/paths.ts
@@ -216,7 +186,7 @@ import yaml from "js-yaml";
 import { z } from "zod";
 var CaptureTriggerSchema = z.enum(["stop", "session_end", "pre_compact", "manual"]);
 var SecretScanStatusSchema = z.enum(["clean", "redacted", "blocked", "skipped"]);
-var ProposalStatusSchema = z.enum(["pending", "done", "failed", "skipped"]);
+var ProposalStatusSchema = z.enum(["pending", "done", "failed"]);
 var SessionLogFrontmatterSchema = z.object({
   schema_version: z.literal(1),
   session_id: z.string(),
@@ -228,30 +198,10 @@ var SessionLogFrontmatterSchema = z.object({
   proposal_error: z.string().nullable(),
   proposal_log: z.string().nullable(),
   secret_scan_status: SecretScanStatusSchema,
-  topics: z.array(z.string()),
   proposals: z.object({
     practice: z.array(z.unknown()),
     map: z.array(z.unknown())
   })
-});
-var QueueEntrySchema = z.object({
-  session_id: z.string(),
-  session_log: z.string(),
-  captured_by: CaptureTriggerSchema,
-  captured_at: z.string(),
-  attempts: z.number().int().nonnegative()
-});
-var QueueFileSchema = z.object({
-  schema_version: z.literal(1),
-  entries: z.array(QueueEntrySchema)
-});
-var DedupCacheEntrySchema = z.object({
-  hash: z.string(),
-  expires_at: z.string()
-});
-var DedupCacheFileSchema = z.object({
-  schema_version: z.literal(1),
-  entries: z.array(DedupCacheEntrySchema)
 });
 var ConfidenceSchema = z.enum(["low", "medium", "high"]);
 var ModelFamilySchema = z.enum(["haiku", "sonnet", "opus"]);
@@ -282,6 +232,13 @@ var StateFileSchema = z.object({
   lock: StateLockSchema.nullable().optional(),
   last_nudged_at: z.string().nullable().optional()
 });
+var LintStateFileSchema = z.object({
+  schema_version: z.literal(1),
+  sessions_since_last_lint: z.number().int().nonnegative(),
+  last_lint_at: z.string().nullable(),
+  last_errors: z.number().int().nonnegative(),
+  last_findings: z.number().int().nonnegative()
+});
 var NodeKindSchema = z.enum(["practice", "map"]);
 var NodeFrontmatterSchema = z.object({
   schema_version: z.literal(1),
@@ -289,14 +246,8 @@ var NodeFrontmatterSchema = z.object({
   title: z.string(),
   kind: NodeKindSchema,
   tags: z.array(z.string()),
-  valid_from: z.string(),
-  valid_until: z.string().nullable(),
-  updated: z.string(),
-  supersedes: z.string().nullable(),
-  superseded_by: z.string().nullable(),
   derived_from: z.array(z.string()),
   relates_to: z.array(z.string()),
-  depends_on: z.array(z.string()),
   confidence: ConfidenceSchema,
   summary: z.string()
 });
@@ -309,26 +260,20 @@ var CuratorProposedNodeSchema = z.object({
   body: z.string(),
   confidence: ConfidenceSchema,
   derived_from: z.array(z.string()),
-  relates_to: z.array(z.string()),
-  supersedes: z.string().nullable(),
-  valid_from: z.string(),
-  valid_until: z.string().nullable(),
-  superseded_by: z.string().nullable()
+  relates_to: z.array(z.string())
 });
 var CuratorActionSchema = z.object({
   action: z.enum(["add", "modify", "contradict", "drop"]),
   candidate_origin: z.string(),
   target_node_id: z.string().nullable(),
   proposed_node: CuratorProposedNodeSchema.nullable(),
-  rationale: z.string(),
-  suggested_resolution: z.enum(["supersede", "keep_both", "reject"]).nullable()
+  rationale: z.string()
 });
 var CuratorOutputSchema = z.array(CuratorActionSchema);
 var IndexFrontmatterSchema = z.object({
   schema_version: z.literal(1),
   nodes_hash: z.string(),
-  node_count: z.number().int().nonnegative(),
-  budget_tokens: z.number().int().positive()
+  node_count: z.number().int().nonnegative()
 });
 var GraphFrontmatterSchema = z.object({
   schema_version: z.literal(1),
@@ -377,13 +322,12 @@ var FailureReportSchema = z.object({
 var SettingsSchema = z.object({
   schema_version: z.literal(1),
   drainBound: z.number().int().positive().optional(),
-  maxAttempts: z.number().int().positive().optional(),
   proposalTimeout: z.number().int().positive().optional(),
   lockTtlMs: z.number().int().positive().optional(),
-  indexBudgetTokens: z.number().int().positive().optional(),
   curationThreshold: z.number().int().positive().optional(),
   bootstrapTokenBudget: z.number().int().positive().optional(),
   logsRetentionDays: z.number().int().positive().optional(),
+  lintEveryNSessions: z.number().int().positive().optional(),
   proposalModel: ModelChoiceSchema.optional(),
   curatorModel: ModelChoiceSchema.optional(),
   bootstrapModel: ModelChoiceSchema.optional()
@@ -398,13 +342,12 @@ var BootstrapStateSchema = z.object({
 // src/lib/settings.ts
 var SETTINGS_DEFAULTS = {
   drainBound: 5,
-  maxAttempts: 3,
   proposalTimeout: 6e4,
   lockTtlMs: 30 * 60 * 1e3,
-  indexBudgetTokens: 2e3,
   curationThreshold: 5,
   bootstrapTokenBudget: 1e4,
-  logsRetentionDays: 30
+  logsRetentionDays: 30,
+  lintEveryNSessions: 50
 };
 var MODEL_CHOICE_KEYS = ["proposalModel", "curatorModel", "bootstrapModel"];
 function resolveSettings(opts = {}) {
@@ -467,31 +410,17 @@ function defaultUserConfigPath(env = process.env) {
 
 // src/lib/proposal-drain.ts
 import matter from "gray-matter";
-import { existsSync as existsSync5, readFileSync as readFileSync5, renameSync as renameSync3, writeFileSync as writeFileSync3 } from "fs";
+import { existsSync as existsSync4, readFileSync as readFileSync4, readdirSync, writeFileSync as writeFileSync2 } from "fs";
 import { join as join3 } from "path";
 
-// src/lib/queue.ts
-import { existsSync as existsSync3, readFileSync as readFileSync3, renameSync, writeFileSync } from "fs";
-function readQueue(file) {
-  if (!existsSync3(file)) return { schema_version: 1, entries: [] };
-  try {
-    const raw = JSON.parse(readFileSync3(file, "utf8"));
-    const parsed = QueueFileSchema.safeParse(raw);
-    if (parsed.success) return parsed.data;
-    return { schema_version: 1, entries: [] };
-  } catch {
-    return { schema_version: 1, entries: [] };
-  }
-}
-
 // src/lib/state.ts
-import { existsSync as existsSync4, mkdirSync as mkdirSync2, readFileSync as readFileSync4, renameSync as renameSync2, writeFileSync as writeFileSync2 } from "fs";
+import { existsSync as existsSync3, mkdirSync as mkdirSync2, readFileSync as readFileSync3, renameSync, writeFileSync } from "fs";
 import { dirname as dirname3 } from "path";
 var DEFAULT_LOCK_TTL_MS = 30 * 60 * 1e3;
 function readState(file) {
-  if (!existsSync4(file)) return { schema_version: 1 };
+  if (!existsSync3(file)) return { schema_version: 1 };
   try {
-    const raw = JSON.parse(readFileSync4(file, "utf8"));
+    const raw = JSON.parse(readFileSync3(file, "utf8"));
     const parsed = StateFileSchema.safeParse(raw);
     if (parsed.success) return parsed.data;
     return { schema_version: 1 };
@@ -502,9 +431,9 @@ function readState(file) {
 function writeState(file, state) {
   mkdirSync2(dirname3(file), { recursive: true });
   const tmp = `${file}.tmp`;
-  writeFileSync2(tmp, `${JSON.stringify(state, null, 2)}
+  writeFileSync(tmp, `${JSON.stringify(state, null, 2)}
 `);
-  renameSync2(tmp, file);
+  renameSync(tmp, file);
 }
 function acquireLock(file, opts) {
   const state = readState(file);
@@ -538,15 +467,13 @@ function releaseLock(file, name, pid) {
 
 // src/lib/proposal-drain.ts
 var DEFAULT_MAX_ENTRIES = 5;
-var DEFAULT_MAX_ATTEMPTS = 3;
 var DEFAULT_TIMEOUT_MS2 = 6e4;
 var PROPOSAL_LOCK_NAME = "proposal-drain";
+var MAX_PROPOSAL_ERROR_LEN = 500;
 var TRANSCRIPT_PLACEHOLDER = "[TRANSCRIPT PLACEHOLDER - substituted at runtime]";
 async function drainProposalQueue(ctx) {
   const now = ctx.now ?? (() => /* @__PURE__ */ new Date());
-  const queueFile = join3(ctx.sessionsDir, ".queue.json");
   const maxEntries = ctx.maxEntries ?? DEFAULT_MAX_ENTRIES;
-  const maxAttempts = ctx.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
   const timeoutMs = ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS2;
   const pid = ctx.pid ?? process.pid;
   const lockHeld = acquireLock(ctx.stateFile, {
@@ -556,15 +483,14 @@ async function drainProposalQueue(ctx) {
     ...ctx.lockTtlMs !== void 0 ? { ttlMs: ctx.lockTtlMs } : {}
   });
   if (!lockHeld) {
-    return { status: "locked", processed: [], remaining: readQueue(queueFile).entries.length };
+    return { status: "locked", processed: [], remaining: countPending(ctx.sessionsDir) };
   }
   const processed = [];
   try {
-    for (let i = 0; i < maxEntries; i += 1) {
-      const queue = readQueue(queueFile);
-      if (queue.entries.length === 0) break;
-      const entry = queue.entries[0];
-      const result = await processEntry({
+    const pending = listPending(ctx.sessionsDir);
+    for (const entry of pending) {
+      if (processed.length >= maxEntries) break;
+      const result = await processSessionLog({
         entry,
         sessionsDir: ctx.sessionsDir,
         logsDir: ctx.logsDir,
@@ -572,51 +498,49 @@ async function drainProposalQueue(ctx) {
         runner: ctx.runner,
         now,
         timeoutMs,
-        maxAttempts,
         ...ctx.model !== void 0 ? { model: ctx.model } : {},
         ...ctx.effort !== void 0 ? { effort: ctx.effort } : {}
       });
       processed.push(result);
-      if (result.status === "done" || result.status === "skipped" || result.status === "missing-log") {
-        removeFromQueueHead(queueFile, entry.session_id);
-      } else {
-        bumpAndRotate(queueFile, entry.session_id, result.attempts);
-      }
     }
   } finally {
     releaseLock(ctx.stateFile, PROPOSAL_LOCK_NAME, pid);
   }
-  const remaining = readQueue(queueFile).entries.length;
+  const remaining = countPending(ctx.sessionsDir);
   return { status: "completed", processed, remaining };
 }
-async function processEntry(args) {
-  const {
-    entry,
-    sessionsDir,
-    logsDir,
-    promptTemplate,
-    runner,
-    now,
-    timeoutMs,
-    maxAttempts,
-    model,
-    effort
-  } = args;
-  const sessionLogPath = join3(sessionsDir, entry.session_log);
-  if (!existsSync5(sessionLogPath)) {
-    return {
-      sessionId: entry.session_id,
-      status: "missing-log",
-      attempts: entry.attempts,
-      error: `session log not found: ${entry.session_log}`
-    };
+function listPending(sessionsDir) {
+  if (!existsSync4(sessionsDir)) return [];
+  const names = readdirSync(sessionsDir).filter((name) => name.endsWith(".md") && !name.startsWith(".")).sort();
+  const out = [];
+  for (const name of names) {
+    const file = join3(sessionsDir, name);
+    const data = readFrontmatter(file);
+    if (!data) continue;
+    if (data["proposal_status"] !== "pending") continue;
+    const sessionId = typeof data["session_id"] === "string" ? data["session_id"] : name;
+    out.push({ sessionId, file });
   }
-  const parsed = matter(readFileSync5(sessionLogPath, "utf8"));
+  return out;
+}
+function countPending(sessionsDir) {
+  return listPending(sessionsDir).length;
+}
+function readFrontmatter(file) {
+  try {
+    const parsed = matter(readFileSync4(file, "utf8"));
+    return parsed.data;
+  } catch {
+    return null;
+  }
+}
+async function processSessionLog(args) {
+  const { entry, sessionsDir, logsDir, promptTemplate, runner, now, timeoutMs, model, effort } = args;
+  const parsed = matter(readFileSync4(entry.file, "utf8"));
   const transcript = extractTranscript(parsed.content);
   const prompt = buildProposalPrompt(promptTemplate, transcript);
-  const attemptIndex = entry.attempts + 1;
   const startedAt = now();
-  const logFile = proposalLogPath(logsDir, entry.session_id, startedAt);
+  const logFile = proposalLogPath(logsDir, entry.sessionId, startedAt);
   try {
     const out = await runner(prompt, "", ProposalOutputSchema, {
       timeoutMs,
@@ -625,36 +549,24 @@ async function processEntry(args) {
       ...model !== void 0 ? { model } : {},
       ...effort !== void 0 ? { effort } : {}
     });
-    writeSessionLogFrontmatter(sessionLogPath, parsed, {
+    writeSessionLogFrontmatter(entry.file, parsed, {
       proposal_status: "done",
       proposal_completed_at: now().toISOString(),
       proposal_error: null,
       proposal_log: relativeLogPath(sessionsDir, logFile),
-      topics: collectTopics(out),
       proposals: { practice: out.practice, map: out.map }
     });
-    return {
-      sessionId: entry.session_id,
-      status: "done",
-      attempts: attemptIndex,
-      logFile
-    };
+    return { sessionId: entry.sessionId, status: "done", logFile };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    const exhausted = attemptIndex >= maxAttempts;
-    writeSessionLogFrontmatter(sessionLogPath, parsed, {
-      proposal_status: exhausted ? "skipped" : "failed",
-      proposal_completed_at: exhausted ? now().toISOString() : null,
-      proposal_error: message,
+    const truncated = message.length > MAX_PROPOSAL_ERROR_LEN ? `${message.slice(0, MAX_PROPOSAL_ERROR_LEN)}...` : message;
+    writeSessionLogFrontmatter(entry.file, parsed, {
+      proposal_status: "failed",
+      proposal_completed_at: now().toISOString(),
+      proposal_error: truncated,
       proposal_log: relativeLogPath(sessionsDir, logFile)
     });
-    return {
-      sessionId: entry.session_id,
-      status: exhausted ? "skipped" : "failed",
-      attempts: attemptIndex,
-      error: message,
-      logFile
-    };
+    return { sessionId: entry.sessionId, status: "failed", error: truncated, logFile };
   }
 }
 function extractTranscript(body) {
@@ -667,13 +579,12 @@ function extractTranscript(body) {
   return rest.slice(0, endMatch.index).trim();
 }
 function buildProposalPrompt(template, transcript) {
-  if (template.includes(TRANSCRIPT_PLACEHOLDER)) {
-    return template.replace(TRANSCRIPT_PLACEHOLDER, transcript);
+  if (!template.includes(TRANSCRIPT_PLACEHOLDER)) {
+    throw new Error(
+      `proposal-extract prompt is missing the ${TRANSCRIPT_PLACEHOLDER} placeholder; the prompt template must contain it verbatim`
+    );
   }
-  return `${template.trimEnd()}
-
-${transcript}
-`;
+  return template.replace(TRANSCRIPT_PLACEHOLDER, transcript);
 }
 function proposalLogPath(logsDir, sessionId, when) {
   const stamp = isoToCompactStamp(when);
@@ -689,23 +600,16 @@ function relativeLogPath(sessionsDir, logFile) {
   const rel = logFile.startsWith(kbRoot) ? logFile.slice(kbRoot.length).replace(/^[\\/]/, "") : logFile;
   return rel;
 }
-function collectTopics(out) {
-  const all = /* @__PURE__ */ new Set();
-  for (const c of out.practice) for (const t of c.tags) all.add(t);
-  for (const c of out.map) for (const t of c.tags) all.add(t);
-  return [...all];
-}
 function writeSessionLogFrontmatter(file, parsed, patch) {
   const data = { ...parsed.data };
   data["proposal_status"] = patch.proposal_status;
   data["proposal_completed_at"] = patch.proposal_completed_at;
   data["proposal_error"] = patch.proposal_error;
   data["proposal_log"] = patch.proposal_log;
-  if (patch.topics) data["topics"] = patch.topics;
   if (patch.proposals) data["proposals"] = patch.proposals;
   const body = updateProposalBody(parsed.content, patch);
   const serialized = matter.stringify(body, data);
-  writeFileSync3(file, serialized);
+  writeFileSync2(file, serialized);
 }
 function updateProposalBody(content, patch) {
   if (patch.proposal_status !== "done") return content;
@@ -713,30 +617,6 @@ function updateProposalBody(content, patch) {
     /\(populated by proposal worker\)/,
     `_Extraction complete; see proposals in frontmatter._`
   );
-}
-function removeFromQueueHead(queueFile, sessionId) {
-  const queue = readQueue(queueFile);
-  const next = {
-    schema_version: 1,
-    entries: queue.entries.filter((e) => e.session_id !== sessionId)
-  };
-  atomicWriteJson(queueFile, next);
-}
-function bumpAndRotate(queueFile, sessionId, attempts) {
-  const queue = readQueue(queueFile);
-  const matchIdx = queue.entries.findIndex((e) => e.session_id === sessionId);
-  if (matchIdx < 0) return;
-  const [entry] = queue.entries.splice(matchIdx, 1);
-  if (!entry) return;
-  const updated = { ...entry, attempts };
-  queue.entries.push(updated);
-  atomicWriteJson(queueFile, queue);
-}
-function atomicWriteJson(file, data) {
-  const tmp = `${file}.tmp`;
-  writeFileSync3(tmp, `${JSON.stringify(data, null, 2)}
-`);
-  renameSync3(tmp, file);
 }
 
 // src/hooks/kb-proposal-drain.ts
@@ -755,7 +635,7 @@ async function main() {
   const startCwd = typeof input.cwd === "string" && input.cwd.length > 0 ? input.cwd : process.cwd();
   const root = findRepoRoot(startCwd);
   const paths = repoPaths(root);
-  if (!existsSync6(paths.installedVersionFile)) return;
+  if (!existsSync5(paths.installedVersionFile)) return;
   const promptTemplate = loadProposalPrompt(paths.promptsDir);
   if (!promptTemplate) {
     process.stderr.write(`${PACKAGE_TAG} proposal prompt template not found; skipping drain
@@ -772,7 +652,6 @@ async function main() {
       promptTemplate,
       runner,
       maxEntries: settings.drainBound,
-      maxAttempts: settings.maxAttempts,
       timeoutMs: settings.proposalTimeout,
       lockTtlMs: settings.lockTtlMs,
       ...settings.proposalModel ? { model: settings.proposalModel.name, effort: settings.proposalModel.effort } : {}
@@ -780,10 +659,10 @@ async function main() {
     if (summary.status === "locked") {
       return;
     }
-    const failed = summary.processed.filter((p) => p.status === "failed" || p.status === "skipped");
+    const failed = summary.processed.filter((p) => p.status === "failed");
     if (failed.length > 0) {
       process.stderr.write(
-        `${PACKAGE_TAG} proposal drain: ${failed.length} session(s) failed or skipped; see _logs/proposal/
+        `${PACKAGE_TAG} proposal drain: ${failed.length} session(s) failed; see _logs/proposal/
 `
       );
     }
@@ -796,9 +675,9 @@ async function main() {
 }
 function loadProposalPrompt(promptsDir) {
   const override = join4(promptsDir, "proposal-extract.md");
-  if (existsSync6(override)) return readFileSync6(override, "utf8");
+  if (existsSync5(override)) return readFileSync5(override, "utf8");
   const bundled = join4(packageTemplatesDir(), "prompts/proposal-extract.md");
-  if (existsSync6(bundled)) return readFileSync6(bundled, "utf8");
+  if (existsSync5(bundled)) return readFileSync5(bundled, "utf8");
   return null;
 }
 function readStdin() {

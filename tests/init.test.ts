@@ -248,7 +248,6 @@ describe('init', () => {
     ) as Record<string, unknown>;
     expect(body['schema_version']).toBe(1);
     expect(body['drainBound']).toBe(5);
-    expect(body['maxAttempts']).toBe(3);
     expect(body['proposalTimeout']).toBe(60000);
     expect(body['curationThreshold']).toBe(5);
     expect(body['bootstrapTokenBudget']).toBe(10000);

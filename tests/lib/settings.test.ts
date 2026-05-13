@@ -37,7 +37,7 @@ describe('settings', () => {
     });
     expect(result.settings.drainBound).toBe(99);
     expect(result.settings.proposalTimeout).toBe(90000);
-    expect(result.settings.maxAttempts).toBe(SETTINGS_DEFAULTS.maxAttempts);
+    expect(result.settings.curationThreshold).toBe(SETTINGS_DEFAULTS.curationThreshold);
   });
 
   it('layers project overrides on top of user overrides', () => {

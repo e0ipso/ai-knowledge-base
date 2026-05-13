@@ -1,6 +1,5 @@
 schema_version: 1
 drainBound: 5
-maxAttempts: 3
 proposalTimeout: 60000
 lockTtlMs: 1800000
 curationThreshold: 5

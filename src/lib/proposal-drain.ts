@@ -1,20 +1,18 @@
 import matter from 'gray-matter';
-import { existsSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ZodSchema } from 'zod';
 import {
   ProposalOutputSchema,
   type EffortLevel,
   type ModelFamily,
-  type QueueEntry,
 } from './schemas.js';
-import { appendToQueue, readQueue } from './queue.js';
 import { acquireLock, releaseLock } from './state.js';
 
 export const DEFAULT_MAX_ENTRIES = 5;
-export const DEFAULT_MAX_ATTEMPTS = 3;
 export const DEFAULT_TIMEOUT_MS = 60_000;
 export const PROPOSAL_LOCK_NAME = 'proposal-drain';
+export const MAX_PROPOSAL_ERROR_LEN = 500;
 
 export type ProposalRunner = <T>(
   promptBody: string,
@@ -37,7 +35,6 @@ export interface DrainContext {
   runner: ProposalRunner;
   now?: () => Date;
   maxEntries?: number;
-  maxAttempts?: number;
   timeoutMs?: number;
   lockTtlMs?: number;
   pid?: number;
@@ -45,12 +42,11 @@ export interface DrainContext {
   effort?: EffortLevel;
 }
 
-export type DrainEntryStatus = 'done' | 'failed' | 'skipped' | 'missing-log';
+export type DrainEntryStatus = 'done' | 'failed';
 
 export interface DrainEntryResult {
   sessionId: string;
   status: DrainEntryStatus;
-  attempts: number;
   error?: string;
   logFile?: string;
 }
@@ -64,17 +60,21 @@ export interface DrainSummary {
 
 export const TRANSCRIPT_PLACEHOLDER = '[TRANSCRIPT PLACEHOLDER - substituted at runtime]';
 
+interface PendingSessionLog {
+  sessionId: string;
+  file: string;
+}
+
 /**
- * Drains the proposal queue. Acquires a lock on `state.json`, iterates up to
- * `maxEntries` queue items, invokes the runner for each, and updates the
- * session log frontmatter with the outcome. Persistent failures (>= maxAttempts)
- * mark the session log as `skipped` and remove the entry from the queue.
+ * Drains pending session logs. Acquires a lock on `state.json`, sweeps
+ * `_sessions/*.md`, processes every log whose frontmatter has
+ * `proposal_status: 'pending'` up to `maxEntries`, and writes the outcome
+ * back into the same frontmatter (`done` or `failed`). No retries: a failed
+ * log stays `failed` until a human intervenes.
  */
 export async function drainProposalQueue(ctx: DrainContext): Promise<DrainSummary> {
   const now = ctx.now ?? (() => new Date());
-  const queueFile = join(ctx.sessionsDir, '.queue.json');
   const maxEntries = ctx.maxEntries ?? DEFAULT_MAX_ENTRIES;
-  const maxAttempts = ctx.maxAttempts ?? DEFAULT_MAX_ATTEMPTS;
   const timeoutMs = ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const pid = ctx.pid ?? process.pid;
 
@@ -85,16 +85,15 @@ export async function drainProposalQueue(ctx: DrainContext): Promise<DrainSummar
     ...(ctx.lockTtlMs !== undefined ? { ttlMs: ctx.lockTtlMs } : {}),
   });
   if (!lockHeld) {
-    return { status: 'locked', processed: [], remaining: readQueue(queueFile).entries.length };
+    return { status: 'locked', processed: [], remaining: countPending(ctx.sessionsDir) };
   }
 
   const processed: DrainEntryResult[] = [];
   try {
-    for (let i = 0; i < maxEntries; i += 1) {
-      const queue = readQueue(queueFile);
-      if (queue.entries.length === 0) break;
-      const entry = queue.entries[0]!;
-      const result = await processEntry({
+    const pending = listPending(ctx.sessionsDir);
+    for (const entry of pending) {
+      if (processed.length >= maxEntries) break;
+      const result = await processSessionLog({
         entry,
         sessionsDir: ctx.sessionsDir,
         logsDir: ctx.logsDir,
@@ -102,73 +101,69 @@ export async function drainProposalQueue(ctx: DrainContext): Promise<DrainSummar
         runner: ctx.runner,
         now,
         timeoutMs,
-        maxAttempts,
         ...(ctx.model !== undefined ? { model: ctx.model } : {}),
         ...(ctx.effort !== undefined ? { effort: ctx.effort } : {}),
       });
       processed.push(result);
-
-      if (
-        result.status === 'done' ||
-        result.status === 'skipped' ||
-        result.status === 'missing-log'
-      ) {
-        removeFromQueueHead(queueFile, entry.session_id);
-      } else {
-        // Failed but more attempts left: bump attempts and rotate to the back.
-        bumpAndRotate(queueFile, entry.session_id, result.attempts);
-      }
     }
   } finally {
     releaseLock(ctx.stateFile, PROPOSAL_LOCK_NAME, pid);
   }
 
-  const remaining = readQueue(queueFile).entries.length;
+  const remaining = countPending(ctx.sessionsDir);
   return { status: 'completed', processed, remaining };
 }
 
-interface ProcessEntryArgs {
-  entry: QueueEntry;
+function listPending(sessionsDir: string): PendingSessionLog[] {
+  if (!existsSync(sessionsDir)) return [];
+  const names = readdirSync(sessionsDir)
+    .filter(name => name.endsWith('.md') && !name.startsWith('.'))
+    .sort();
+  const out: PendingSessionLog[] = [];
+  for (const name of names) {
+    const file = join(sessionsDir, name);
+    const data = readFrontmatter(file);
+    if (!data) continue;
+    if (data['proposal_status'] !== 'pending') continue;
+    const sessionId = typeof data['session_id'] === 'string' ? data['session_id'] : name;
+    out.push({ sessionId, file });
+  }
+  return out;
+}
+
+function countPending(sessionsDir: string): number {
+  return listPending(sessionsDir).length;
+}
+
+function readFrontmatter(file: string): Record<string, unknown> | null {
+  try {
+    const parsed = matter(readFileSync(file, 'utf8'));
+    return parsed.data as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+}
+
+interface ProcessArgs {
+  entry: PendingSessionLog;
   sessionsDir: string;
   logsDir: string;
   promptTemplate: string;
   runner: ProposalRunner;
   now: () => Date;
   timeoutMs: number;
-  maxAttempts: number;
   model?: ModelFamily;
   effort?: EffortLevel;
 }
 
-async function processEntry(args: ProcessEntryArgs): Promise<DrainEntryResult> {
-  const {
-    entry,
-    sessionsDir,
-    logsDir,
-    promptTemplate,
-    runner,
-    now,
-    timeoutMs,
-    maxAttempts,
-    model,
-    effort,
-  } = args;
-  const sessionLogPath = join(sessionsDir, entry.session_log);
-  if (!existsSync(sessionLogPath)) {
-    return {
-      sessionId: entry.session_id,
-      status: 'missing-log',
-      attempts: entry.attempts,
-      error: `session log not found: ${entry.session_log}`,
-    };
-  }
-
-  const parsed = matter(readFileSync(sessionLogPath, 'utf8'));
+async function processSessionLog(args: ProcessArgs): Promise<DrainEntryResult> {
+  const { entry, sessionsDir, logsDir, promptTemplate, runner, now, timeoutMs, model, effort } =
+    args;
+  const parsed = matter(readFileSync(entry.file, 'utf8'));
   const transcript = extractTranscript(parsed.content);
   const prompt = buildProposalPrompt(promptTemplate, transcript);
-  const attemptIndex = entry.attempts + 1;
   const startedAt = now();
-  const logFile = proposalLogPath(logsDir, entry.session_id, startedAt);
+  const logFile = proposalLogPath(logsDir, entry.sessionId, startedAt);
 
   try {
     const out = await runner(prompt, '', ProposalOutputSchema, {
@@ -178,35 +173,26 @@ async function processEntry(args: ProcessEntryArgs): Promise<DrainEntryResult> {
       ...(model !== undefined ? { model } : {}),
       ...(effort !== undefined ? { effort } : {}),
     });
-    writeSessionLogFrontmatter(sessionLogPath, parsed, {
+    writeSessionLogFrontmatter(entry.file, parsed, {
       proposal_status: 'done',
       proposal_completed_at: now().toISOString(),
       proposal_error: null,
       proposal_log: relativeLogPath(sessionsDir, logFile),
       proposals: { practice: out.practice, map: out.map },
     });
-    return {
-      sessionId: entry.session_id,
-      status: 'done',
-      attempts: attemptIndex,
-      logFile,
-    };
+    return { sessionId: entry.sessionId, status: 'done', logFile };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    const exhausted = attemptIndex >= maxAttempts;
-    writeSessionLogFrontmatter(sessionLogPath, parsed, {
-      proposal_status: exhausted ? 'skipped' : 'failed',
-      proposal_completed_at: exhausted ? now().toISOString() : null,
-      proposal_error: message,
+    const truncated = message.length > MAX_PROPOSAL_ERROR_LEN
+      ? `${message.slice(0, MAX_PROPOSAL_ERROR_LEN)}...`
+      : message;
+    writeSessionLogFrontmatter(entry.file, parsed, {
+      proposal_status: 'failed',
+      proposal_completed_at: now().toISOString(),
+      proposal_error: truncated,
       proposal_log: relativeLogPath(sessionsDir, logFile),
     });
-    return {
-      sessionId: entry.session_id,
-      status: exhausted ? 'skipped' : 'failed',
-      attempts: attemptIndex,
-      error: message,
-      logFile,
-    };
+    return { sessionId: entry.sessionId, status: 'failed', error: truncated, logFile };
   }
 }
 
@@ -254,7 +240,7 @@ function relativeLogPath(sessionsDir: string, logFile: string): string {
 }
 
 interface FrontmatterPatch {
-  proposal_status: 'done' | 'failed' | 'skipped';
+  proposal_status: 'done' | 'failed';
   proposal_completed_at: string | null;
   proposal_error: string | null;
   proposal_log: string | null;
@@ -287,33 +273,3 @@ function updateProposalBody(content: string, patch: FrontmatterPatch): string {
     `_Extraction complete; see proposals in frontmatter._`
   );
 }
-
-function removeFromQueueHead(queueFile: string, sessionId: string): void {
-  const queue = readQueue(queueFile);
-  const next = {
-    schema_version: 1 as const,
-    entries: queue.entries.filter(e => e.session_id !== sessionId),
-  };
-  atomicWriteJson(queueFile, next);
-}
-
-function bumpAndRotate(queueFile: string, sessionId: string, attempts: number): void {
-  const queue = readQueue(queueFile);
-  const matchIdx = queue.entries.findIndex(e => e.session_id === sessionId);
-  if (matchIdx < 0) return;
-  const [entry] = queue.entries.splice(matchIdx, 1);
-  if (!entry) return;
-  const updated: QueueEntry = { ...entry, attempts };
-  queue.entries.push(updated);
-  atomicWriteJson(queueFile, queue);
-}
-
-function atomicWriteJson(file: string, data: unknown): void {
-  const tmp = `${file}.tmp`;
-  writeFileSync(tmp, `${JSON.stringify(data, null, 2)}\n`);
-  renameSync(tmp, file);
-}
-
-// Re-export for callers that want to append directly (e.g. tests / future
-// /kb-propose-from-session skill).
-export { appendToQueue };

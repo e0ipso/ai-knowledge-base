@@ -57,7 +57,6 @@ async function main(): Promise<void> {
       promptTemplate,
       runner,
       maxEntries: settings.drainBound,
-      maxAttempts: settings.maxAttempts,
       timeoutMs: settings.proposalTimeout,
       lockTtlMs: settings.lockTtlMs,
       ...(settings.proposalModel
@@ -70,10 +69,10 @@ async function main(): Promise<void> {
     }
     // Async hook stdout is not injected into the parent session, so log to
     // stderr only on failures the user should know about.
-    const failed = summary.processed.filter(p => p.status === 'failed' || p.status === 'skipped');
+    const failed = summary.processed.filter(p => p.status === 'failed');
     if (failed.length > 0) {
       process.stderr.write(
-        `${PACKAGE_TAG} proposal drain: ${failed.length} session(s) failed or skipped; see _logs/proposal/\n`
+        `${PACKAGE_TAG} proposal drain: ${failed.length} session(s) failed; see _logs/proposal/\n`
       );
     }
   } catch (err) {
