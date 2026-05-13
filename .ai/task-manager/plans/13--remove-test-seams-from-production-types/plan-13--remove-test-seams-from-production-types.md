@@ -339,9 +339,9 @@ After every task is complete, run these specific verifications:
 **Parallel Tasks:**
 - ✔️ Task 004: Replace per-context path fields with `paths: RepoPaths`; remove `now?` / `pid?` from `BootstrapContext`, `CurateContext`, `DrainContext`; add one-line `src/lib/process.ts` indirection for `process.pid`; migrate the three lib test files to fake timers + module mock (depends on: 003). (status: completed)
 
-### Phase 3: Verification and documentation
+### ✅ Phase 3: Verification and documentation
 **Parallel Tasks:**
-- Task 005: Static sweeps, `lint`/`typecheck`/`build`/`test`, CLI smoke commands, CHANGELOG entry (depends on: 001, 002, 003, 004).
+- ✔️ Task 005: Static sweeps, `lint`/`typecheck`/`build`/`test`, CLI smoke commands, CHANGELOG entry (depends on: 001, 002, 003, 004). (status: completed)
 
 ### Dependency Diagram
 

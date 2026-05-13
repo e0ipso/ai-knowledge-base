@@ -2,6 +2,18 @@
 
 ### Changed
 
+* Numeric CLI options now throw `commander.InvalidArgumentError` on non-integer input. Passing `--timeout abc` to `curate` or `bootstrap-incremental` exits non-zero with `error: option '--timeout <ms>' argument 'abc' is invalid. --timeout must be an integer (got "abc")` instead of silently coercing to `NaN`.
+
+### Removed
+
+* `node add --preset` flag (undocumented test seam). Tests exercise the write path through a new exported `writeNewNode(answers, { paths })` function.
+
+### Internal
+
+* Shrunk the production context interfaces by removing test seams. `RunHeadlessOptions.spawn?`, `BootstrapContext.now?`/`pid?`, `CurateContext.now?`/`pid?`, and `DrainContext.now?`/`pid?` are gone. The six-or-seven per-context path fields collapse into a single `paths: RepoPaths` reference. `process.pid` is read through a one-line indirection at `src/lib/process.ts`. Tests substitute these at the import boundary (`vi.mock('execa')`, `vi.useFakeTimers({ toFake: ['Date'] })`, `vi.spyOn(processModule, 'currentPid')`).
+
+### Changed
+
 * Swapped six hand-rolled helpers for battle-tested libraries (or a single shared module).
     * Run-id minting moved from a Crockford ULID generator to `crypto.randomUUID()`. Log filenames under `_logs/bootstrap-incremental/` and `_logs/curator/`, and the `curator_run_id` frontmatter field on session logs, now embed a UUID v4. The `runId?: string` test seam on `BootstrapContext` and `CurateContext` is gone; `BootstrapResult.runId` and `CurateResult.runId` are required.
     * `--include`/`--exclude` matching and `.gitignore` parsing in `bootstrap-incremental` now use `picomatch` and `ignore` respectively. `.gitignore` negation (`!keep.md`) is honoured; previously every `!`-prefixed pattern was silently dropped. `DiscoverOptions.gitignorePatterns: string[]` is replaced by `DiscoverOptions.gitignore?: Ignore`.
