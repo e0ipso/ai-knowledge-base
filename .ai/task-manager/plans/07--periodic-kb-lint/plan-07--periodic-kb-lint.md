@@ -233,13 +233,13 @@ The feature integrates through three existing seams. (1) The CLI command registe
 
 - Reference: `/config/hooks/POST_PHASE.md`
 
-### Phase 1: Foundations (no dependencies)
+### ✅ Phase 1: Foundations (no dependencies)
 
 **Parallel Tasks:**
 
-- Task 001: Add `lintEveryNSessions` setting
-- Task 002: Implement the four-check lint library
-- Task 003: Lint state schema and read/write helpers
+- ✔️ Task 001: Add `lintEveryNSessions` setting
+- ✔️ Task 002: Implement the four-check lint library
+- ✔️ Task 003: Lint state schema and read/write helpers
 
 ### Phase 2: Surfaces (depend on foundations)
 

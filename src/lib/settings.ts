@@ -17,6 +17,7 @@ export const SETTINGS_DEFAULTS = {
   curationThreshold: 5,
   bootstrapTokenBudget: 10_000,
   logsRetentionDays: 30,
+  lintEveryNSessions: 50,
 } as const;
 
 export type EffectiveSettings = {
@@ -140,6 +141,7 @@ export function defaultProjectConfigBody(): string {
     curationThreshold: SETTINGS_DEFAULTS.curationThreshold,
     bootstrapTokenBudget: SETTINGS_DEFAULTS.bootstrapTokenBudget,
     logsRetentionDays: SETTINGS_DEFAULTS.logsRetentionDays,
+    lintEveryNSessions: SETTINGS_DEFAULTS.lintEveryNSessions,
   };
   return yaml.dump(body, { indent: 2, lineWidth: 0, noRefs: true });
 }

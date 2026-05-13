@@ -109,6 +109,15 @@ export const StateFileSchema = z.object({
 
 export type StateFile = z.infer<typeof StateFileSchema>;
 
+export const LintStateFileSchema = z.object({
+  schema_version: z.literal(1),
+  sessions_since_last_lint: z.number().int().nonnegative(),
+  last_lint_at: z.string().nullable(),
+  last_errors: z.number().int().nonnegative(),
+  last_findings: z.number().int().nonnegative(),
+});
+export type LintStateFile = z.infer<typeof LintStateFileSchema>;
+
 export const NodeKindSchema = z.enum(['practice', 'map']);
 export type NodeKind = z.infer<typeof NodeKindSchema>;
 
@@ -262,6 +271,7 @@ export const SettingsSchema = z
     curationThreshold: z.number().int().positive().optional(),
     bootstrapTokenBudget: z.number().int().positive().optional(),
     logsRetentionDays: z.number().int().positive().optional(),
+    lintEveryNSessions: z.number().int().positive().optional(),
     proposalModel: ModelChoiceSchema.optional(),
     curatorModel: ModelChoiceSchema.optional(),
     bootstrapModel: ModelChoiceSchema.optional(),

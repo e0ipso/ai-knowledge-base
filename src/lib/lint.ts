@@ -1,0 +1,151 @@
+import { readAllNodes, slugify, type NodeFile } from './nodes.js';
+
+export type LintRule = 'dangling-edge' | 'slug-id-mismatch' | 'tag-near-duplicate' | 'orphan';
+
+export interface LintEntry {
+  rule: LintRule;
+  file: string;
+  message: string;
+  action: string;
+}
+
+export interface LintResult {
+  errors: LintEntry[];
+  findings: LintEntry[];
+}
+
+export interface LintOptions {
+  nodesDir: string;
+}
+
+export function runLint(opts: LintOptions): LintResult {
+  const nodes = readAllNodes(opts.nodesDir);
+  const errors: LintEntry[] = [];
+  const findings: LintEntry[] = [];
+
+  const idSet = new Set<string>(nodes.map((n) => n.frontmatter.id));
+
+  const incomingRefs = new Map<string, Set<string>>();
+  for (const node of nodes) {
+    const refs = [...node.frontmatter.relates_to, ...node.frontmatter.depends_on];
+    for (const ref of refs) {
+      let set = incomingRefs.get(ref);
+      if (!set) {
+        set = new Set<string>();
+        incomingRefs.set(ref, set);
+      }
+      set.add(node.frontmatter.id);
+    }
+  }
+
+  for (const node of nodes) {
+    const refs = [...node.frontmatter.relates_to, ...node.frontmatter.depends_on];
+    for (const ref of refs) {
+      if (!idSet.has(ref)) {
+        errors.push({
+          rule: 'dangling-edge',
+          file: node.path,
+          message: `references unknown node ${ref}`,
+          action: 'Remove the broken reference from the frontmatter or create the missing node.',
+        });
+      }
+    }
+  }
+
+  for (const node of nodes) {
+    const mismatch = checkSlugId(node);
+    if (mismatch) {
+      errors.push({
+        rule: 'slug-id-mismatch',
+        file: node.path,
+        message: mismatch,
+        action:
+          'Rename the file and fix the id so id == <kind>-<slug> and filename == <id>.md under nodes/<kind>/.',
+      });
+    }
+  }
+
+  const clusters = new Map<string, { original: Set<string>; nodeIds: Set<string> }>();
+  for (const node of nodes) {
+    for (const tag of node.frontmatter.tags) {
+      const key = normalizeTag(tag);
+      if (!key) continue;
+      let entry = clusters.get(key);
+      if (!entry) {
+        entry = { original: new Set<string>(), nodeIds: new Set<string>() };
+        clusters.set(key, entry);
+      }
+      entry.original.add(tag);
+      entry.nodeIds.add(node.frontmatter.id);
+    }
+  }
+  for (const entry of clusters.values()) {
+    if (entry.original.size >= 2) {
+      const members = [...entry.original].sort().join(', ');
+      findings.push({
+        rule: 'tag-near-duplicate',
+        file: '',
+        message: `tag cluster {${members}} affects ${entry.nodeIds.size} node(s)`,
+        action: 'Pick a canonical tag and normalize the affected nodes.',
+      });
+    }
+  }
+
+  for (const node of nodes) {
+    const outgoing = node.frontmatter.relates_to.length + node.frontmatter.depends_on.length;
+    const incoming = incomingRefs.get(node.frontmatter.id);
+    const incomingFromOthers = incoming
+      ? [...incoming].filter((src) => src !== node.frontmatter.id).length
+      : 0;
+    if (outgoing === 0 && incomingFromOthers === 0) {
+      findings.push({
+        rule: 'orphan',
+        file: node.path,
+        message: `orphan node ${node.frontmatter.id}`,
+        action:
+          'Add cross-links to neighboring nodes, or accept that this node legitimately stands alone.',
+      });
+    }
+  }
+
+  errors.sort(compareEntries);
+  findings.sort(compareEntries);
+
+  return { errors, findings };
+}
+
+function checkSlugId(node: NodeFile): string | null {
+  const { id, kind } = node.frontmatter;
+  const prefix = `${kind}-`;
+  if (!id.startsWith(prefix)) {
+    return `id ${id} does not start with kind prefix ${prefix}`;
+  }
+  const bare = id.slice(prefix.length);
+  const canonicalBare = slugify(bare);
+  if (bare !== canonicalBare) {
+    return `id ${id} is not canonical; expected ${kind}-${canonicalBare}`;
+  }
+  const expectedFilename = `${id}.md`;
+  if (node.filename !== expectedFilename) {
+    return `filename ${node.filename} does not match expected ${expectedFilename}`;
+  }
+  const parentSegment = node.path.split(/[\\/]/).slice(-2, -1)[0];
+  if (parentSegment !== kind) {
+    return `file is under nodes/${parentSegment ?? '?'}/ but kind is ${kind}`;
+  }
+  return null;
+}
+
+function normalizeTag(tag: string): string {
+  return tag
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '')
+    .replace(/s$/, '');
+}
+
+function compareEntries(a: LintEntry, b: LintEntry): number {
+  if (a.rule !== b.rule) return a.rule < b.rule ? -1 : 1;
+  if (a.file !== b.file) return a.file < b.file ? -1 : 1;
+  if (a.message !== b.message) return a.message < b.message ? -1 : 1;
+  return 0;
+}
