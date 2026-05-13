@@ -1,20 +1,13 @@
 import { existsSync, readFileSync } from 'node:fs';
-import { homedir } from 'node:os';
 import { join } from 'node:path';
 import yaml from 'js-yaml';
 import { SettingsSchema, type ModelChoice, type SettingsFile } from './schemas.js';
 
 /**
- * Documented defaults. These mirror the constants used by `proposal-drain.ts`,
- * `curate.ts`, `bootstrap.ts`, `index-gen.ts`, and `session-start.ts`. Changing
- * a default here changes the value used when no `config.yaml` overrides it.
+ * Documented defaults for the user-facing settings.
  */
 export const SETTINGS_DEFAULTS = {
-  drainBound: 5,
-  proposalTimeout: 60_000,
-  lockTtlMs: 30 * 60 * 1000,
   curationThreshold: 5,
-  bootstrapTokenBudget: 10_000,
   logsRetentionDays: 30,
   lintEveryNSessions: 50,
 } as const;
@@ -32,39 +25,26 @@ const MODEL_CHOICE_KEYS = ['proposalModel', 'curatorModel', 'bootstrapModel'] as
 export type ResolveSettingsResult = {
   settings: EffectiveSettings;
   projectFile: string | null;
-  userFile: string | null;
-  warnings: string[];
 };
 
 export interface ResolveOptions {
   projectFile?: string;
-  userFile?: string;
 }
 
 /**
- * Resolves the effective settings: defaults ← user overrides ← project overrides.
- *
- * Either file may be missing; missing files are silently ignored. A file
- * present but unparseable (invalid YAML / fails Zod) produces a warning and
- * is treated as absent, so a corrupted user file cannot brick the CLI.
+ * Resolves the effective settings: defaults layered under project-file overrides.
+ * A missing project file is a no-op. A present-but-malformed file throws.
  */
 export function resolveSettings(opts: ResolveOptions = {}): ResolveSettingsResult {
   const projectFile = opts.projectFile ?? null;
-  const userFile = opts.userFile ?? defaultUserConfigPath();
-  const warnings: string[] = [];
-
-  const user = loadFile(userFile, warnings);
-  const project = projectFile ? loadFile(projectFile, warnings) : null;
+  const project = projectFile ? loadFile(projectFile) : null;
 
   const effective: EffectiveSettings = { ...SETTINGS_DEFAULTS };
-  applyOverrides(effective, user);
   applyOverrides(effective, project);
 
   return {
     settings: effective,
-    projectFile: projectFile ?? null,
-    userFile: existsSync(userFile) ? userFile : null,
-    warnings,
+    projectFile,
   };
 }
 
@@ -73,8 +53,6 @@ function applyOverrides(target: EffectiveSettings, src: SettingsFile | null): vo
   for (const key of Object.keys(SETTINGS_DEFAULTS) as Array<keyof typeof SETTINGS_DEFAULTS>) {
     const value = src[key];
     if (value !== undefined) {
-      // `as never` is required because TypeScript cannot prove the per-key
-      // value types align across the union; the Zod schema does.
       (target as Record<string, unknown>)[key] = value as never;
     }
   }
@@ -84,38 +62,20 @@ function applyOverrides(target: EffectiveSettings, src: SettingsFile | null): vo
   }
 }
 
-function loadFile(file: string, warnings: string[]): SettingsFile | null {
+function loadFile(file: string): SettingsFile | null {
   if (!existsSync(file)) return null;
-  let raw: string;
-  try {
-    raw = readFileSync(file, 'utf8');
-  } catch (err) {
-    warnings.push(`settings file unreadable (${file}): ${(err as Error).message}`);
-    return null;
-  }
+  const raw = readFileSync(file, 'utf8');
   let parsed: unknown;
   try {
     parsed = yaml.load(raw);
   } catch (err) {
-    warnings.push(`settings file is not valid YAML (${file}): ${(err as Error).message}`);
-    return null;
+    throw new Error(`settings file is not valid YAML (${file}): ${(err as Error).message}`);
   }
   const result = SettingsSchema.safeParse(parsed);
   if (!result.success) {
-    warnings.push(`settings file failed schema validation (${file}): ${result.error.message}`);
-    return null;
+    throw new Error(`settings file failed schema validation (${file}): ${result.error.message}`);
   }
   return result.data;
-}
-
-/**
- * The user-level override path. Honors `XDG_CONFIG_HOME` if set; otherwise
- * falls back to `~/.config/`.
- */
-export function defaultUserConfigPath(env: NodeJS.ProcessEnv = process.env): string {
-  const xdg = env['XDG_CONFIG_HOME'];
-  const base = xdg && xdg.length > 0 ? xdg : join(homedir(), '.config');
-  return join(base, 'ai-knowledge-base', 'config.yaml');
 }
 
 /**
@@ -127,17 +87,12 @@ export function projectConfigPath(kbDir: string): string {
 
 /**
  * The default committed `config.yaml` body. Written by `init` and
- * `init --upgrade` when the file does not exist. Includes every supported key
- * with its documented default so users have something to discover and edit.
+ * `init --upgrade` when the file does not exist.
  */
 export function defaultProjectConfigBody(): string {
   const body: SettingsFile = {
     schema_version: 1,
-    drainBound: SETTINGS_DEFAULTS.drainBound,
-    proposalTimeout: SETTINGS_DEFAULTS.proposalTimeout,
-    lockTtlMs: SETTINGS_DEFAULTS.lockTtlMs,
     curationThreshold: SETTINGS_DEFAULTS.curationThreshold,
-    bootstrapTokenBudget: SETTINGS_DEFAULTS.bootstrapTokenBudget,
     logsRetentionDays: SETTINGS_DEFAULTS.logsRetentionDays,
     lintEveryNSessions: SETTINGS_DEFAULTS.lintEveryNSessions,
   };

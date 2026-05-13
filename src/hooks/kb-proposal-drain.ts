@@ -56,9 +56,6 @@ async function main(): Promise<void> {
       stateFile: join(paths.stateDir, 'state.json'),
       promptTemplate,
       runner,
-      maxEntries: settings.drainBound,
-      timeoutMs: settings.proposalTimeout,
-      lockTtlMs: settings.lockTtlMs,
       ...(settings.proposalModel
         ? { model: settings.proposalModel.name, effort: settings.proposalModel.effort }
         : {}),

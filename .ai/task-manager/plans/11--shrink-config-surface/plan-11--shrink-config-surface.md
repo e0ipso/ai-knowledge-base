@@ -275,15 +275,15 @@ graph TD
     T4 --> T6
 ```
 
-### Phase 1: Schema core
+### ✅ Phase 1: Schema core
 
 **Parallel Tasks:**
-- Task 1: Reduce `SettingsSchema` and rewrite `resolveSettings`.
+- ✔️ Task 1: Reduce `SettingsSchema` and rewrite `resolveSettings`.
 
-### Phase 2: Consumer wiring
+### ✅ Phase 2: Consumer wiring
 
 **Parallel Tasks:**
-- Task 2: Drop `warnings` loops and internal-setting reads across consumers (depends on: 1).
+- ✔️ Task 2: Drop `warnings` loops and internal-setting reads across consumers (depends on: 1).
 
 ### Phase 3: Lib rewrites
 

@@ -47,8 +47,7 @@ export async function runBootstrapIncrementalCommand(
   const runner: BootstrapRunner = (prompt, stdin, schema, runnerOpts) =>
     runHeadlessClaude(prompt, stdin, schema, runnerOpts as RunHeadlessOptions);
 
-  const { settings, warnings } = resolveSettings({ projectFile: paths.projectConfigFile });
-  for (const w of warnings) log.warn(w);
+  const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
 
   const ctx: BootstrapContext = {
     sourceDir,
@@ -60,8 +59,6 @@ export async function runBootstrapIncrementalCommand(
     bootstrapStateFile: join(paths.stateDir, 'bootstrap-state.json'),
     promptTemplate,
     runner,
-    tokenBudget: settings.bootstrapTokenBudget,
-    lockTtlMs: settings.lockTtlMs,
   };
   if (settings.bootstrapModel) {
     ctx.model = settings.bootstrapModel.name;
@@ -70,7 +67,6 @@ export async function runBootstrapIncrementalCommand(
   if (opts.include !== undefined) ctx.include = opts.include;
   if (opts.exclude !== undefined) ctx.exclude = opts.exclude;
   if (opts.dryRun) ctx.dryRun = true;
-  if (opts.tokenBudget !== undefined) ctx.tokenBudget = opts.tokenBudget;
   if (opts.timeoutMs !== undefined) ctx.timeoutMs = opts.timeoutMs;
 
   log.info(

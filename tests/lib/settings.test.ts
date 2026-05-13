@@ -1,11 +1,10 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   SETTINGS_DEFAULTS,
   defaultProjectConfigBody,
-  defaultUserConfigPath,
   projectConfigPath,
   resolveSettings,
 } from '../../src/lib/settings.js';
@@ -18,93 +17,44 @@ describe('settings', () => {
   });
   afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
 
-  it('falls back to documented defaults when no files exist', () => {
-    const result = resolveSettings({
-      projectFile: join(sandbox, 'missing-project.yaml'),
-      userFile: join(sandbox, 'missing-user.yaml'),
-    });
+  it('falls back to documented defaults when no project file exists', () => {
+    const result = resolveSettings({ projectFile: join(sandbox, 'missing.yaml') });
     expect(result.settings).toEqual(SETTINGS_DEFAULTS);
-    expect(result.warnings).toEqual([]);
-    expect(result.userFile).toBeNull();
+    expect(result.projectFile).toBe(join(sandbox, 'missing.yaml'));
   });
 
-  it('layers user overrides on top of defaults', () => {
-    const userFile = join(sandbox, 'user.yaml');
-    writeFileSync(userFile, 'schema_version: 1\ndrainBound: 99\nproposalTimeout: 90000\n');
-    const result = resolveSettings({
-      projectFile: join(sandbox, 'missing.yaml'),
-      userFile,
-    });
-    expect(result.settings.drainBound).toBe(99);
-    expect(result.settings.proposalTimeout).toBe(90000);
-    expect(result.settings.curationThreshold).toBe(SETTINGS_DEFAULTS.curationThreshold);
-  });
-
-  it('layers project overrides on top of user overrides', () => {
-    const userFile = join(sandbox, 'user.yaml');
+  it('layers project overrides on top of defaults', () => {
     const projectFile = join(sandbox, 'project.yaml');
-    writeFileSync(userFile, 'schema_version: 1\ndrainBound: 10\n');
-    writeFileSync(projectFile, 'schema_version: 1\ndrainBound: 3\n');
-    const result = resolveSettings({ projectFile, userFile });
-    expect(result.settings.drainBound).toBe(3);
+    writeFileSync(projectFile, 'schema_version: 1\ncurationThreshold: 11\nlogsRetentionDays: 7\n');
+    const result = resolveSettings({ projectFile });
+    expect(result.settings.curationThreshold).toBe(11);
+    expect(result.settings.logsRetentionDays).toBe(7);
+    expect(result.settings.lintEveryNSessions).toBe(SETTINGS_DEFAULTS.lintEveryNSessions);
   });
 
-  it('emits a warning and treats invalid YAML as absent', () => {
+  it('throws on invalid YAML', () => {
     const projectFile = join(sandbox, 'project.yaml');
-    writeFileSync(projectFile, 'schema_version: 1\ndrainBound: [unterminated\n');
-    const result = resolveSettings({
-      projectFile,
-      userFile: join(sandbox, 'missing.yaml'),
-    });
-    expect(result.warnings.length).toBeGreaterThan(0);
-    expect(result.warnings[0]).toContain('not valid YAML');
-    expect(result.settings).toEqual(SETTINGS_DEFAULTS);
+    writeFileSync(projectFile, 'schema_version: 1\ncurationThreshold: [unterminated\n');
+    expect(() => resolveSettings({ projectFile })).toThrow(/not valid YAML/);
   });
 
-  it('emits a warning and treats schema mismatch as absent', () => {
+  it('throws on schema violation for removed keys', () => {
     const projectFile = join(sandbox, 'project.yaml');
-    writeFileSync(projectFile, 'schema_version: 1\ndrainBound: -5\n');
-    const result = resolveSettings({
-      projectFile,
-      userFile: join(sandbox, 'missing.yaml'),
-    });
-    expect(result.warnings.length).toBeGreaterThan(0);
-    expect(result.warnings[0]).toContain('schema validation');
-    expect(result.settings).toEqual(SETTINGS_DEFAULTS);
+    writeFileSync(projectFile, 'schema_version: 1\ndrainBound: 5\n');
+    expect(() => resolveSettings({ projectFile })).toThrow(/drainBound/);
   });
 
   it('rejects unknown keys (strict schema)', () => {
     const projectFile = join(sandbox, 'project.yaml');
     writeFileSync(projectFile, 'schema_version: 1\nmystery: 1\n');
-    const result = resolveSettings({
-      projectFile,
-      userFile: join(sandbox, 'missing.yaml'),
-    });
-    expect(result.warnings.length).toBeGreaterThan(0);
+    expect(() => resolveSettings({ projectFile })).toThrow(/mystery/);
   });
 
   it('defaultProjectConfigBody round-trips through resolveSettings', () => {
     const projectFile = join(sandbox, 'project.yaml');
     writeFileSync(projectFile, defaultProjectConfigBody());
-    const result = resolveSettings({
-      projectFile,
-      userFile: join(sandbox, 'missing.yaml'),
-    });
-    expect(result.warnings).toEqual([]);
+    const result = resolveSettings({ projectFile });
     expect(result.settings).toEqual(SETTINGS_DEFAULTS);
-  });
-
-  it('defaultUserConfigPath honors XDG_CONFIG_HOME', () => {
-    const xdg = join(sandbox, 'xdg');
-    mkdirSync(xdg, { recursive: true });
-    const path = defaultUserConfigPath({ XDG_CONFIG_HOME: xdg } as NodeJS.ProcessEnv);
-    expect(path).toBe(join(xdg, 'ai-knowledge-base', 'config.yaml'));
-  });
-
-  it('defaultUserConfigPath falls back to ~/.config when XDG is unset', () => {
-    const path = defaultUserConfigPath({} as NodeJS.ProcessEnv);
-    expect(dirname(path)).toMatch(/[\\/]ai-knowledge-base$/);
-    expect(path.endsWith('config.yaml')).toBe(true);
   });
 
   it('projectConfigPath joins to the kb dir', () => {

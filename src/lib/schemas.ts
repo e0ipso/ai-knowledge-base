@@ -217,12 +217,11 @@ export const FailureReportSchema = z.object({
 export type FailureReport = z.infer<typeof FailureReportSchema>;
 
 /**
- * Settings shipped in `.ai/knowledge-base/config.yaml` (project-level, committed)
- * and `~/.config/ai-knowledge-base/config.yaml` (user-level overrides).
- *
- * Every field is optional in the on-disk file; `resolveSettings()` layers the
- * documented defaults under user-level overrides under project-level overrides.
- * The `schema_version` field is the only required key when a file is present.
+ * Settings shipped in the project-level `.ai/knowledge-base/config.yaml`
+ * (committed). Every field is optional in the on-disk file; `resolveSettings()`
+ * layers the documented defaults under project-level overrides. The
+ * `schema_version` field is the only required key when a file is present.
+ * Unknown keys are rejected by the strict schema.
  *
  * Model and effort selection: `proposalModel`, `curatorModel`, and `bootstrapModel`
  * each take a `{ name, effort }` object that steers the corresponding `claude -p`
@@ -233,11 +232,7 @@ export type FailureReport = z.infer<typeof FailureReportSchema>;
 export const SettingsSchema = z
   .object({
     schema_version: z.literal(1),
-    drainBound: z.number().int().positive().optional(),
-    proposalTimeout: z.number().int().positive().optional(),
-    lockTtlMs: z.number().int().positive().optional(),
     curationThreshold: z.number().int().positive().optional(),
-    bootstrapTokenBudget: z.number().int().positive().optional(),
     logsRetentionDays: z.number().int().positive().optional(),
     lintEveryNSessions: z.number().int().positive().optional(),
     proposalModel: ModelChoiceSchema.optional(),

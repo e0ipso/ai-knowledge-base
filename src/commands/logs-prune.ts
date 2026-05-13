@@ -20,8 +20,7 @@ export async function runLogsPrune(opts: LogsPruneOptions = {}): Promise<number>
     return 1;
   }
 
-  const { settings, warnings } = resolveSettings({ projectFile: paths.projectConfigFile });
-  for (const w of warnings) log.warn(w);
+  const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
 
   // Default to settings.logsRetentionDays when --older-than is not given.
   const olderThan = opts.olderThan ?? `${settings.logsRetentionDays}d`;

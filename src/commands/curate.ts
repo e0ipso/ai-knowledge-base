@@ -43,8 +43,7 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
     runHeadlessClaude(prompt, stdin, schema, runnerOpts as RunHeadlessOptions);
 
   log.info('Curating pending session logs…');
-  const { settings, warnings } = resolveSettings({ projectFile: paths.projectConfigFile });
-  for (const w of warnings) log.warn(w);
+  const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
 
   const now = new Date();
   const runId = ulid(now);
@@ -60,7 +59,6 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
     stateFile: join(paths.stateDir, 'state.json'),
     promptTemplate,
     runner,
-    lockTtlMs: settings.lockTtlMs,
     runId,
     logFile,
     ...(settings.curatorModel

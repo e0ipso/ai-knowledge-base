@@ -63,7 +63,7 @@ describe('init --upgrade', () => {
     await runCli(sandbox, ['init', '--assistants', 'claude']);
 
     const configFile = join(sandbox, '.ai/knowledge-base/config.yaml');
-    const customized = 'schema_version: 1\ndrainBound: 42\n';
+    const customized = 'schema_version: 1\ncurationThreshold: 42\n';
     writeFileSync(configFile, customized);
 
     // Mark installed-version older so upgrade applies.
@@ -136,7 +136,7 @@ describe('init --upgrade', () => {
     expect(existsSync(configFile)).toBe(true);
     const body = yaml.load(readFileSync(configFile, 'utf8')) as Record<string, unknown>;
     expect(body.schema_version).toBe(1);
-    expect(body.drainBound).toBe(5);
+    expect(body.curationThreshold).toBe(5);
   });
 });
 

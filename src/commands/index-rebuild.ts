@@ -38,8 +38,8 @@ export async function runIndexRebuild(opts: IndexRebuildOptions = {}): Promise<n
   }
 
   mkdirSync(paths.kbDir, { recursive: true });
-  const { warnings } = resolveSettings({ projectFile: paths.projectConfigFile });
-  for (const w of warnings) log.warn(w);
+  // Validate the project config (throws on malformed YAML or schema violations).
+  resolveSettings({ projectFile: paths.projectConfigFile });
 
   const indexFile = join(paths.kbDir, 'INDEX.md');
   const graphFile = join(paths.kbDir, 'GRAPH.md');

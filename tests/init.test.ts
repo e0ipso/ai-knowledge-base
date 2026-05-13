@@ -247,11 +247,12 @@ describe('init', () => {
       readFileSync(join(sandbox, '.ai/knowledge-base/config.yaml'), 'utf8')
     ) as Record<string, unknown>;
     expect(body['schema_version']).toBe(1);
-    expect(body['drainBound']).toBe(5);
-    expect(body['proposalTimeout']).toBe(60000);
     expect(body['curationThreshold']).toBe(5);
-    expect(body['bootstrapTokenBudget']).toBe(10000);
     expect(body['logsRetentionDays']).toBe(30);
+    expect(body['lintEveryNSessions']).toBe(50);
+    expect(Object.keys(body).sort()).toEqual(
+      ['curationThreshold', 'lintEveryNSessions', 'logsRetentionDays', 'schema_version']
+    );
   });
 
   it('registers both SessionEnd capture and lint-tick hooks and ships kb-lint-tick.mjs', async () => {
@@ -293,7 +294,7 @@ describe('init', () => {
   it('does not overwrite an existing config.yaml even with --force', async () => {
     await runCli(sandbox, ['init', '--assistants', 'claude']);
     const configFile = join(sandbox, '.ai/knowledge-base/config.yaml');
-    const customized = 'schema_version: 1\ndrainBound: 99\n';
+    const customized = 'schema_version: 1\ncurationThreshold: 99\n';
     writeFileSync(configFile, customized);
 
     const result = await runCli(sandbox, ['init', '--assistants', 'claude', '--force']);
