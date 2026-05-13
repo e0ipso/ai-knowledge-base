@@ -62,18 +62,8 @@ export const ProposalOutputSchema = z.object({
 
 export type ProposalOutput = z.infer<typeof ProposalOutputSchema>;
 
-export const StateLockSchema = z.object({
-  name: z.string(),
-  pid: z.number().int(),
-  acquired_at: z.string(),
-  ttl_ms: z.number().int().positive(),
-});
-
-export type StateLock = z.infer<typeof StateLockSchema>;
-
 export const StateFileSchema = z.object({
   schema_version: z.literal(1),
-  lock: StateLockSchema.nullable().optional(),
   last_nudged_at: z.string().nullable().optional(),
 });
 

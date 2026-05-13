@@ -1,10 +1,10 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync, mkdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { acquireLock, readState, releaseLock, writeState } from '../../src/lib/state.js';
+import { readState, writeState } from '../../src/lib/state.js';
 
-describe('state.json lock', () => {
+describe('state.json round-trip', () => {
   let dir: string;
   let file: string;
 
@@ -19,55 +19,37 @@ describe('state.json lock', () => {
     expect(readState(file)).toEqual({ schema_version: 1 });
   });
 
-  it('acquires a fresh lock and writes it to disk', () => {
-    const now = new Date('2026-05-11T10:00:00Z');
-    expect(acquireLock(file, { name: 'proposal-drain', pid: 1234, now })).toBe(true);
-    const onDisk = JSON.parse(readFileSync(file, 'utf8'));
-    expect(onDisk.schema_version).toBe(1);
-    expect(onDisk.lock.name).toBe('proposal-drain');
-    expect(onDisk.lock.pid).toBe(1234);
-    expect(onDisk.lock.acquired_at).toBe('2026-05-11T10:00:00.000Z');
-  });
-
-  it('rejects acquisition by a different live pid', () => {
-    const t0 = new Date('2026-05-11T10:00:00Z');
-    expect(acquireLock(file, { name: 'proposal-drain', pid: 1234, now: t0 })).toBe(true);
-    expect(
-      acquireLock(file, {
-        name: 'proposal-drain',
-        pid: 9999,
-        now: new Date('2026-05-11T10:01:00Z'),
-      })
-    ).toBe(false);
-  });
-
-  it('treats a lock older than its ttl as stale and overwrites it', () => {
-    const t0 = new Date('2026-05-11T10:00:00Z');
-    acquireLock(file, { name: 'proposal-drain', pid: 1234, now: t0, ttlMs: 60_000 });
-    const later = new Date('2026-05-11T10:05:00Z');
-    expect(acquireLock(file, { name: 'proposal-drain', pid: 5555, now: later, ttlMs: 60_000 })).toBe(
-      true
-    );
-    expect(readState(file).lock?.pid).toBe(5555);
-  });
-
-  it('releases only when name and pid match', () => {
-    const now = new Date('2026-05-11T10:00:00Z');
-    acquireLock(file, { name: 'proposal-drain', pid: 1234, now });
-    releaseLock(file, 'curator', 1234);
-    expect(readState(file).lock?.pid).toBe(1234);
-    releaseLock(file, 'proposal-drain', 1234);
-    expect(readState(file).lock).toBeNull();
-  });
-
-  it('preserves last_nudged_at across lock cycles', () => {
+  it('round-trips schema_version and last_nudged_at', () => {
     writeState(file, {
       schema_version: 1,
       last_nudged_at: '2026-05-11T09:00:00Z',
     });
-    const now = new Date('2026-05-11T10:00:00Z');
-    acquireLock(file, { name: 'proposal-drain', pid: 1234, now });
-    releaseLock(file, 'proposal-drain', 1234);
-    expect(readState(file).last_nudged_at).toBe('2026-05-11T09:00:00Z');
+    expect(readState(file)).toEqual({
+      schema_version: 1,
+      last_nudged_at: '2026-05-11T09:00:00Z',
+    });
+  });
+
+  it('silently drops an obsolete `lock` field on read', () => {
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(
+      file,
+      JSON.stringify({
+        schema_version: 1,
+        last_nudged_at: '2026-05-11T09:00:00Z',
+        lock: {
+          name: 'curator',
+          pid: 99999,
+          acquired_at: '2020-01-01T00:00:00Z',
+          ttl_ms: 1800000,
+        },
+      })
+    );
+    const state = readState(file) as { schema_version: 1; last_nudged_at?: string | null } & {
+      lock?: unknown;
+    };
+    expect(state.schema_version).toBe(1);
+    expect(state.last_nudged_at).toBe('2026-05-11T09:00:00Z');
+    expect(state.lock).toBeUndefined();
   });
 });

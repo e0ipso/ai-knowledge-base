@@ -2,10 +2,10 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import matter from 'gray-matter';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import lockfile from 'proper-lockfile';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   BATCH_PLACEHOLDER,
-  CURATOR_LOCK_NAME,
   buildBatchPayload,
   buildBatchPrompt,
   dedupActions,
@@ -15,9 +15,8 @@ import {
   type CuratorRunner,
 } from '../../src/lib/curate.js';
 import { repoPaths, type RepoPaths } from '../../src/lib/paths.js';
-import * as processModule from '../../src/lib/process.js';
 import type { CuratorAction, NodeFrontmatter, ProposalCandidate } from '../../src/lib/schemas.js';
-import { acquireLock, readState } from '../../src/lib/state.js';
+import { STATE_LOCK_OPTIONS } from '../../src/lib/state.js';
 
 interface Harness {
   root: string;
@@ -354,24 +353,22 @@ describe('runCurate', () => {
 
   it('returns status=locked when another process holds the curator lock', async () => {
     seedSession(harness, 's', [makeCandidate('practice', 'Hi')], []);
-    acquireLock(harness.stateFile, {
-      name: CURATOR_LOCK_NAME,
-      pid: 999_999,
-      now: new Date(),
-    });
-    vi.spyOn(processModule, 'currentPid').mockReturnValue(12345);
+    mkdirSync(join(harness.paths.stateDir), { recursive: true });
+    const release = await lockfile.lock(harness.stateFile, STATE_LOCK_OPTIONS);
     try {
       const result = await runCurate(ctx(async () => []));
       expect(result.status).toBe('locked');
     } finally {
-      vi.restoreAllMocks();
+      await release();
     }
   });
 
   it('releases the lock after completion', async () => {
     seedSession(harness, 's', [makeCandidate('practice', 'Hi')], []);
     await runCurate(ctx(async () => []));
-    expect(readState(harness.stateFile).lock ?? null).toBeNull();
+    // A fresh lock acquisition must succeed after runCurate returns.
+    const release = await lockfile.lock(harness.stateFile, STATE_LOCK_OPTIONS);
+    await release();
   });
 
   it('fires onBatchStart and onBatchEnd for each batch, and threads onCuratorMessage to the runner', async () => {

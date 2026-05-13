@@ -10,10 +10,10 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import matter from 'gray-matter';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import lockfile from 'proper-lockfile';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import ignore from 'ignore';
 import {
-  BOOTSTRAP_LOCK_NAME,
   buildChunkString,
   buildPrompt,
   CHUNK_PLACEHOLDER,
@@ -25,13 +25,12 @@ import {
   type BootstrapRunner,
 } from '../../src/lib/bootstrap.js';
 import { repoPaths, type RepoPaths } from '../../src/lib/paths.js';
-import * as processModule from '../../src/lib/process.js';
 import type {
   BootstrapCandidate,
   BootstrapOutput,
   NodeFrontmatter,
 } from '../../src/lib/schemas.js';
-import { acquireLock, readState } from '../../src/lib/state.js';
+import { STATE_LOCK_OPTIONS } from '../../src/lib/state.js';
 
 interface Harness {
   root: string;
@@ -314,29 +313,23 @@ describe('runBootstrapIncremental', () => {
 
   it('returns status=locked when another process holds the lock', async () => {
     writeFileSync(join(harness.sourceDir, 'a.md'), 'a');
-    acquireLock(harness.stateFile, {
-      name: BOOTSTRAP_LOCK_NAME,
-      pid: 999_999,
-      now: new Date('2030-01-01T00:00:00Z'),
-    });
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date('2030-01-01T00:00:01Z'));
-    vi.spyOn(processModule, 'currentPid').mockReturnValue(12345);
+    mkdirSync(join(harness.paths.stateDir), { recursive: true });
+    const release = await lockfile.lock(harness.stateFile, STATE_LOCK_OPTIONS);
     try {
       const result = await runBootstrapIncremental(
         ctxFor(harness, runnerOf({ practice: [], map: [] }))
       );
       expect(result.status).toBe('locked');
     } finally {
-      vi.useRealTimers();
-      vi.restoreAllMocks();
+      await release();
     }
   });
 
   it('releases the lock after completion', async () => {
     writeFileSync(join(harness.sourceDir, 'a.md'), 'a');
     await runBootstrapIncremental(ctxFor(harness, runnerOf({ practice: [], map: [] })));
-    expect(readState(harness.stateFile).lock ?? null).toBeNull();
+    const release = await lockfile.lock(harness.stateFile, STATE_LOCK_OPTIONS);
+    await release();
   });
 
   it('records failures but does not update state for the failed doc', async () => {

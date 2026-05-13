@@ -14,15 +14,14 @@ import {
   type ModelFamily,
   type NodeFrontmatter,
 } from './schemas.js';
+import lockfile from 'proper-lockfile';
 import { chunk } from './chunk-batch.js';
-import { acquireLock, releaseLock } from './state.js';
+import { STATE_LOCK_OPTIONS } from './state.js';
 import { atomicWriteJson, readJsonValidated } from './fs-atomic.js';
 import { deriveNodeId, ensureUniqueId, nodeFileExists, writeNodeFile } from './nodes.js';
 import type { RepoPaths } from './paths.js';
-import { currentPid } from './process.js';
 import { compactStamp } from './time.js';
 
-export const BOOTSTRAP_LOCK_NAME = 'bootstrap-incremental';
 export const BOOTSTRAP_BATCH_SIZE = 20;
 export const DEFAULT_TIMEOUT_MS = 120_000;
 export const CHUNK_PLACEHOLDER = '[CHUNK PLACEHOLDER — substituted at runtime]';
@@ -53,7 +52,6 @@ export interface BootstrapContext {
   exclude?: string[];
   dryRun?: boolean;
   timeoutMs?: number;
-  lockTtlMs?: number;
   model?: ModelFamily;
   effort?: EffortLevel;
 }
@@ -307,25 +305,24 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
     throw new Error('bootstrap-incremental: runner is required when dryRun is false');
   }
 
-  const pid = currentPid();
-  const acquired = acquireLock(stateFile, {
-    name: BOOTSTRAP_LOCK_NAME,
-    pid,
-    now: new Date(),
-    ...(ctx.lockTtlMs !== undefined ? { ttlMs: ctx.lockTtlMs } : {}),
-  });
-  if (!acquired) {
-    return {
-      status: 'locked',
-      runId,
-      discovered: relPaths.length,
-      unchanged: unchanged.length,
-      processed: unchanged,
-      nodesWritten: 0,
-      skippedCollisions: 0,
-      batches: 0,
-      reason: 'another bootstrap-incremental run holds the lock',
-    };
+  let release: (() => Promise<void>) | undefined;
+  try {
+    release = await lockfile.lock(stateFile, STATE_LOCK_OPTIONS);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ELOCKED') {
+      return {
+        status: 'locked',
+        runId,
+        discovered: relPaths.length,
+        unchanged: unchanged.length,
+        processed: unchanged,
+        nodesWritten: 0,
+        skippedCollisions: 0,
+        batches: 0,
+        reason: 'another bootstrap-incremental run holds the lock',
+      };
+    }
+    throw err;
   }
 
   const startStamp = compactStamp(new Date());
@@ -424,7 +421,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
     };
     writeBootstrapState(bootstrapStateFile, nextState);
   } finally {
-    releaseLock(stateFile, BOOTSTRAP_LOCK_NAME, pid);
+    if (release !== undefined) await release();
   }
 
   return {

@@ -25,13 +25,12 @@ import {
   type ProposalCandidate,
 } from './schemas.js';
 import { randomUUID } from 'node:crypto';
+import lockfile from 'proper-lockfile';
 import { chunk } from './chunk-batch.js';
 import type { RepoPaths } from './paths.js';
-import { currentPid } from './process.js';
-import { acquireLock, releaseLock } from './state.js';
+import { STATE_LOCK_OPTIONS } from './state.js';
 import { compactStamp } from './time.js';
 
-export const CURATOR_LOCK_NAME = 'curator';
 export const CURATE_BATCH_SIZE = 10;
 export const DEFAULT_TIMEOUT_MS = 120_000;
 
@@ -54,7 +53,6 @@ export interface CurateContext {
   promptTemplate: string;
   runner: CuratorRunner;
   timeoutMs?: number;
-  lockTtlMs?: number;
   /** Called once before each batch is sent to the runner. */
   onBatchStart?: (info: { index: number; total: number; batch: PendingSession[] }) => void;
   /** Called once after each batch completes. */
@@ -245,26 +243,25 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
     };
   }
 
-  const pid = currentPid();
-  const acquired = acquireLock(stateFile, {
-    name: CURATOR_LOCK_NAME,
-    pid,
-    now: new Date(),
-    ...(ctx.lockTtlMs !== undefined ? { ttlMs: ctx.lockTtlMs } : {}),
-  });
-  if (!acquired) {
-    return {
-      status: 'locked',
-      runId,
-      batches: 0,
-      candidates: 0,
-      nodesWritten: 0,
-      drops: 0,
-      pendingSessions: pending.length,
-      failures: [],
-      conflicts: [],
-      reason: 'another curate run holds the lock',
-    };
+  let release: (() => Promise<void>) | undefined;
+  try {
+    release = await lockfile.lock(stateFile, STATE_LOCK_OPTIONS);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ELOCKED') {
+      return {
+        status: 'locked',
+        runId,
+        batches: 0,
+        candidates: 0,
+        nodesWritten: 0,
+        drops: 0,
+        pendingSessions: pending.length,
+        failures: [],
+        conflicts: [],
+        reason: 'another curate run holds the lock',
+      };
+    }
+    throw err;
   }
 
   const startStamp = compactStamp(new Date());
@@ -352,7 +349,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
       conflicts,
     };
   } finally {
-    releaseLock(stateFile, CURATOR_LOCK_NAME, pid);
+    if (release !== undefined) await release();
   }
 }
 

@@ -2,18 +2,17 @@ import matter from 'gray-matter';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import lockfile from 'proper-lockfile';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { repoPaths, type RepoPaths } from '../../src/lib/paths.js';
-import * as processModule from '../../src/lib/process.js';
 import { renderSessionLog } from '../../src/lib/session-log.js';
 import {
   buildProposalPrompt,
   drainProposalQueue,
-  PROPOSAL_LOCK_NAME,
   TRANSCRIPT_PLACEHOLDER,
   type ProposalRunner,
 } from '../../src/lib/proposal-drain.js';
-import { acquireLock, readState } from '../../src/lib/state.js';
+import { STATE_LOCK_OPTIONS } from '../../src/lib/state.js';
 
 interface Harness {
   root: string;
@@ -187,15 +186,8 @@ describe('drainProposalQueue', () => {
 
   it('returns status=locked when another process holds the lock', async () => {
     seedSession(harness, 's2', '[USER]: hi');
-    const lockTime = new Date('2026-05-11T10:00:00Z');
-    acquireLock(harness.stateFile, {
-      name: PROPOSAL_LOCK_NAME,
-      pid: 999_999,
-      now: lockTime,
-    });
-    vi.useFakeTimers({ toFake: ['Date'] });
-    vi.setSystemTime(new Date(lockTime.getTime() + 60_000));
-    vi.spyOn(processModule, 'currentPid').mockReturnValue(12345);
+    mkdirSync(harness.paths.stateDir, { recursive: true });
+    const release = await lockfile.lock(harness.stateFile, STATE_LOCK_OPTIONS);
     try {
       const summary = await drainProposalQueue({
         paths: harness.paths,
@@ -206,8 +198,7 @@ describe('drainProposalQueue', () => {
       expect(summary.status).toBe('locked');
       expect(summary.remaining).toBe(1);
     } finally {
-      vi.useRealTimers();
-      vi.restoreAllMocks();
+      await release();
     }
   });
 
@@ -254,7 +245,8 @@ describe('drainProposalQueue', () => {
       promptTemplate: PROMPT_TEMPLATE,
       runner: successRunner(),
     });
-    expect(readState(harness.stateFile).lock ?? null).toBeNull();
+    const release = await lockfile.lock(harness.stateFile, STATE_LOCK_OPTIONS);
+    await release();
   });
 
   it('releases the lock even if a runner throws an unexpected error', async () => {
@@ -264,7 +256,8 @@ describe('drainProposalQueue', () => {
       promptTemplate: PROMPT_TEMPLATE,
       runner: failingRunner('boom'),
     });
-    expect(readState(harness.stateFile).lock ?? null).toBeNull();
+    const release = await lockfile.lock(harness.stateFile, STATE_LOCK_OPTIONS);
+    await release();
   });
 
   it('does nothing and reports remaining=0 when no pending logs exist', async () => {

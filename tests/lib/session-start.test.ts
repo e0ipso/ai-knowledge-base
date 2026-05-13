@@ -201,29 +201,6 @@ describe('buildSessionStartContext', () => {
     expect(result.pendingSessions).toBe(1);
   });
 
-  it('preserves an existing lock when persisting last_nudged_at', () => {
-    for (let i = 0; i < DEFAULT_NUDGE_THRESHOLD; i += 1) seedSession(harness, `s-${i}`, false);
-    writeState(harness.stateFile, {
-      schema_version: 1,
-      lock: {
-        name: 'curator',
-        pid: 1234,
-        acquired_at: '2026-05-11T09:00:00Z',
-        ttl_ms: 1_800_000,
-      },
-    });
-    buildSessionStartContext({
-      kbDir: harness.kbDir,
-      nodesDir: harness.nodesDir,
-      sessionsDir: harness.sessionsDir,
-      stateFile: harness.stateFile,
-      now: () => new Date('2026-05-11T10:00:00Z'),
-    });
-    const state = readState(harness.stateFile);
-    expect(state.lock?.name).toBe('curator');
-    expect(state.lock?.pid).toBe(1234);
-    expect(typeof state.last_nudged_at).toBe('string');
-  });
 });
 
 describe('buildSessionStartContext lint nudge', () => {

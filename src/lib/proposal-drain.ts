@@ -7,14 +7,13 @@ import {
   type EffortLevel,
   type ModelFamily,
 } from './schemas.js';
+import lockfile from 'proper-lockfile';
 import type { RepoPaths } from './paths.js';
-import { currentPid } from './process.js';
-import { acquireLock, releaseLock } from './state.js';
+import { STATE_LOCK_OPTIONS } from './state.js';
 import { compactStamp } from './time.js';
 
 export const DEFAULT_MAX_ENTRIES = 5;
 export const DEFAULT_TIMEOUT_MS = 60_000;
-export const PROPOSAL_LOCK_NAME = 'proposal-drain';
 export const MAX_PROPOSAL_ERROR_LEN = 500;
 
 export type ProposalRunner = <T>(
@@ -36,7 +35,6 @@ export interface DrainContext {
   runner: ProposalRunner;
   maxEntries?: number;
   timeoutMs?: number;
-  lockTtlMs?: number;
   model?: ModelFamily;
   effort?: EffortLevel;
 }
@@ -74,17 +72,16 @@ interface PendingSessionLog {
 export async function drainProposalQueue(ctx: DrainContext): Promise<DrainSummary> {
   const maxEntries = ctx.maxEntries ?? DEFAULT_MAX_ENTRIES;
   const timeoutMs = ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const pid = currentPid();
   const stateFile = join(ctx.paths.stateDir, 'state.json');
 
-  const lockHeld = acquireLock(stateFile, {
-    name: PROPOSAL_LOCK_NAME,
-    pid,
-    now: new Date(),
-    ...(ctx.lockTtlMs !== undefined ? { ttlMs: ctx.lockTtlMs } : {}),
-  });
-  if (!lockHeld) {
-    return { status: 'locked', processed: [], remaining: countPending(ctx.paths.sessionsDir) };
+  let release: (() => Promise<void>) | undefined;
+  try {
+    release = await lockfile.lock(stateFile, STATE_LOCK_OPTIONS);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code === 'ELOCKED') {
+      return { status: 'locked', processed: [], remaining: countPending(ctx.paths.sessionsDir) };
+    }
+    throw err;
   }
 
   const processed: DrainEntryResult[] = [];
@@ -105,7 +102,7 @@ export async function drainProposalQueue(ctx: DrainContext): Promise<DrainSummar
       processed.push(result);
     }
   } finally {
-    releaseLock(stateFile, PROPOSAL_LOCK_NAME, pid);
+    if (release !== undefined) await release();
   }
 
   const remaining = countPending(ctx.paths.sessionsDir);
