@@ -37,7 +37,6 @@ export async function runDoctor(opts: DoctorOptions): Promise<number> {
   const checks: NamedCheck[] = [];
   checks.push({ name: 'Node.js >= 22', result: checkNodeVersion() });
   checks.push({ name: 'claude CLI on PATH', result: await checkClaude() });
-  checks.push({ name: 'secretlint resolvable', result: checkSecretlint(paths.root) });
   checks.push({
     name: '.ai/knowledge-base/.state/installed-version',
     result: checkInstalledVersion(paths.installedVersionFile),
@@ -45,10 +44,6 @@ export async function runDoctor(opts: DoctorOptions): Promise<number> {
   checks.push({
     name: 'installed-version is current',
     result: checkInstalledVersionCurrent(paths.installedVersionFile),
-  });
-  checks.push({
-    name: 'commit-time secret scan wired',
-    result: checkCommitTimeSecretScan(paths),
   });
   checks.push({
     name: '.gitignore lists ai-knowledge-base paths',
@@ -241,23 +236,6 @@ async function checkClaude(): Promise<CheckResult> {
   }
 }
 
-function checkSecretlint(repoRoot: string): CheckResult {
-  const candidates = [
-    join(repoRoot, 'node_modules', '@secretlint', 'core', 'package.json'),
-    join(repoRoot, 'node_modules', 'secretlint', 'package.json'),
-  ];
-  const missing = candidates.filter(c => !existsSync(c));
-  if (missing.length === 0) {
-    return { ok: true, detail: 'present in node_modules' };
-  }
-  return {
-    ok: false,
-    level: 'warn',
-    detail:
-      'secretlint not installed. Run `npm install --save-dev secretlint @secretlint/secretlint-rule-preset-recommend`.',
-  };
-}
-
 function checkInstalledVersion(file: string): CheckResult {
   if (!existsSync(file)) {
     return {
@@ -300,27 +278,6 @@ function checkInstalledVersionCurrent(file: string): CheckResult {
   } catch (err) {
     return { ok: false, level: 'warn', detail: `unreadable: ${(err as Error).message}` };
   }
-}
-
-type CommitScanPaths = Pick<
-  ReturnType<typeof import('../lib/paths.js').repoPaths>,
-  'secretlintrcFile' | 'huskyPreCommitFile' | 'packageJsonFile' | 'lintstagedrcFile'
->;
-
-function checkCommitTimeSecretScan(paths: CommitScanPaths): CheckResult {
-  const missing: string[] = [];
-  if (!existsSync(paths.secretlintrcFile)) missing.push('.secretlintrc.json');
-  if (!existsSync(paths.huskyPreCommitFile)) missing.push('.husky/pre-commit');
-  if (!existsSync(paths.lintstagedrcFile)) missing.push('.lintstagedrc.cjs');
-
-  if (missing.length === 0) {
-    return { ok: true, detail: 'husky + lint-staged + secretlint wired' };
-  }
-  return {
-    ok: false,
-    level: 'warn',
-    detail: `missing: ${missing.join(', ')}. Re-run \`ai-knowledge-base init\` to scaffold.`,
-  };
 }
 
 const EXPECTED_HOOK_SCRIPTS: Record<string, string[]> = {

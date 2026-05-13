@@ -30,7 +30,6 @@ describe('doctor', () => {
     const combined = result.stdout + result.stderr;
     expect(combined).toContain('Node.js >= 22');
     expect(combined).toContain('installed-version');
-    expect(combined).toContain('commit-time secret scan wired');
     expect(combined).toContain('.gitignore lists ai-knowledge-base paths');
     expect(combined).toContain('settings file is valid');
     expect(combined).toContain('Claude skills installed');

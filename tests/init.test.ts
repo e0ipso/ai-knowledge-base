@@ -1,5 +1,5 @@
 import { execFile, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
@@ -47,9 +47,6 @@ describe('init', () => {
       '.ai/knowledge-base/.config/prompts/curator.md',
       '.ai/knowledge-base/.config/prompts/bootstrap-incremental.md',
       '.ai/knowledge-base/config.yaml',
-      '.secretlintrc.json',
-      '.husky/pre-commit',
-      '.lintstagedrc.cjs',
       '.gitignore',
     ];
 
@@ -105,52 +102,19 @@ describe('init', () => {
     expect(result.stderr + result.stdout).toMatch(/cursor|Unsupported assistant/i);
   });
 
-  it('does not overwrite an existing .secretlintrc.json', async () => {
-    const existing = '{"rules": [{"id": "custom-rule"}]}\n';
-    writeFileSync(join(sandbox, '.secretlintrc.json'), existing);
+  it('succeeds in a repo without a package.json and produces no husky/secretlint artefacts', async () => {
+    expect(existsSync(join(sandbox, 'package.json'))).toBe(false);
 
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
-    const after = readFileSync(join(sandbox, '.secretlintrc.json'), 'utf8');
-    expect(after).toBe(existing);
-  });
-
-  it('errors clearly when package.json is missing', async () => {
-    rmSync(join(sandbox, 'package.json'), { force: true });
     const result = await runCli(sandbox, ['init', '--assistants', 'claude']);
-    expect(result.exitCode).not.toBe(0);
-    expect(result.stderr + result.stdout).toMatch(/package\.json|Node project/i);
-  });
+    expect(result.exitCode).toBe(0);
 
-  it('patches package.json with husky/lint-staged/secretlint devDeps + prepare script', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
-    const pkg = JSON.parse(readFileSync(join(sandbox, 'package.json'), 'utf8')) as {
-      devDependencies?: Record<string, string>;
-      scripts?: Record<string, string>;
-      'lint-staged'?: Record<string, unknown>;
-    };
-    expect(pkg.devDependencies?.['husky']).toBeTruthy();
-    expect(pkg.devDependencies?.['lint-staged']).toBeTruthy();
-    expect(pkg.devDependencies?.['secretlint']).toBeTruthy();
-    expect(pkg.devDependencies?.['@secretlint/secretlint-rule-preset-recommend']).toBeTruthy();
-    expect(pkg.scripts?.['prepare']).toBe('husky');
-    // lint-staged config lives in `.lintstagedrc.cjs`, not package.json.
-    expect(pkg['lint-staged']).toBeUndefined();
-  });
+    expect(existsSync(join(sandbox, '.ai/knowledge-base'))).toBe(true);
+    expect(existsSync(join(sandbox, '.claude'))).toBe(true);
 
-  it('writes .lintstagedrc.cjs with secretlint and `index rebuild --stage` entries', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
-    const cfg = readFileSync(join(sandbox, '.lintstagedrc.cjs'), 'utf8');
-    expect(cfg).toContain('secretlint');
-    expect(cfg).toContain('.ai/knowledge-base/nodes/**/*.md');
-    expect(cfg).toContain('ai-knowledge-base index rebuild --stage');
-  });
-
-  it('husky pre-commit invokes lint-staged with serial execution', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
-    const hook = readFileSync(join(sandbox, '.husky/pre-commit'), 'utf8');
-    expect(hook).toContain('lint-staged');
-    // Serial execution keeps secretlint ahead of `index rebuild --stage`.
-    expect(hook).toContain('--concurrent false');
+    expect(existsSync(join(sandbox, '.husky'))).toBe(false);
+    expect(existsSync(join(sandbox, '.secretlintrc.json'))).toBe(false);
+    expect(existsSync(join(sandbox, '.lintstagedrc.cjs'))).toBe(false);
+    expect(existsSync(join(sandbox, 'package.json'))).toBe(false);
   });
 
   it('registers Stop, SessionEnd, and PreCompact capture hooks in .claude/settings.json', async () => {

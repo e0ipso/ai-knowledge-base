@@ -306,9 +306,9 @@ graph TD
 **Parallel Tasks:**
 - ✔️ Task 002: Strip upgrade preflight and `--dry-run` (depends on: 001)
 
-### Phase 3: Init scaffolding removal
+### ✅ Phase 3: Init scaffolding removal
 **Parallel Tasks:**
-- Task 003: Remove husky / secretlint scaffolding (depends on: 002)
+- ✔️ Task 003: Remove husky / secretlint scaffolding (depends on: 002)
 
 ### Phase 4: Doctor trim
 **Parallel Tasks:**

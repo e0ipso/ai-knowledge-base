@@ -67,11 +67,6 @@ export interface RepoPaths {
   claudeHooksDir: string;
   claudeSettingsFile: string;
   gitignoreFile: string;
-  secretlintrcFile: string;
-  huskyDir: string;
-  huskyPreCommitFile: string;
-  packageJsonFile: string;
-  lintstagedrcFile: string;
 }
 
 export function repoPaths(root: string): RepoPaths {
@@ -100,11 +95,6 @@ export function repoPaths(root: string): RepoPaths {
     claudeHooksDir: join(claudeDir, 'hooks'),
     claudeSettingsFile: join(claudeDir, 'settings.json'),
     gitignoreFile: join(root, '.gitignore'),
-    secretlintrcFile: join(root, '.secretlintrc.json'),
-    huskyDir: join(root, '.husky'),
-    huskyPreCommitFile: join(root, '.husky', 'pre-commit'),
-    packageJsonFile: join(root, 'package.json'),
-    lintstagedrcFile: join(root, '.lintstagedrc.cjs'),
   };
 }
 
