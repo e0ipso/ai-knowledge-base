@@ -322,3 +322,37 @@ graph TD
 ### Execution Summary
 - Total Phases: 4
 - Total Tasks: 7
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-13
+
+### Results
+
+All seven defensive code paths removed. Net deletion in source/tests/docs (excluding compiled hooks and indexes) is ~294 lines. `npm run lint`, `npm run typecheck`, and `npm test` (239 tests, 29 suites) pass.
+
+Concrete outcomes per item:
+
+- **12** `buildPrompt`, `buildBatchPrompt`, `buildProposalPrompt` throw a named error when their placeholder is missing.
+- **18** `buildParseFailureMessage` collapsed to a single-line inline error in `runHeadlessClaude`.
+- **23** `src/lib/dedup-cache.ts` and `DedupCacheFileSchema` removed; capture relies on `findSessionLogBySessionId` overwrite.
+- **24** `src/lib/queue.ts`, `QueueFile/EntrySchema`, `bumpAndRotate`, `appendToQueue`, `hasQueueEntry`, `removeFromQueueHead`, the `attempts`/`maxAttempts`/`'skipped'` surface all gone. Drain sweeps `_sessions/*.md` for `proposal_status: pending` and writes `done`/`failed`.
+- **28** `ensureUniqueId` throws after 4 collisions; no more SHA-256 discriminator.
+- **29** `extractJsonBlock` removed; `runHeadlessClaude` parses with `JSON.parse(trim)`.
+- **33** Single `assertValidSessionId` boundary check; `shortSessionId`, the dash-tolerant cleanser in `proposalLogPath`, and the `hash.slice(7, 19)` fallback all deleted. Session-log filenames now embed the full UUID.
+
+Docs aligned across `IMPLEMENTATION.md`, `docs/internals/architecture.md`, `docs/internals/hooks.md`, `docs/internals/prompts.md`, and `docs/troubleshooting.md`. Two obsolete KB nodes (`map-dedup-cache`, `map-session-log-and-queue-helpers`) deleted; four others rewritten to describe the current design. `INDEX.md` / `GRAPH.md` regenerated.
+
+### Noteworthy Events
+
+- **Phases 1 and 2 were already completed before this run** (commits `06b5d5a` and `63ea5d8`). Execution picked up at Phase 3.
+- **Phase 3 work was partially staged but not committed** when the run started: `src/hooks/kb-capture.ts`, `src/lib/{capture,proposal-drain,session-log}.ts`, and two test files were modified. The implementation was sound but the test cleanup was incomplete: `tests/lib/capture.test.ts` declared `SESS_X / SESS_SECRET / SESS_MULTI / SESS_PC` constants but did not finish substituting them, leaving `session_id: 'sess-1'` literals and a broken assertion. Completed the substitution and fixed the assertion.
+- **The compiled hook `tests/hooks/kb-capture.test.ts` used `session_id: 's1'`**, which the new strict UUID v4 boundary rejects. Replaced with a UUID-shaped constant and rebuilt the `.claude/hooks/*.mjs` bundles (the repo dogfoods its own hooks).
+- **Knowledge-base nodes had to be touched** to satisfy the "no grep hits across the whole repo" acceptance criterion of Task 7. The nodes are project documentation under `nodes/`, not source code, but two described removed code paths verbatim (`map-dedup-cache`, `map-session-log-and-queue-helpers`) so they were deleted; four others mentioned the gone artifacts and were rewritten to describe the current design.
+- **Item 24 drain behaviour change**: the old code rotated failed entries up to 3 times and marked them `skipped`. The new code writes `proposal_status: failed` on the first failure with no rotation. This is intentional per the plan (the failure modes here do not heal on retry), and was already implemented and committed before this run.
+
+### Necessary follow-ups
+
+- The plan's manual Self Validation steps 4-8 (live Claude Code session for capture/drain, deliberate prompt-fallback throw, deliberate parse-failure throw, deliberate `session_id: ""` and `session_id: "not-a-uuid"` throws) were not exercised by this run; they require a live Claude Code session and a user-driven trigger. Recommend the reviewer run those before publishing a release.
+- Plans `12`, `14`, and `19` still reference the deleted symbols in their planning docs; those references are scoped to the plan's own analysis context and are unrelated to plan 10's success criteria, so they were left in place. They will get rewritten or removed when those plans land.
