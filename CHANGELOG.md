@@ -1,3 +1,9 @@
+## [0.4.1](https://github.com/e0ipso/ai-knowledge-base/compare/v0.4.0...v0.4.1) (2026-05-14)
+
+### Bug Fixes
+
+* **curate:** align BATCH_PLACEHOLDER with prompts ([d5e1765](https://github.com/e0ipso/ai-knowledge-base/commit/d5e17652ae6a1b30085d640e283fbf651558e507))
+
 ## [0.4.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.3.0...v0.4.0) (2026-05-14)
 
 ### Features
