@@ -1,6 +1,6 @@
 {
-  "version": "1.36.0",
-  "timestamp": "2026-05-12T09:45:57.130Z",
+  "version": "1.36.1",
+  "timestamp": "2026-05-14T08:12:47.188Z",
   "files": {
     "config/TASK_MANAGER.md": "ad37290f6f5bced23be611198f288f8c196452183aa139197085c3da73174b49",
     "config/hooks/POST_ERROR_DETECTION.md": "a8d17efccf8c88f539c22fa9d031d64ff106130280752896a67d4115471846c1",
