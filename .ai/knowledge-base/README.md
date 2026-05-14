@@ -9,7 +9,7 @@ When you (or a teammate) run an AI coding session against this repo, the tool wa
 ## How knowledge gets here
 
 1. **Capture.** During an AI session, a hook records redacted slices of the transcript to `_sessions/`.
-2. **Curate.** When enough sessions accumulate, you run `/kb-curate` (or `ai-knowledge-base curate`). The curator reads pending sessions and applies its decisions directly to `nodes/`: new files for `add` actions, in-place rewrites for `modify`. Contradictions land in `.state/pending-conflicts.json` for the curate skill to surface to you in-session.
+2. **Curate.** When enough sessions accumulate, you run `/kb-curate` (or `ai-knowledge-base curate`). The curator reads pending sessions and applies its decisions directly to `nodes/`: new files for `add` actions, in-place rewrites for `modify`. Contradictions are written as markdown files under `conflicts/` for the curate skill to surface to you in-session; you review them with `git diff` and accept by committing or reject with `git restore`.
 3. **Review.** The changes show up in `git status` like any other code change. Inspect with `git diff`, accept with `git commit`, reject with `git restore <file>`. The lint-staged pre-commit hook regenerates `INDEX.md` and `GRAPH.md` and stages them into the same commit.
 4. **Consume.** Every future session sees the new nodes in its injected index.
 
@@ -20,7 +20,7 @@ Each `.md` file in `nodes/` has a frontmatter header and a markdown body. Key fi
 - `kind`: `practice` (how we build things: conventions, prohibitions, gotchas) or `map` (what exists in the project: features, vocabulary, locations).
 - `tags`: free-form labels grouped under `## By topic` in `INDEX.md`.
 - `derived_from`: list of session log filenames or doc paths that produced or refined this node. (Note: `_sessions/` is gitignored by default, so provenance only resolves for the original contributor unless your team commits it.)
-- `relates_to` / `depends_on`: loose and strict cross-references rendered in `GRAPH.md`.
+- `relates_to`: cross-references rendered in `GRAPH.md`.
 - `summary`: ≤140-character one-liner injected via `INDEX.md`. Git history is the timeline of record for when a node was written or rewritten.
 
 ## Manually adding a node
@@ -41,7 +41,7 @@ If your repo already has READMEs, ADRs, and module docs, you can seed the KB fro
 - `nodes/`: knowledge nodes, organized by kind (`practice/`, `map/`). Reviewed via git.
 - `_sessions/`: raw captured transcripts (gitignored by default).
 - `_logs/`: stream-json traces from LLM-driven runs (gitignored).
-- `.state/pending-conflicts.json`: contradictions surfaced by the curator, awaiting resolution by the kb-curate skill.
+- `conflicts/`: one markdown file per curator-detected contradiction, surfaced by the kb-curate skill and reviewed via `git diff`.
 - `INDEX.md`: token-budgeted summary; injected into every new session. Regenerated automatically on commit.
 - `GRAPH.md`: full edge listing of nodes; available for the assistant to read on demand. Regenerated automatically on commit.
 

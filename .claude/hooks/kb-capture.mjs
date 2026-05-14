@@ -1,6 +1,6 @@
 // src/lib/capture.ts
 import { createHash } from "crypto";
-import { existsSync as existsSync3, readFileSync } from "fs";
+import { existsSync as existsSync4, readFileSync as readFileSync2 } from "fs";
 
 // src/lib/secret-scan.ts
 import { existsSync } from "fs";
@@ -101,20 +101,23 @@ import { existsSync as existsSync2, mkdirSync, readdirSync, writeFileSync } from
 import { join as join2 } from "path";
 import { dump } from "js-yaml";
 function renderSessionLog(input) {
+  const proposalStatus = input.proposalStatus ?? "pending";
+  const proposalError = input.proposalError ?? null;
+  const proposalCompletedAt = input.proposalCompletedAt ?? null;
   const frontmatter = {
     schema_version: 1,
     session_id: input.sessionId,
     captured_by: input.capturedBy,
     captured_at: input.capturedAt,
     transcript_hash: input.transcriptHash,
-    proposal_status: "pending",
-    proposal_completed_at: null,
-    proposal_error: null,
+    proposal_status: proposalStatus,
+    proposal_completed_at: proposalCompletedAt,
+    proposal_error: proposalError,
     proposal_log: null,
     secret_scan_status: input.secretScanStatus,
     proposals: { practice: [], map: [] }
   };
-  const yaml = dump(frontmatter, { lineWidth: -1, noRefs: true, sortKeys: false });
+  const yaml2 = dump(frontmatter, { lineWidth: -1, noRefs: true, sortKeys: false });
   const bodyLines = [
     "## Transcript",
     "",
@@ -126,7 +129,7 @@ function renderSessionLog(input) {
     ""
   ];
   return `---
-${yaml}---
+${yaml2}---
 ${bodyLines.join("\n")}`;
 }
 function writeSessionLog(sessionsDir, filename, contents) {
@@ -159,6 +162,143 @@ function assertValidSessionId(sessionId) {
 function pad(n) {
   return n.toString().padStart(2, "0");
 }
+
+// src/lib/settings.ts
+import { existsSync as existsSync3, readFileSync } from "fs";
+import { join as join3 } from "path";
+import yaml from "js-yaml";
+
+// src/lib/schemas.ts
+import { z } from "zod";
+var CaptureTriggerSchema = z.enum(["stop", "session_end", "pre_compact", "manual"]);
+var SecretScanStatusSchema = z.enum(["clean", "redacted", "blocked", "skipped"]);
+var ProposalStatusSchema = z.enum(["pending", "done", "failed"]);
+var SessionLogFrontmatterSchema = z.object({
+  schema_version: z.literal(1),
+  session_id: z.string(),
+  captured_by: CaptureTriggerSchema,
+  captured_at: z.string(),
+  transcript_hash: z.string(),
+  proposal_status: ProposalStatusSchema,
+  proposal_completed_at: z.string().nullable(),
+  proposal_error: z.string().nullable(),
+  proposal_log: z.string().nullable(),
+  secret_scan_status: SecretScanStatusSchema,
+  proposals: z.object({
+    practice: z.array(z.unknown()),
+    map: z.array(z.unknown())
+  })
+});
+var ConfidenceSchema = z.enum(["low", "medium", "high"]);
+var ModelFamilySchema = z.enum(["haiku", "sonnet", "opus"]);
+var EffortLevelSchema = z.enum(["low", "medium", "high", "xhigh", "max"]);
+var ModelChoiceSchema = z.object({ name: ModelFamilySchema, effort: EffortLevelSchema }).strict();
+var ProposalCandidateSchema = z.object({
+  kind: z.enum(["practice", "map"]),
+  tags: z.array(z.string()),
+  title: z.string(),
+  summary: z.string(),
+  body: z.string(),
+  confidence: ConfidenceSchema,
+  supports_existing_node: z.string().nullable(),
+  contradicts_existing_node: z.string().nullable()
+});
+var ProposalOutputSchema = z.object({
+  practice: z.array(ProposalCandidateSchema),
+  map: z.array(ProposalCandidateSchema)
+});
+var StateFileSchema = z.object({
+  schema_version: z.literal(1),
+  last_nudged_at: z.string().nullable().optional()
+});
+var LintStateFileSchema = z.object({
+  schema_version: z.literal(1),
+  sessions_since_last_lint: z.number().int().nonnegative(),
+  last_lint_at: z.string().nullable(),
+  last_errors: z.number().int().nonnegative(),
+  last_findings: z.number().int().nonnegative()
+});
+var NodeKindSchema = z.enum(["practice", "map"]);
+var NodeFrontmatterSchema = z.object({
+  schema_version: z.literal(1),
+  id: z.string(),
+  title: z.string(),
+  kind: NodeKindSchema,
+  tags: z.array(z.string()),
+  derived_from: z.array(z.string()),
+  relates_to: z.array(z.string()),
+  confidence: ConfidenceSchema,
+  summary: z.string()
+});
+var CuratorProposedNodeSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  kind: NodeKindSchema,
+  tags: z.array(z.string()),
+  summary: z.string(),
+  body: z.string(),
+  confidence: ConfidenceSchema,
+  derived_from: z.array(z.string()),
+  relates_to: z.array(z.string())
+});
+var CuratorActionSchema = z.object({
+  action: z.enum(["add", "modify", "contradict", "drop"]),
+  candidate_origin: z.string(),
+  target_node_id: z.string().nullable(),
+  proposed_node: CuratorProposedNodeSchema.nullable(),
+  rationale: z.string()
+});
+var CuratorOutputSchema = z.array(CuratorActionSchema);
+var IndexFrontmatterSchema = z.object({
+  schema_version: z.literal(1),
+  nodes_hash: z.string(),
+  node_count: z.number().int().nonnegative()
+});
+var GraphFrontmatterSchema = z.object({
+  schema_version: z.literal(1),
+  nodes_hash: z.string(),
+  node_count: z.number().int().nonnegative()
+});
+var BootstrapCandidateSchema = z.object({
+  kind: z.enum(["practice", "map"]),
+  tags: z.array(z.string()),
+  title: z.string(),
+  summary: z.string(),
+  body: z.string(),
+  confidence: ConfidenceSchema,
+  derived_from: z.array(z.string()),
+  supports_existing_node: z.string().nullable(),
+  contradicts_existing_node: z.string().nullable()
+});
+var BootstrapOutputSchema = z.object({
+  practice: z.array(BootstrapCandidateSchema),
+  map: z.array(BootstrapCandidateSchema)
+});
+var BootstrapDocEntrySchema = z.object({
+  content_sha256: z.string(),
+  last_processed_at: z.string(),
+  produced_nodes: z.array(z.string())
+});
+var SettingsSchema = z.object({
+  schema_version: z.literal(1),
+  curationThreshold: z.number().int().positive().optional(),
+  logsRetentionDays: z.number().int().positive().optional(),
+  lintEveryNSessions: z.number().int().positive().optional(),
+  proposalModel: ModelChoiceSchema.optional(),
+  curatorModel: ModelChoiceSchema.optional(),
+  bootstrapModel: ModelChoiceSchema.optional()
+}).strict();
+var BootstrapStateSchema = z.object({
+  schema_version: z.literal(1),
+  last_full_bootstrap_at: z.string().nullable().optional(),
+  last_incremental_at: z.string().nullable().optional(),
+  docs: z.record(BootstrapDocEntrySchema)
+});
+
+// src/lib/settings.ts
+var CURSORY_MAX_USER_TURNS = 1;
+var CURSORY_MAX_USER_CHARS = 200;
+var CURSORY_MAX_AGENT_CHARS = 500;
 
 // src/lib/transcript.ts
 function extractText(content) {
@@ -195,8 +335,31 @@ function parseTranscriptJsonl(text) {
   }
   return out;
 }
+var SELF_REVIEW_APPLY_TRIGGER = /^\s*\/self-review-apply\s+(\S+\.xml)\s*$/;
 function renderRoleTagged(t) {
-  return t.interleaved.map((seg) => `[${seg.role === "user" ? "USER" : "AGENT"}]: ${seg.text}`).join("\n\n");
+  const segs = t.interleaved;
+  const lines = [];
+  for (let i = 0; i < segs.length; i++) {
+    const seg = segs[i];
+    if (!seg) continue;
+    if (seg.role === "user") {
+      const match = SELF_REVIEW_APPLY_TRIGGER.exec(seg.text);
+      if (match) {
+        const path = match[1];
+        lines.push(`[USER /self-review-apply ${path}]: ${seg.text}`);
+        const next = segs[i + 1];
+        if (next && next.role === "agent") {
+          lines.push(`[AGENT NARRATION OF SELF-REVIEW ${path}]: ${next.text}`);
+          i += 1;
+        }
+        continue;
+      }
+      lines.push(`[USER]: ${seg.text}`);
+    } else {
+      lines.push(`[AGENT]: ${seg.text}`);
+    }
+  }
+  return lines.join("\n\n");
 }
 
 // src/lib/capture.ts
@@ -214,13 +377,13 @@ function eventToTrigger(event) {
 async function captureSession(input, ctx) {
   const trigger = eventToTrigger(input.hook_event_name);
   const transcriptPath = input.transcript_path;
-  if (!transcriptPath || !existsSync3(transcriptPath)) {
+  if (!transcriptPath || !existsSync4(transcriptPath)) {
     return {
       status: "no-transcript",
       error: `transcript_path missing or absent: ${transcriptPath ?? "(none)"}`
     };
   }
-  const transcriptText = readFileSync(transcriptPath, "utf8");
+  const transcriptText = readFileSync2(transcriptPath, "utf8");
   const parsed = parseTranscriptJsonl(transcriptText);
   const slice = renderRoleTagged(parsed);
   if (!slice.trim()) {
@@ -240,13 +403,30 @@ async function captureSession(input, ctx) {
   const sessionId = input.session_id;
   const existingFilename = findSessionLogBySessionId(ctx.sessionsDir, sessionId);
   const filename = existingFilename ?? buildSessionLogFilename(capturedAt, sessionId);
+  let userTurns = 0;
+  let userChars = 0;
+  let agentChars = 0;
+  for (const seg of parsed.interleaved) {
+    if (seg.role === "user") {
+      userTurns += 1;
+      userChars += seg.text.length;
+    } else if (seg.role === "agent") {
+      agentChars += seg.text.length;
+    }
+  }
+  const isCursory = userTurns <= CURSORY_MAX_USER_TURNS && userChars <= CURSORY_MAX_USER_CHARS && agentChars <= CURSORY_MAX_AGENT_CHARS;
   const body = renderSessionLog({
     sessionId,
     capturedBy: trigger,
     capturedAt,
     transcriptHash: hash,
     secretScanStatus: scanResult.status,
-    body: scanResult.status === "redacted" ? scanResult.redactedText : slice
+    body: scanResult.status === "redacted" ? scanResult.redactedText : slice,
+    ...isCursory ? {
+      proposalStatus: "skipped",
+      proposalError: "cursory_session",
+      proposalCompletedAt: capturedAt
+    } : {}
   });
   const sessionLogPath = writeSessionLog(ctx.sessionsDir, filename, body);
   return {
@@ -257,13 +437,13 @@ async function captureSession(input, ctx) {
 }
 
 // src/lib/paths.ts
-import { existsSync as existsSync4, readFileSync as readFileSync2, statSync } from "fs";
-import { dirname, join as join3, resolve } from "path";
+import { existsSync as existsSync5, readFileSync as readFileSync3, statSync } from "fs";
+import { dirname, join as join4, resolve } from "path";
 import { fileURLToPath } from "url";
 function findRepoRoot(from = process.cwd()) {
   let cur = resolve(from);
   while (true) {
-    if (existsSync4(join3(cur, ".git")) || existsSync4(join3(cur, ".ai/knowledge-base/.state/installed-version"))) {
+    if (existsSync5(join4(cur, ".git")) || existsSync5(join4(cur, ".ai/knowledge-base/.state/installed-version"))) {
       return cur;
     }
     const parent = dirname(cur);
@@ -272,12 +452,12 @@ function findRepoRoot(from = process.cwd()) {
   }
 }
 function repoPaths(root) {
-  const aiDir = join3(root, ".ai");
-  const kbDir = join3(aiDir, "knowledge-base");
-  const stateDir = join3(kbDir, ".state");
-  const configDir = join3(kbDir, ".config");
-  const promptsDir = join3(configDir, "prompts");
-  const claudeDir = join3(root, ".claude");
+  const aiDir = join4(root, ".ai");
+  const kbDir = join4(aiDir, "knowledge-base");
+  const stateDir = join4(kbDir, ".state");
+  const configDir = join4(kbDir, ".config");
+  const promptsDir = join4(configDir, "prompts");
+  const claudeDir = join4(root, ".claude");
   return {
     root,
     aiDir,
@@ -285,18 +465,18 @@ function repoPaths(root) {
     stateDir,
     configDir,
     promptsDir,
-    installedVersionFile: join3(stateDir, "installed-version"),
-    projectConfigFile: join3(kbDir, "config.yaml"),
-    sessionsDir: join3(kbDir, "_sessions"),
-    logsDir: join3(kbDir, "_logs"),
-    nodesDir: join3(kbDir, "nodes"),
-    conflictsDir: join3(kbDir, "conflicts"),
+    installedVersionFile: join4(stateDir, "installed-version"),
+    projectConfigFile: join4(kbDir, "config.yaml"),
+    sessionsDir: join4(kbDir, "_sessions"),
+    logsDir: join4(kbDir, "_logs"),
+    nodesDir: join4(kbDir, "nodes"),
+    conflictsDir: join4(kbDir, "conflicts"),
     claudeDir,
-    claudeCommandsDir: join3(claudeDir, "commands"),
-    claudeSkillsDir: join3(claudeDir, "skills"),
-    claudeHooksDir: join3(claudeDir, "hooks"),
-    claudeSettingsFile: join3(claudeDir, "settings.json"),
-    gitignoreFile: join3(root, ".gitignore")
+    claudeCommandsDir: join4(claudeDir, "commands"),
+    claudeSkillsDir: join4(claudeDir, "skills"),
+    claudeHooksDir: join4(claudeDir, "hooks"),
+    claudeSettingsFile: join4(claudeDir, "settings.json"),
+    gitignoreFile: join4(root, ".gitignore")
   };
 }
 

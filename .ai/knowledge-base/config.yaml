@@ -1,14 +1,4 @@
 schema_version: 1
 curationThreshold: 5
 logsRetentionDays: 30
-# Optional per-subprocess model/effort. Omit any block to inherit the
-# user's `claude` CLI default for that context.
-proposalModel:
-  name: haiku
-  effort: low
-curatorModel:
-  name: sonnet
-  effort: medium
-bootstrapModel:
-  name: sonnet
-  effort: medium
+lintEveryNSessions: 50

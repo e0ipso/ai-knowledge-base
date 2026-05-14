@@ -1,297 +1,218 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:5b4d00eb27ba683f136a921b22470ecfe7192427bfd54cd3066a805d594502c8'
-node_count: 37
+nodes_hash: 'sha256:48eb6c57f6f3ebf44f160ce1db4937ad478427a74f1b292a7839a58759e00576'
+node_count: 30
 ---
 # KB Graph
 
-Total nodes: 37
+Total nodes: 30
 
-## map-ai-knowledge-base-cli
-
-- **kind:** map
-- **title:** ai-knowledge-base CLI: the package binary
-- **tags:** cli, commander, binary
-- **relates_to:** map-kb-claude-skills
-- **derived_from:** docs/cli-reference.md, docs/internals/architecture.md
-
-## map-bootstrap-state-file
+## map-adapter-interface
 
 - **kind:** map
-- **title:** .state/bootstrap-state.json: per-doc SHA-256 cache for bootstrap
-- **tags:** state, bootstrap, hashing, gitignore
-- **relates_to:** practice-bootstrap-skip-changelog-and-implementation
-- **derived_from:** 20260512-0959-f963bf78b135.md
+- **title:** Assistant adapter interface
+- **tags:** adapter, extensibility, interface
+- **derived_from:** docs/internals/architecture.md
 
-## map-build-templates-script
+## map-ai-knowledge-base-package
 
 - **kind:** map
-- **title:** scripts/build-templates.mjs: regenerates templates/ from sources
-- **tags:** build, templates, script
-- **relates_to:** map-templates-npm-artifact, practice-do-not-commit-bundled-output
-- **derived_from:** 20260512-1439-722a03fa9cbe.md
+- **title:** @e0ipso/ai-knowledge-base npm package
+- **tags:** package, cli, scope
+- **derived_from:** README.md, PRD.md, IMPLEMENTATION.md
 
 ## map-claude-hooks
 
 - **kind:** map
-- **title:** The three Claude Code hooks registered by init
-- **tags:** hooks, claude-code, capture, extract, consume
-- **relates_to:** practice-hooks-meet-1s-deadline, practice-recursion-guard-env-var
+- **title:** Claude Code hooks registered by ai-knowledge-base
+- **tags:** hooks, claude-code, integration
 - **derived_from:** docs/internals/hooks.md, docs/internals/architecture.md
 
-## map-dogfood-claude-hooks-output
+## map-claude-skills
 
 - **kind:** map
-- **title:** .claude/hooks/*.mjs: this repo's own init output (dogfooding)
-- **tags:** dogfooding, hooks, claude
-- **relates_to:** map-templates-npm-artifact, map-claude-hooks, practice-do-not-commit-bundled-output
-- **derived_from:** 20260512-1439-722a03fa9cbe.md
+- **title:** Claude Code skills installed by init
+- **tags:** skills, claude-code, slash-commands
+- **derived_from:** docs/cli-reference.md, PRD.md, IMPLEMENTATION.md
 
-## map-index-and-graph-files
-
-- **kind:** map
-- **title:** INDEX.md and GRAPH.md: deterministic outputs derived from nodes/
-- **tags:** index, graph, deterministic, generated
-- **relates_to:** map-nodes-directory, practice-determinism-contract
-- **derived_from:** docs/how-it-works.md, docs/internals/architecture.md, docs/internals/schemas.md
-
-## map-kb-capture-hook
+## map-config-yaml
 
 - **kind:** map
-- **title:** kb-capture hook: writes session logs on Stop/SessionEnd/PreCompact
-- **tags:** hook, capture, kb-pipeline
-- **relates_to:** map-claude-hooks
-- **derived_from:** 20260512-1438-e5b4618a5295.md
+- **title:** .ai/knowledge-base/config.yaml
+- **tags:** config, settings, tunables
+- **derived_from:** docs/cli-reference.md, PRD.md
 
-## map-kb-claude-skills
-
-- **kind:** map
-- **title:** Claude Code skills: /kb-curate, /kb-add, /kb-bootstrap
-- **tags:** skills, claude-code, curate, add, bootstrap
-- **relates_to:** map-ai-knowledge-base-cli
-- **derived_from:** docs/cli-reference.md, docs/daily-use.md, PRD.md
-
-## map-kb-proposal-drain
+## map-knowledge-base-directory
 
 - **kind:** map
-- **title:** kb-proposal-drain: async worker that runs the extraction step
-- **tags:** worker, proposal, kb-pipeline
-- **relates_to:** map-claude-hooks
-- **derived_from:** 20260512-1438-e5b4618a5295.md, 20260512-1527-aa21a0a11614.md
+- **title:** .ai/knowledge-base/ directory layout
+- **tags:** layout, directory, kb
+- **derived_from:** docs/internals/architecture.md, IMPLEMENTATION.md
 
 ## map-map-node
 
 - **kind:** map
-- **title:** Map node: what-exists, named entities and vocabulary
-- **tags:** vocabulary, node-kind, map
-- **relates_to:** map-practice-node, map-nodes-directory
-- **derived_from:** docs/how-it-works.md, docs/internals/schemas.md, PRD.md
+- **title:** Map node
+- **tags:** node, kind, vocabulary
+- **derived_from:** PRD.md, docs/internals/schemas.md
+
+## map-node-frontmatter
+
+- **kind:** map
+- **title:** Node frontmatter shape
+- **tags:** schema, frontmatter, node
+- **derived_from:** docs/internals/schemas.md
 
 ## map-nodes-directory
 
 - **kind:** map
-- **title:** nodes/: the canonical knowledge tree
-- **tags:** storage, nodes, canonical, git
-- **relates_to:** map-practice-node, map-map-node, map-index-and-graph-files
-- **derived_from:** docs/how-it-works.md, docs/internals/architecture.md
+- **title:** nodes/ directory
+- **tags:** layout, nodes, kb
+- **derived_from:** docs/how-it-works.md, docs/internals/schemas.md
+
+## map-pending-conflicts
+
+- **kind:** map
+- **title:** .state/pending-conflicts.json
+- **tags:** state, conflicts, curator
+- **derived_from:** docs/internals/schemas.md, docs/how-it-works.md
 
 ## map-practice-node
 
 - **kind:** map
-- **title:** Practice node: how-we-build, imperative guidance
-- **tags:** vocabulary, node-kind, practice
-- **relates_to:** map-map-node, map-nodes-directory
-- **derived_from:** docs/how-it-works.md, docs/internals/schemas.md, PRD.md
+- **title:** Practice node
+- **tags:** node, kind, vocabulary
+- **derived_from:** PRD.md, docs/internals/schemas.md, docs/how-it-works.md
 
-## map-project-config-json
-
-- **kind:** map
-- **title:** .ai/knowledge-base/config.yaml: project-level tunables
-- **tags:** settings, config, tunables, yaml
-- **relates_to:** practice-config-yaml-not-json
-- **derived_from:** 20260512-1009-937d05692312.md
-
-## map-project-documentation-layout
+## map-prompts-directory
 
 - **kind:** map
-- **title:** Project documentation layout
-- **tags:** docs, directory-layout, bootstrap
-- **relates_to:** practice-bootstrap-skip-changelog-and-implementation
-- **derived_from:** 20260512-0959-f963bf78b135.md
-
-## map-proposal-artifact
-
-- **kind:** map
-- **title:** Proposal: structured candidate nodes extracted from a Transcript
-- **tags:** kb-pipeline, artifact, vocabulary
-- **relates_to:** map-transcript-artifact, map-kb-proposal-drain
-- **derived_from:** 20260512-1527-aa21a0a11614.md
-
-## map-sessions-directory
-
-- **kind:** map
-- **title:** _sessions/: captured session logs (gitignored by default)
-- **tags:** storage, capture, sessions, gitignore
-- **relates_to:** map-claude-hooks, map-nodes-directory
-- **derived_from:** docs/internals/architecture.md, docs/internals/schemas.md, PRD.md
-
-## map-state-json-file
-
-- **kind:** map
-- **title:** .state/state.json: lock and nudge timestamp
-- **tags:** state, lock, nudge, gitignore
-- **relates_to:** map-claude-hooks
-- **derived_from:** docs/internals/schemas.md, docs/internals/architecture.md
-
-## map-templates-npm-artifact
-
-- **kind:** map
-- **title:** templates/: shipped npm artifact, regenerated on publish
-- **tags:** npm, publish, artifact
-- **relates_to:** map-build-templates-script, practice-do-not-commit-bundled-output
-- **derived_from:** 20260512-1439-722a03fa9cbe.md
-
-## map-transcript-artifact
-
-- **kind:** map
-- **title:** Transcript: raw session capture in the KB pipeline
-- **tags:** kb-pipeline, artifact, vocabulary
-- **relates_to:** map-proposal-artifact, map-sessions-directory
-- **derived_from:** 20260512-1527-aa21a0a11614.md
-
-## practice-atomic-prs-with-paired-docs
-
-- **kind:** practice
-- **title:** One logical change per PR, with the docs update for that change
-- **tags:** git, pr, review, docs
-- **derived_from:** CONTRIBUTING.md
-
-## practice-bootstrap-skip-changelog-and-implementation
-
-- **kind:** practice
-- **title:** Skip CHANGELOG.md and treat IMPLEMENTATION.md as suspect during bootstrap
-- **tags:** bootstrap, kb, docs, scope
-- **relates_to:** map-project-documentation-layout, practice-no-schema-migrators
-- **derived_from:** 20260512-0959-f963bf78b135.md
-
-## practice-config-yaml-not-json
-
-- **kind:** practice
-- **title:** ai-knowledge-base config is YAML, never JSON
-- **tags:** config, yaml, ai-knowledge-base
-- **relates_to:** map-project-config-json
-- **derived_from:** 20260512-1009-937d05692312.md
-
-## practice-conventional-commits
-
-- **kind:** practice
-- **title:** Conventional Commits are required: they drive the release
-- **tags:** git, releases, commits, semantic-release
-- **derived_from:** CONTRIBUTING.md
-
-## practice-curator-read-only-tool
-
-- **kind:** practice
-- **title:** The curator's only allowed tool is Read
-- **tags:** curator, prompts, tools, claude-code
+- **title:** Prompt overrides at .config/prompts/
+- **tags:** prompts, customization, llm
 - **derived_from:** docs/internals/prompts.md
 
-## practice-determinism-contract
+## map-session-log
+
+- **kind:** map
+- **title:** Session log (_sessions/*.md)
+- **tags:** sessions, capture, schema
+- **derived_from:** docs/internals/hooks.md, docs/internals/schemas.md
+
+## map-source-layout
+
+- **kind:** map
+- **title:** Package source layout
+- **tags:** layout, source, build
+- **derived_from:** CONTRIBUTING.md, docs/internals/architecture.md
+
+## practice-bootstrap-never-overwrites
 
 - **kind:** practice
-- **title:** INDEX/GRAPH and nodes_hash are deterministic and content-addressed
-- **tags:** determinism, hashing, index, graph, testing
-- **relates_to:** map-index-and-graph-files, map-nodes-directory
-- **derived_from:** docs/internals/architecture.md, docs/internals/schemas.md
+- **title:** Bootstrap never overwrites an existing node
+- **tags:** bootstrap, prohibition, conservative
+- **derived_from:** PRD.md, docs/installation.md, docs/daily-use.md
 
-## practice-do-not-commit-bundled-output
-
-- **kind:** practice
-- **title:** Don't commit bundled/generated output to the repo
-- **tags:** build-output, gitignore, repo-hygiene
-- **relates_to:** map-build-templates-script, map-templates-npm-artifact, map-dogfood-claude-hooks-output
-- **derived_from:** 20260512-1439-722a03fa9cbe.md
-
-## practice-hooks-meet-1s-deadline
+## practice-claude-code-v1-only
 
 - **kind:** practice
-- **title:** Sync hooks must finish in under 1 second
-- **tags:** hooks, performance, claude-code, contract
-- **relates_to:** map-claude-hooks
-- **derived_from:** docs/internals/hooks.md, docs/internals/manual-test-plan.md
+- **title:** v1 supports only Claude Code
+- **tags:** scope, assistant, v1
+- **derived_from:** PRD.md, docs/installation.md
 
-## practice-index-graph-regen-on-curate-and-precommit
-
-- **kind:** practice
-- **title:** INDEX.md and GRAPH.md regenerate only on curate and pre-commit
-- **tags:** kb, index, graph, commit-workflow, lint-staged
-- **relates_to:** map-index-and-graph-files, practice-determinism-contract, practice-no-llm-pipelines-in-ci
-- **derived_from:** 20260512-0959-f963bf78b135.md
-
-## practice-no-em-dashes-or-hyphen-as-dash-in-prose
+## practice-conventional-commits-semantic-release
 
 - **kind:** practice
-- **title:** No em-dashes or hyphen-as-dash in prose
-- **tags:** prose, style, docs, commits
+- **title:** Conventional Commits drive semantic-release
+- **tags:** commits, release, format
+- **derived_from:** CONTRIBUTING.md
+
+## practice-curator-never-auto-resolves-contradictions
+
+- **kind:** practice
+- **title:** Curator never auto-resolves contradictions
+- **tags:** curator, conflicts, workflow
+- **derived_from:** PRD.md, docs/how-it-works.md, docs/internals/prompts.md
+
+## practice-curator-tools-read-only
+
+- **kind:** practice
+- **title:** Curator subprocess can only use the Read tool
+- **tags:** curator, llm, tool-use
+- **derived_from:** docs/internals/prompts.md
+
+## practice-deterministic-index-graph-regeneration
+
+- **kind:** practice
+- **title:** INDEX.md and GRAPH.md are deterministic outputs of nodes/
+- **tags:** index, graph, determinism, hooks
+- **derived_from:** docs/internals/architecture.md, docs/internals/schemas.md, docs/cli-reference.md
+
+## practice-human-in-the-loop-via-git
+
+- **kind:** practice
+- **title:** All KB changes go through git review
+- **tags:** review, git, workflow
+- **derived_from:** PRD.md, docs/how-it-works.md, docs/daily-use.md
+
+## practice-kb-builder-internal-recursion-guard
+
+- **kind:** practice
+- **title:** KB_BUILDER_INTERNAL=1 prevents hook recursion
+- **tags:** hooks, recursion, env, subprocess
+- **derived_from:** docs/internals/hooks.md, docs/internals/architecture.md
+
+## practice-locking-30min-ttl
+
+- **kind:** practice
+- **title:** Per-pipeline locks in state.json with 30-minute TTL
+- **tags:** locking, state, concurrency
+- **derived_from:** docs/internals/architecture.md, docs/troubleshooting.md
 
 ## practice-no-llm-pipelines-in-ci
 
 - **kind:** practice
-- **title:** Never run curate or bootstrap-incremental in CI
-- **tags:** ci, curate, bootstrap, policy
-- **relates_to:** map-ai-knowledge-base-cli
-- **derived_from:** docs/daily-use.md
+- **title:** Don't run curate or bootstrap-incremental in CI
+- **tags:** ci, llm, prohibition
+- **derived_from:** docs/daily-use.md, docs/installation.md
 
-## practice-no-schema-migrators
-
-- **kind:** practice
-- **title:** Strict schema-version policy: clean break, no migrators
-- **tags:** schema, versioning, policy, no-legacy
-- **relates_to:** map-zod-schemas
-- **derived_from:** CONTRIBUTING.md
-
-## practice-one-session-log-per-session-id
+## practice-no-migrators-clean-schema-break
 
 - **kind:** practice
-- **title:** One session log per session_id, not per assistant turn
-- **tags:** kb-capture, session-log, hooks
-- **relates_to:** map-kb-capture-hook
-- **derived_from:** 20260512-1438-e5b4618a5295.md
+- **title:** Schema bumps are a clean break; no migrators, no shims
+- **tags:** schema, versioning, prohibition
+- **derived_from:** CONTRIBUTING.md, PRD.md
 
-## practice-prompt-versioning
+## practice-prompt-version-bump-on-behavior-change
 
 - **kind:** practice
-- **title:** Bump the Version: N comment on every prompt behavior change
-- **tags:** prompts, versioning, changelog
+- **title:** Bump prompt Version: on every behavior change
+- **tags:** prompts, versioning, llm
 - **derived_from:** CONTRIBUTING.md, docs/internals/prompts.md
 
-## practice-recursion-guard-env-var
+## practice-secretlint-redaction-before-write
 
 - **kind:** practice
-- **title:** Set KB_BUILDER_INTERNAL=1 on every internal claude -p subprocess
-- **tags:** hooks, recursion, env-vars, claude-code
-- **relates_to:** map-claude-hooks
-- **derived_from:** docs/internals/hooks.md, docs/internals/architecture.md
+- **title:** Secretlint redacts every session transcript before write
+- **tags:** security, secrets, capture
+- **derived_from:** PRD.md, docs/internals/hooks.md, docs/installation.md
 
-## practice-sessions-and-proposal-logs-are-intermediate-artifacts
-
-- **kind:** practice
-- **title:** Session logs and extraction logs are intermediate artifacts, safe to wipe
-- **tags:** cleanup, kb-pipeline, intermediate-artifacts
-- **relates_to:** map-sessions-directory, map-nodes-directory
-- **derived_from:** 20260512-1438-e5b4618a5295.md
-
-## practice-v1-claude-code-only
+## practice-split-practice-and-map
 
 - **kind:** practice
-- **title:** v1 supports Claude Code only
-- **tags:** scope, claude-code, v1
-- **derived_from:** PRD.md, docs/internals/architecture.md
+- **title:** Split combined statements into separate practice and map nodes
+- **tags:** extraction, prompts, modeling
+- **derived_from:** PRD.md, docs/internals/schemas.md, docs/internals/prompts.md
 
-## practice-verify-shipped-artifact-before-delete
+## practice-strict-config-yaml-schema
 
 - **kind:** practice
-- **title:** Verify shipped-artifact status before deleting tracked files
-- **tags:** safety, destructive-actions, verification
-- **relates_to:** practice-do-not-commit-bundled-output, map-templates-npm-artifact
-- **derived_from:** 20260512-1439-722a03fa9cbe.md
+- **title:** config.yaml schema is strict; unknown keys are a hard error
+- **tags:** config, schema, strict
+- **derived_from:** PRD.md, docs/cli-reference.md
+
+## practice-zod-validation-at-read
+
+- **kind:** practice
+- **title:** Every YAML/JSON shape is validated by Zod at read time
+- **tags:** zod, schema, validation
+- **derived_from:** docs/internals/schemas.md
