@@ -7,7 +7,7 @@ import {
   type CuratorRunner,
   type PendingSession,
 } from '../lib/curate.js';
-import { getHarness } from '../harnesses/registry.js';
+import { resolveActiveHarness } from '../harnesses/detect.js';
 import type { HeadlessRunOptions } from '../harnesses/types.js';
 import { log } from '../lib/log.js';
 import { findRepoRoot, packageTemplatesDir, repoPaths } from '../lib/paths.js';
@@ -34,12 +34,12 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
     return 1;
   }
 
-  const harness = getHarness('claude');
+  const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
+  const harness = resolveActiveHarness({ configuredDefault: settings.defaultHarness });
   const runner: CuratorRunner = (prompt, stdin, schema, runnerOpts) =>
     harness.runHeadless(prompt, stdin, schema, runnerOpts as HeadlessRunOptions);
 
-  log.info('Curating pending session logs…');
-  const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
+  log.info(`Curating pending session logs with the ${harness.id} harness…`);
 
   const now = new Date();
   const logFile = curatorLogFile(paths.logsDir, randomUUID(), now);

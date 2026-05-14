@@ -13,6 +13,18 @@ import { parseTranscriptJsonl, renderRoleTagged } from './transcript.js';
  * Register additional harnesses (Codex, OpenCode, …) by adding a sibling
  * directory under `src/harnesses/` and entering it in the registry.
  */
+/**
+ * Returns true when the process appears to be running inside a Claude Code
+ * session. `CLAUDECODE=1` is the explicit marker Claude Code exports; we
+ * also accept a non-empty `CLAUDE_PROJECT_DIR` because every Claude hook
+ * command is invoked with that variable set.
+ */
+function detectClaudeFromEnv(env: NodeJS.ProcessEnv): boolean {
+  if (env['CLAUDECODE'] === '1') return true;
+  const projectDir = env['CLAUDE_PROJECT_DIR'];
+  return typeof projectDir === 'string' && projectDir.length > 0;
+}
+
 export const claudeAdapter: HarnessAdapter = {
   id: 'claude',
   hooks: CLAUDE_HOOK_SPECS,
@@ -23,4 +35,5 @@ export const claudeAdapter: HarnessAdapter = {
   runHeadless: (promptBody, stdin, schema, opts) =>
     runHeadlessClaude(promptBody, stdin, schema, opts ?? {}),
   doctorChecks: paths => claudeDoctorChecks(paths),
+  detectFromEnv: detectClaudeFromEnv,
 };

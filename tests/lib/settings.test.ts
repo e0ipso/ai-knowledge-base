@@ -57,6 +57,19 @@ describe('settings', () => {
     expect(result.settings).toEqual(SETTINGS_DEFAULTS);
   });
 
+  it('accepts an optional defaultHarness and passes it through', () => {
+    const projectFile = join(sandbox, 'project.yaml');
+    writeFileSync(projectFile, 'schema_version: 1\ndefaultHarness: claude\n');
+    const result = resolveSettings({ projectFile });
+    expect(result.settings.defaultHarness).toBe('claude');
+  });
+
+  it('rejects an empty defaultHarness string', () => {
+    const projectFile = join(sandbox, 'project.yaml');
+    writeFileSync(projectFile, 'schema_version: 1\ndefaultHarness: ""\n');
+    expect(() => resolveSettings({ projectFile })).toThrow();
+  });
+
   it('projectConfigPath joins to the kb dir', () => {
     expect(projectConfigPath('/repo/.ai/knowledge-base')).toBe(
       '/repo/.ai/knowledge-base/config.yaml'
