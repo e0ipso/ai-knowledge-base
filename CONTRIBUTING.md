@@ -42,7 +42,6 @@ tests/
   fixtures/                       # transcripts and bootstrap docs used by integration tests
 docs/                             # Jekyll/Just-the-Docs site, served via GitHub Pages
 PRD.md                            # product requirements (authoritative)
-IMPLEMENTATION.md                 # technical design (authoritative)
 ```
 
 ## Running tests
@@ -92,6 +91,6 @@ CI deploys on push to `main`.
 ## Submitting a PR
 
 - One logical change per PR. Branch from `main`.
-- Include doc updates for the phase you're touching (see IMPLEMENTATION.md §15.5 for the per-phase doc distribution).
+- Include doc updates alongside the code change in the same PR.
 - Run `npm test`, `npm run typecheck`, and `npm run lint` before pushing.
 - Conventional commit format on commit messages and the PR title.
