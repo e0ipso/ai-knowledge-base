@@ -24,6 +24,7 @@ import {
 } from '../../src/lib/curate.js';
 import { repoPaths, type RepoPaths } from '../../src/lib/paths.js';
 import type { CuratorAction, NodeFrontmatter, ProposalCandidate } from '../../src/lib/schemas.js';
+import { CuratorOutputSchema, CuratorProposedNodeSchema } from '../../src/lib/schemas.js';
 import { STATE_LOCK_OPTIONS } from '../../src/lib/state.js';
 
 interface Harness {
@@ -128,14 +129,12 @@ function makeAction(
       action === 'drop'
         ? null
         : {
-            id: `practice-${action}-node`,
-            title: 'Proposed title',
+            title: `Proposed title ${action}`,
             kind: 'practice',
             tags: ['t'],
             summary: 'Proposed summary',
             body: '# Proposed\n\nBody.',
             confidence: 'high',
-            derived_from: ['session-1.md'],
             relates_to: [],
           },
     rationale: 'because',
@@ -173,30 +172,26 @@ describe('listPendingSessions', () => {
 });
 
 describe('dedupActions', () => {
-  it('keeps the higher-confidence action when two propose the same id', () => {
+  it('keeps the higher-confidence action when two derive to the same slug', () => {
     const a = makeAction('add', {
       proposed_node: {
-        id: 'practice-foo',
         title: 'Foo',
         kind: 'practice',
         tags: [],
         summary: 'low',
         body: 'body',
         confidence: 'low',
-        derived_from: [],
         relates_to: [],
       },
     });
     const b = makeAction('add', {
       proposed_node: {
-        id: 'practice-foo',
         title: 'Foo',
         kind: 'practice',
         tags: [],
         summary: 'high',
         body: 'body',
         confidence: 'high',
-        derived_from: [],
         relates_to: [],
       },
     });
@@ -223,15 +218,14 @@ describe('runCurate', () => {
     seedSession(harness, 's1', [makeCandidate('practice', 'Use X')], []);
     const runner: CuratorRunner = async () => [
       makeAction('add', {
+        candidate_origin: 's1:practice:0',
         proposed_node: {
-          id: 'practice-use-x',
           title: 'Use X',
           kind: 'practice',
           tags: ['x'],
           summary: 'Use X everywhere',
           body: '# Use X\nBody.\n',
           confidence: 'high',
-          derived_from: ['session-s1.md'],
           relates_to: [],
         },
       }),
@@ -250,6 +244,8 @@ describe('runCurate', () => {
     expect(fm).not.toHaveProperty('proposal');
     expect(fm['id']).toBe('practice-use-x');
     expect((fm as NodeFrontmatter).title).toBe('Use X');
+    // derived_from synthesized from candidate_origin -> session filename.
+    expect((fm as NodeFrontmatter).derived_from).toEqual(['session-s1.md']);
     // INDEX/GRAPH regenerated.
     expect(existsSync(join(harness.kbDir, 'INDEX.md'))).toBe(true);
     expect(existsSync(join(harness.kbDir, 'GRAPH.md'))).toBe(true);
@@ -267,14 +263,12 @@ describe('runCurate', () => {
       makeAction('modify', {
         target_node_id: 'practice-mod-target',
         proposed_node: {
-          id: 'practice-mod-target',
           title: 'Modified Title',
           kind: 'practice',
           tags: ['m'],
           summary: 'merged summary',
           body: '# Merged\nUpdated body.\n',
           confidence: 'high',
-          derived_from: [],
           relates_to: [],
         },
       }),
@@ -324,14 +318,12 @@ describe('runCurate', () => {
         target_node_id: 'practice-target',
         rationale: 'The user reversed the earlier decision.',
         proposed_node: {
-          id: 'practice-target',
           title: 'New practice title',
           kind: 'practice',
           tags: ['t'],
           summary: 'new summary',
           body: '# New practice\n\nThe new rule.\n',
           confidence: 'high',
-          derived_from: [],
           relates_to: [],
         },
       }),
@@ -366,14 +358,12 @@ describe('runCurate', () => {
     const runner: CuratorRunner = async () => [
       makeAction('add', {
         proposed_node: {
-          id: 'practice-collide',
-          title: 'Collide',
+          title: 'collide',
           kind: 'practice',
           tags: [],
           summary: 'new',
           body: '# overwrite-attempt\n',
           confidence: 'high',
-          derived_from: [],
           relates_to: [],
         },
       }),
@@ -393,14 +383,12 @@ describe('runCurate', () => {
       makeAction('modify', {
         target_node_id: 'practice-does-not-exist',
         proposed_node: {
-          id: 'practice-does-not-exist',
           title: 'Phantom',
           kind: 'practice',
           tags: [],
           summary: 's',
           body: 'body',
           confidence: 'high',
-          derived_from: [],
           relates_to: [],
         },
       }),
@@ -521,6 +509,44 @@ describe('runCurate', () => {
     const sessions = listPendingSessions(harness.sessionsDir);
     const payload = buildBatchPayload(sessions, harness.nodesDir);
     expect(payload.existing_nodes.map(n => n.id)).toEqual(['practice-x']);
+  });
+});
+
+describe('CuratorProposedNodeSchema (strict, trimmed)', () => {
+  const validNode = {
+    title: 'X',
+    kind: 'practice' as const,
+    tags: ['t'],
+    summary: 's',
+    body: 'b',
+    confidence: 'high' as const,
+    relates_to: [] as string[],
+  };
+
+  it('accepts the seven-field shape', () => {
+    expect(CuratorProposedNodeSchema.parse(validNode)).toMatchObject(validNode);
+  });
+
+  it.each([
+    ['id', { id: 'practice-x' }],
+    ['derived_from', { derived_from: ['session-1.md'] }],
+    ['unknown', { fancy_new_field: true }],
+  ])('rejects %s on proposed_node (strict mode)', (_label, extra) => {
+    const result = CuratorProposedNodeSchema.safeParse({ ...validNode, ...extra });
+    expect(result.success).toBe(false);
+  });
+
+  it('CuratorOutputSchema parse fails when an action embeds id in proposed_node', () => {
+    const malformed = [
+      {
+        action: 'add',
+        candidate_origin: 's:practice:0',
+        target_node_id: null,
+        proposed_node: { ...validNode, id: 'practice-x' },
+        rationale: 'r',
+      },
+    ];
+    expect(CuratorOutputSchema.safeParse(malformed).success).toBe(false);
   });
 });
 

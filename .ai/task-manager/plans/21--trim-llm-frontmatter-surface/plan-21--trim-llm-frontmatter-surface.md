@@ -242,11 +242,11 @@ No integration with plans 10, 12, 15, 16 expected. The plan touches `src/lib/cur
 **Validation Gates:**
 - Reference: `/config/hooks/POST_PHASE.md`
 
-### Phase 1: Independent foundations
+### ✅ Phase 1: Independent foundations
 **Parallel Tasks:**
-- Task 001: Add non-interactive flag surface to `node add`
-- Task 003: Trim curator output schema and synthesize `derived_from` in wrapper
-- Task 005: Switch bootstrap-incremental to single-file batches; drop `derived_from` from candidates
+- ✔️ Task 001: Add non-interactive flag surface to `node add`
+- ✔️ Task 003: Trim curator output schema and synthesize `derived_from` in wrapper
+- ✔️ Task 005: Switch bootstrap-incremental to single-file batches; drop `derived_from` from candidates
 
 ### Phase 2: Dependents
 **Parallel Tasks:**

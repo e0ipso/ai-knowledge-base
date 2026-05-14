@@ -125,11 +125,40 @@ async function main(): Promise<void> {
   const nodeGroup = program.command('node').description('Manage knowledge-base nodes.');
   nodeGroup
     .command('add')
-    .description('Interactively draft a new node; writes directly to nodes/<kind>/<id>.md.')
-    .action(async () => {
-      const code = await runNodeAdd();
-      process.exit(code);
-    });
+    .description(
+      'Draft a new node; writes directly to nodes/<kind>/<id>.md. Flag-driven when --kind/--title/--summary/--body are supplied (use --body @- to read body from stdin); prompts for any missing fields unless --yes is set.'
+    )
+    .option('--kind <kind>', 'node kind: practice or map')
+    .option('--title <title>', 'short title (≤ 80 chars)')
+    .option('--summary <summary>', 'one-line summary (≤ 140 chars)')
+    .option('--tags <list>', 'comma-separated tags')
+    .option('--body <text>', 'body markdown, or "@-" to read from stdin')
+    .option('--relates-to <list>', 'comma-separated node ids')
+    .option('--confidence <level>', 'low, medium, or high')
+    .option('--yes', 'skip prompts; error if required fields are missing', false)
+    .action(
+      async (opts: {
+        kind?: string;
+        title?: string;
+        summary?: string;
+        tags?: string;
+        body?: string;
+        relatesTo?: string;
+        confidence?: string;
+        yes: boolean;
+      }) => {
+        const flags: Parameters<typeof runNodeAdd>[0] = { yes: opts.yes };
+        if (opts.kind !== undefined) flags.kind = opts.kind;
+        if (opts.title !== undefined) flags.title = opts.title;
+        if (opts.summary !== undefined) flags.summary = opts.summary;
+        if (opts.tags !== undefined) flags.tags = opts.tags;
+        if (opts.body !== undefined) flags.body = opts.body;
+        if (opts.relatesTo !== undefined) flags.relatesTo = opts.relatesTo;
+        if (opts.confidence !== undefined) flags.confidence = opts.confidence;
+        const code = await runNodeAdd(flags);
+        process.exit(code);
+      }
+    );
 
   const indexGroup = program.command('index').description('Manage INDEX.md and GRAPH.md.');
   indexGroup

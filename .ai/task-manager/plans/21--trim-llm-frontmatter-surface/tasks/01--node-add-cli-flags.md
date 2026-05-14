@@ -2,7 +2,7 @@
 id: 1
 group: "node-add-cli"
 dependencies: []
-status: "pending"
+status: "completed"
 created: 2026-05-13
 skills:
   - typescript

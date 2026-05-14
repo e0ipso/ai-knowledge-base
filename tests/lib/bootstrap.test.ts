@@ -63,11 +63,7 @@ function makeHarness(): Harness {
 
 const PROMPT_TEMPLATE = 'Extract.\n\n[CHUNK PLACEHOLDER — substituted at runtime]';
 
-function makeCandidate(
-  kind: 'practice' | 'map',
-  title: string,
-  derivedFrom: string[] = []
-): BootstrapCandidate {
+function makeCandidate(kind: 'practice' | 'map', title: string): BootstrapCandidate {
   return {
     kind,
     tags: ['t'],
@@ -75,7 +71,6 @@ function makeCandidate(
     summary: `summary of ${title}`,
     body: `# ${title}\n\nBody for ${title}.`,
     confidence: 'medium',
-    derived_from: derivedFrom,
     supports_existing_node: null,
     contradicts_existing_node: null,
   };
@@ -287,12 +282,14 @@ describe('runBootstrapIncremental', () => {
   it('writes new nodes for each candidate and updates state', async () => {
     writeFileSync(join(harness.sourceDir, 'a.md'), '# A\nUse X always.');
     writeFileSync(join(harness.sourceDir, 'b.md'), '# B\nBravo is a service.');
-    const runner = runnerOf({
-      practice: [makeCandidate('practice', 'Use X', ['docs/a.md'])],
-      map: [makeCandidate('map', 'Bravo Service', ['docs/b.md'])],
-    });
+    const queue: BootstrapOutput[] = [
+      { practice: [makeCandidate('practice', 'Use X')], map: [] },
+      { practice: [], map: [makeCandidate('map', 'Bravo Service')] },
+    ];
+    const runner: BootstrapRunner = (async () => queue.shift()!) as BootstrapRunner;
     const result = await runBootstrapIncremental(ctxFor(harness, runner));
     expect(result.status).toBe('completed');
+    expect(result.batches).toBe(2);
     expect(result.nodesWritten).toBe(2);
     expect(result.skippedCollisions).toBe(0);
     expect(readdirSync(join(harness.nodesDir, 'practice'))).toEqual(['practice-use-x.md']);
@@ -330,7 +327,7 @@ describe('runBootstrapIncremental', () => {
     );
     writeFileSync(join(harness.sourceDir, 'a.md'), '# A');
     const runner = runnerOf({
-      practice: [makeCandidate('practice', 'Use X', ['docs/a.md'])],
+      practice: [makeCandidate('practice', 'Use X')],
       map: [],
     });
     const result = await runBootstrapIncremental(ctxFor(harness, runner));
@@ -425,10 +422,10 @@ describe('runBootstrapIncremental', () => {
     expect(state.docs['docs/a.md']).toBeUndefined();
   });
 
-  it('defaults derived_from to the single-doc batch source when the model omits it', async () => {
+  it('attributes derived_from to the single-file batch source', async () => {
     writeFileSync(join(harness.sourceDir, 'a.md'), '# A');
     const runner = runnerOf({
-      practice: [makeCandidate('practice', 'Use X', [])], // empty derived_from
+      practice: [makeCandidate('practice', 'Use X')],
       map: [],
     });
     await runBootstrapIncremental(ctxFor(harness, runner));
@@ -437,19 +434,46 @@ describe('runBootstrapIncremental', () => {
     expect(fm.derived_from).toEqual(['docs/a.md']);
   });
 
-  it('splits 41 candidate docs into 3 batches via chunk(docs, 20)', async () => {
-    for (let i = 0; i < 41; i += 1) {
-      writeFileSync(join(harness.sourceDir, `doc-${String(i).padStart(2, '0')}.md`), `# ${i}\n`);
+  it('produces one batch per file (single-file batching)', async () => {
+    for (let i = 0; i < 3; i += 1) {
+      writeFileSync(join(harness.sourceDir, `doc-${i}.md`), `# ${i}\n`);
     }
     const batchSizes: number[] = [];
+    const filePaths: string[][] = [];
     const runner: BootstrapRunner = (async (prompt: string) => {
-      const matches = prompt.match(/=== FILE: /g) ?? [];
+      const matches = prompt.match(/=== FILE: ([^=]+?) ===/g) ?? [];
       batchSizes.push(matches.length);
+      filePaths.push(matches.map(m => m.replace(/=== FILE: | ===/g, '').trim()));
       return { practice: [], map: [] };
     }) as BootstrapRunner;
     const result = await runBootstrapIncremental(ctxFor(harness, runner));
     expect(result.batches).toBe(3);
-    expect(batchSizes).toEqual([20, 20, 1]);
+    expect(batchSizes).toEqual([1, 1, 1]);
+    expect(filePaths.flat().sort()).toEqual(['docs/doc-0.md', 'docs/doc-1.md', 'docs/doc-2.md']);
+  });
+
+  it('attributes derived_from deterministically per file across N single-file batches', async () => {
+    writeFileSync(join(harness.sourceDir, 'a.md'), '# A');
+    writeFileSync(join(harness.sourceDir, 'b.md'), '# B');
+    writeFileSync(join(harness.sourceDir, 'c.md'), '# C');
+    let call = 0;
+    const titles = ['From A', 'From B', 'From C'];
+    const runner: BootstrapRunner = (async () => {
+      const title = titles[call++]!;
+      return { practice: [makeCandidate('practice', title)], map: [] };
+    }) as BootstrapRunner;
+    const result = await runBootstrapIncremental(ctxFor(harness, runner));
+    expect(result.batches).toBe(3);
+    expect(result.nodesWritten).toBe(3);
+    const byTitle: Record<string, string[]> = {};
+    for (const f of readdirSync(join(harness.nodesDir, 'practice'))) {
+      const fm = matter(readFileSync(join(harness.nodesDir, 'practice', f), 'utf8'))
+        .data as NodeFrontmatter;
+      byTitle[fm.title] = fm.derived_from;
+    }
+    expect(byTitle['From A']).toEqual(['docs/a.md']);
+    expect(byTitle['From B']).toEqual(['docs/b.md']);
+    expect(byTitle['From C']).toEqual(['docs/c.md']);
   });
 
   it('forwards model and effort to the runner when set, omits them otherwise', async () => {

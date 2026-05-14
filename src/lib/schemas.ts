@@ -96,19 +96,22 @@ export type NodeFrontmatter = z.infer<typeof NodeFrontmatterSchema>;
 
 /**
  * Curator output schema: one entry per proposal candidate. Drops and
- * contradicts may omit `proposed_node`; add/modify include it.
+ * contradicts may omit `proposed_node`; add/modify include it. The wrapper
+ * stamps `id` from `deriveNodeId`/`target_node_id` and synthesizes
+ * `derived_from` from `candidate_origin`, so the LLM does not author either.
+ * `.strict()` rejects any reintroduction.
  */
-export const CuratorProposedNodeSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  kind: NodeKindSchema,
-  tags: z.array(z.string()),
-  summary: z.string(),
-  body: z.string(),
-  confidence: ConfidenceSchema,
-  derived_from: z.array(z.string()),
-  relates_to: z.array(z.string()),
-});
+export const CuratorProposedNodeSchema = z
+  .object({
+    title: z.string(),
+    kind: NodeKindSchema,
+    tags: z.array(z.string()),
+    summary: z.string(),
+    body: z.string(),
+    confidence: ConfidenceSchema,
+    relates_to: z.array(z.string()),
+  })
+  .strict();
 export type CuratorProposedNode = z.infer<typeof CuratorProposedNodeSchema>;
 
 export const CuratorActionSchema = z.object({
@@ -138,23 +141,22 @@ export const GraphFrontmatterSchema = z.object({
 export type GraphFrontmatter = z.infer<typeof GraphFrontmatterSchema>;
 
 /**
- * Candidate emitted by the bootstrap-incremental prompt. Same shape as the
- * proposal candidate plus `derived_from` (the source-doc paths the chunk
- * provided). `supports_existing_node` and `contradicts_existing_node` are
- * always null in bootstrap output (the prompt forces this) but kept in the
- * schema to match the shared candidate shape.
+ * Candidate emitted by the bootstrap-incremental prompt. The wrapper attributes
+ * `derived_from` deterministically from the (single-file) batch, so the LLM
+ * does not author it. `.strict()` rejects any reintroduction (including the
+ * formerly-emitted always-null `supports_existing_node` /
+ * `contradicts_existing_node` hints).
  */
-export const BootstrapCandidateSchema = z.object({
-  kind: z.enum(['practice', 'map']),
-  tags: z.array(z.string()),
-  title: z.string(),
-  summary: z.string(),
-  body: z.string(),
-  confidence: ConfidenceSchema,
-  derived_from: z.array(z.string()),
-  supports_existing_node: z.string().nullable(),
-  contradicts_existing_node: z.string().nullable(),
-});
+export const BootstrapCandidateSchema = z
+  .object({
+    kind: z.enum(['practice', 'map']),
+    tags: z.array(z.string()),
+    title: z.string(),
+    summary: z.string(),
+    body: z.string(),
+    confidence: ConfidenceSchema,
+  })
+  .strict();
 export type BootstrapCandidate = z.infer<typeof BootstrapCandidateSchema>;
 
 export const BootstrapOutputSchema = z.object({

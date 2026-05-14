@@ -15,14 +15,12 @@ import {
   type NodeFrontmatter,
 } from './schemas.js';
 import lockfile from 'proper-lockfile';
-import { chunk } from './chunk-batch.js';
 import { STATE_LOCK_OPTIONS } from './state.js';
 import { atomicWriteJson, readJsonValidated } from './fs-atomic.js';
 import { deriveNodeId, ensureUniqueId, nodeFileExists, writeNodeFile } from './nodes.js';
 import type { RepoPaths } from './paths.js';
 import { compactStamp } from './time.js';
 
-export const BOOTSTRAP_BATCH_SIZE = 20;
 export const DEFAULT_TIMEOUT_MS = 120_000;
 export const CHUNK_PLACEHOLDER = '[CHUNK PLACEHOLDER — substituted at runtime]';
 
@@ -338,7 +336,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
       processed: [...dryResults, ...unchanged],
       nodesWritten: 0,
       skippedCollisions: 0,
-      batches: chunk(candidates, BOOTSTRAP_BATCH_SIZE).length,
+      batches: candidates.length,
     };
   }
 
@@ -375,7 +373,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
   const seenSlugs = new Set<string>();
   let nodesWritten = 0;
   let skippedCollisions = 0;
-  const batches = chunk(candidates, BOOTSTRAP_BATCH_SIZE);
+  const batches: DocCandidateFile[][] = candidates.map(c => [c]);
 
   try {
     for (const batch of batches) {
@@ -409,13 +407,8 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
       for (const doc of batch) perDocNodes.set(doc.relPath, []);
 
       const allCandidates: BootstrapCandidate[] = [...output.practice, ...output.map];
+      const derivedFrom = [batch[0]!.relPath];
       for (const cand of allCandidates) {
-        const derivedFrom =
-          cand.derived_from.length > 0
-            ? cand.derived_from
-            : batch.length === 1
-              ? [batch[0]!.relPath]
-              : [];
         const written = writeBootstrapNode({
           candidate: cand,
           derivedFrom,

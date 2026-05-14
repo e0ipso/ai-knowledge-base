@@ -301,6 +301,9 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
     let conflicts = 0;
     let conflictCounter = 0;
 
+    const sessionIdToFilename = new Map<string, string>();
+    for (const s of pending) sessionIdToFilename.set(s.sessionId, s.filename);
+
     for (const action of merged) {
       const outcome = persistAction(action, {
         nodesDir: ctx.paths.nodesDir,
@@ -310,6 +313,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
         runId,
         now: new Date(),
         nextConflictIndex: () => ++conflictCounter,
+        derivedFromFor: origin => derivedFromForOrigin(origin, sessionIdToFilename),
       });
       switch (outcome.kind) {
         case 'wrote':
@@ -357,6 +361,7 @@ interface PersistContext {
   runId: string;
   now: Date;
   nextConflictIndex: () => number;
+  derivedFromFor: (candidateOrigin: string) => string[];
 }
 
 type PersistOutcome =
@@ -392,27 +397,28 @@ function persistAction(action: CuratorAction, ctx: PersistContext): PersistOutco
   }
 
   const kind: NodeKind = proposedNode.kind;
+  const derivedFrom = ctx.derivedFromFor(action.candidate_origin);
 
   if (action.action === 'modify') {
-    const targetId = action.target_node_id ?? proposedNode.id;
+    const targetId = action.target_node_id;
     if (!targetId || !ctx.existingIds.has(targetId)) {
       return {
         kind: 'failed',
         failure: {
           reason: 'modify_missing_target',
           candidate_origin: action.candidate_origin,
-          node_id: targetId ?? proposedNode.id,
+          node_id: targetId ?? '',
           detail: `modify target ${targetId ?? '(unset)'} not found in nodes/`,
         },
       };
     }
-    const frontmatter = buildNodeFrontmatter(proposedNode, targetId);
+    const frontmatter = buildNodeFrontmatter(proposedNode, targetId, derivedFrom);
     writeNodeFile({ nodesDir: ctx.nodesDir, frontmatter, body: proposedNode.body });
     return { kind: 'wrote' };
   }
 
   // action === 'add'
-  const baseId = proposedNode.id || deriveNodeId(kind, proposedNode.title);
+  const baseId = deriveNodeId(kind, proposedNode.title);
   if (ctx.existingIds.has(baseId) || nodeFileExists(ctx.nodesDir, kind, baseId)) {
     return {
       kind: 'failed',
@@ -426,14 +432,15 @@ function persistAction(action: CuratorAction, ctx: PersistContext): PersistOutco
   }
   const id = ensureUniqueId(new Set([...ctx.existingIds, ...ctx.seenSlugs]), baseId);
   ctx.seenSlugs.add(id);
-  const frontmatter = buildNodeFrontmatter(proposedNode, id);
+  const frontmatter = buildNodeFrontmatter(proposedNode, id, derivedFrom);
   writeNodeFile({ nodesDir: ctx.nodesDir, frontmatter, body: proposedNode.body });
   return { kind: 'wrote' };
 }
 
 function buildNodeFrontmatter(
   proposedNode: NonNullable<CuratorAction['proposed_node']>,
-  id: string
+  id: string,
+  derivedFrom: string[]
 ): NodeFrontmatter {
   return {
     schema_version: 1,
@@ -441,7 +448,7 @@ function buildNodeFrontmatter(
     title: proposedNode.title,
     kind: proposedNode.kind,
     tags: proposedNode.tags,
-    derived_from: proposedNode.derived_from,
+    derived_from: derivedFrom,
     relates_to: proposedNode.relates_to,
     confidence: proposedNode.confidence,
     summary: proposedNode.summary,
@@ -449,9 +456,9 @@ function buildNodeFrontmatter(
 }
 
 /**
- * Cross-batch dedup: two actions targeting the same proposed_node.id collapse
- * into one. Higher-confidence wins; rationale is preserved from the winner,
- * source_sessions union via candidate_origin parsing.
+ * Cross-batch dedup: two actions producing the same node (same target on
+ * modify, or same slug derived from kind+title on add) collapse into one.
+ * Higher-confidence wins.
  */
 export function dedupActions(actions: CuratorAction[]): CuratorAction[] {
   const byKey = new Map<string, CuratorAction>();
@@ -460,13 +467,33 @@ export function dedupActions(actions: CuratorAction[]): CuratorAction[] {
       byKey.set(`drop:${action.candidate_origin}`, action);
       continue;
     }
-    const id = action.proposed_node.id;
-    const existing = byKey.get(id);
+    const node = action.proposed_node;
+    const key =
+      action.target_node_id ?? deriveNodeId(node.kind, node.title);
+    const existing = byKey.get(key);
     if (!existing || rankConfidence(action) > rankConfidence(existing)) {
-      byKey.set(id, action);
+      byKey.set(key, action);
     }
   }
   return [...byKey.values()];
+}
+
+/**
+ * Parses `<session_id>:<practice|map>:<index>` and returns the session
+ * filename (the on-disk source) so the wrapper can write `derived_from`
+ * deterministically. Returns an empty array when the prefix cannot be matched
+ * (e.g. legacy `_sessions/<filename>:practice:0` format) — callers preserve
+ * the existing node's `derived_from` in that case.
+ */
+function derivedFromForOrigin(
+  candidateOrigin: string,
+  sessionIdToFilename: Map<string, string>
+): string[] {
+  const firstColon = candidateOrigin.indexOf(':');
+  if (firstColon <= 0) return [];
+  const prefix = candidateOrigin.slice(0, firstColon);
+  const filename = sessionIdToFilename.get(prefix);
+  return filename ? [filename] : [];
 }
 
 function rankConfidence(action: CuratorAction): number {
