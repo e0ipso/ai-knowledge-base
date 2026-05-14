@@ -226,3 +226,27 @@ After Phase 2 completes, perform the Self Validation steps documented in the pla
 ### Execution Summary
 - Total Phases: 2
 - Total Tasks: 4
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-14
+
+### Results
+
+- `discoverMarkdownFiles` now applies an exported `STATIC_SKIPS` deny list (LICENSE / COPYING / NOTICE / CODE_OF_CONDUCT / CONTRIBUTORS / AUTHORS / MAINTAINERS / CHANGELOG / CHANGES / HISTORY / RELEASE_NOTES / `releases/**/*.md` / `INDEX.md` / `GRAPH.md`) before include/exclude/.gitignore filters, with explicit-`--include` override semantics.
+- `tests/lib/bootstrap.test.ts` covers the default deny, the explicit-include override, exclude precedence over include, .gitignore precedence over include, dot-prefixed directory handling, and prefix-only adjacency (so `CHANGELOG_FORMAT.md` is not falsely filtered). Test suite: 236 passing.
+- `src/templates-source/claude/skills/kb-bootstrap/SKILL.md` no longer references `shasum`, `sha256sum`, or `bootstrap-state.json`; the LLM-driven `Glob`/`Grep` survey is replaced by a single `bootstrap-incremental --dry-run --from <scope>` CLI call, and the skill ends by invoking `index rebuild`. The `allowed-tools` frontmatter drops the Bash hash entries and adds scoped `npx` entries for the two CLI calls.
+- `src/templates-source/prompts/bootstrap-incremental.md` trims the filename-pattern bullets from "What to skip" and bumps `Version: 2` to `Version: 3`.
+- End-to-end dry run on `docs/` produces a clean, `grep '^  + '`-parseable relpath list; no STATIC_SKIPS path leaks.
+- `npm run typecheck`, `npm run lint`, and `npm test` (30 files / 236 tests) all pass.
+
+### Noteworthy Events
+
+- `picomatch`'s default behavior excludes dot-prefixed directory paths from `**`. The first dry-run sanity check from the repo root surfaced `.ai/knowledge-base/INDEX.md` / `GRAPH.md` slipping past the STATIC_SKIPS pass. Fix: pass `{ dot: true }` to the `STATIC_SKIPS` matchers (and only those, since user-supplied include/exclude patterns should keep the standard dot semantics). A new test case locks the behavior in.
+- The plan referenced a `globMatch` helper, but the live code uses `picomatch`. Implementation followed the actual code rather than the plan wording.
+- The commit-msg hook enforces a 50-char subject limit and rejects mentions of "AI"; both Phase 1 and Phase 2 commit messages were rewritten to comply.
+
+### Necessary follow-ups
+
+- None. The skill is now a thin orchestration layer over the CLI; the CLI owns discovery, hashing, and state writing. The KB note `practice-bootstrap-skip-changelog-and-implementation` continues to capture the rationale; no edit needed because the prose remains factually correct.
