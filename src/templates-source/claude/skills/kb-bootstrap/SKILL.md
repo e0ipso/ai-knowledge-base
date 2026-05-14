@@ -1,7 +1,7 @@
 ---
 name: kb-bootstrap
 description: First-time bootstrap of the project knowledge base from existing markdown documentation. Surveys docs, follows cross-references, and writes new node files directly under `.ai/knowledge-base/nodes/`. Supervised by the user, who reviews each node with `git diff` before committing. Use when the user wants to seed an empty knowledge base from the project's existing docs.
-allowed-tools: Read, Glob, Grep, Write, Bash(shasum:*), Bash(sha256sum:*), Bash(mkdir:*)
+allowed-tools: Read, Glob, Grep, Write, Bash(npx @e0ipso/ai-knowledge-base bootstrap-incremental:*), Bash(npx @e0ipso/ai-knowledge-base index rebuild:*)
 ---
 
 # kb-bootstrap
@@ -10,7 +10,7 @@ You are doing a one-time bootstrap of this project's knowledge base from its exi
 
 ## Your task
 
-Survey the project's existing markdown documentation, extract candidate knowledge nodes, and write them as new node files directly under `nodes/`. The user reviews everything with `git diff` and accepts or rejects each node with `git commit` or `git restore <path>`. You will work judgmentally - exploring, sampling, following cross-references - not exhaustively. This is a one-pass operation, supervised.
+Survey the project's existing markdown documentation, extract candidate knowledge nodes, and write them as new node files directly under `nodes/`. The user reviews everything with `git diff` and accepts or rejects each node with `git commit` or `git restore <path>`. You will work judgmentally, exploring, sampling, following cross-references, not exhaustively. This is a one-pass operation, supervised.
 
 ## Inputs
 
@@ -24,14 +24,9 @@ Before you start, read `.ai/knowledge-base/config.yaml` (falling back to `~/.con
 
 ### 1. Survey the structure
 
-Use `Glob` and `Grep` to map the documentation. Build a mental model of:
-- Which docs are entry points (top-level READMEs, docs site landing pages).
-- Which look like reference (per-module docs, API listings).
-- Which look like architectural narrative (ADRs, design docs).
-- Which might be stale (`legacy/`, `archive/`, dated past).
-- Which to skip entirely (auto-generated API dumps, license files, changelogs).
+Run `npx @e0ipso/ai-knowledge-base bootstrap-incremental --dry-run --from <scope>` once, where `<scope>` is the user's path argument (or `docs` as the default). Parse the `  + <relpath>` lines from the output: each prefixed line names one candidate markdown file the CLI would process. The CLI has already applied `.gitignore`, the project's include/exclude rules, and a static skip list (filenames like `LICENSE`, `CHANGELOG`, `CODE_OF_CONDUCT`, `CONTRIBUTORS`, `INDEX.md`, `GRAPH.md`, `releases/**/*.md`); you will not see those in the list.
 
-Tell the user briefly what you found before reading anything in depth: "I see ~30 markdown files across docs/, three module READMEs, two top-level overviews. I'll prioritize the overviews first, then sample modules." This gives them a chance to correct your plan.
+Count the lines and report briefly to the user before reading anything in depth, e.g. "The CLI lists 30 markdown files across docs/, three module READMEs, two top-level overviews. I'll prioritize the overviews first, then sample modules." Use judgement to spot entry points, suspected-stale docs, and a sampling order from the deterministic list, but do not rebuild it.
 
 ### 2. Read entry points first
 
@@ -41,36 +36,35 @@ Read the top-level entry points completely. They usually frame project vocabular
 
 Don't read every file end-to-end. Sample representative content and follow links between docs. If a top-level README mentions "see docs/architecture/auth.md for the authentication design," that's a high-signal pointer to follow.
 
-For large reference docs (e.g. method-by-method API listings), skim section headers and only read prose sections - skip auto-generated tables.
+For large reference docs (e.g. method-by-method API listings), skim section headers and only read prose sections, skipping auto-generated tables.
 
 ### 4. Identify candidates as you read
 
 For each piece of content that looks like project knowledge, decide which kind:
 
-**Practice candidates** - imperative project guidance:
+**Practice candidates**, imperative project guidance:
 - Conventions ("always use X for Y").
 - Prohibitions ("don't do X").
 - Gotchas (warnings, "be careful with…").
 - Rationale ("we chose X because Y").
 - Tooling/workflow ("tests run with X").
 
-**Map candidates** - what exists:
+**Map candidates**, what exists:
 - Named features, modules, services and what they do.
 - Vocabulary specific to this project.
 - File-tree locations of major systems.
 
-When a piece of content has both aspects (e.g. "Use bravo_analytics.dispatcher - our service for tracking events"), split it: practice owns "use the dispatcher"; map owns "what the dispatcher is."
+When a piece of content has both aspects (e.g. "Use bravo_analytics.dispatcher, our service for tracking events"), split it: practice owns "use the dispatcher"; map owns "what the dispatcher is."
 
-Skip:
+Skip (content judgement only; filename-pattern skips are already handled by the CLI before you see the list):
 - Auto-generated API reference.
-- General programming knowledge that's not project-specific.
+- Boilerplate paragraphs inside otherwise-useful docs (standard license preamble, generic CI badges).
+- General programming knowledge that's not project-specific (Drupal/React/Django basics).
 - Aspirational TODOs and "we should eventually" content.
-- Licenses, changelogs, contributor lists.
-- Boilerplate.
 
 ### 5. Write nodes
 
-For each candidate, write a node file at `.ai/knowledge-base/nodes/<kind>/<kind>-<slug>.md`. **Before writing, check whether the file already exists** - bootstrap is conservative and never overwrites an existing node. If you hit a collision, refine the title or skip the candidate and call it out in your final report.
+For each candidate, write a node file at `.ai/knowledge-base/nodes/<kind>/<kind>-<slug>.md`. **Before writing, check whether the file already exists.** Bootstrap is conservative and never overwrites an existing node. If you hit a collision, refine the title or skip the candidate and call it out in your final report.
 
 Use the standard node frontmatter:
 
@@ -97,28 +91,9 @@ Default `confidence: medium` for bootstrap content. Existing docs may be stale o
 
 If a candidate is sourced from multiple docs (you found the same convention discussed in two places), list all of them in `derived_from` and produce a single node, not duplicates.
 
-### 6. Track state
+### 6. Refresh INDEX.md and GRAPH.md
 
-After writing nodes, update `.ai/knowledge-base/.state/bootstrap-state.json`. For every doc you read (even ones that produced zero candidates), record its content SHA-256 and the timestamp. This lets future `bootstrap-incremental` runs skip unchanged files.
-
-Schema:
-
-```json
-{
-  "schema_version": 1,
-  "last_full_bootstrap_at": "<ISO>",
-  "last_incremental_at": null,
-  "docs": {
-    "<relative-path>": {
-      "content_sha256": "<sha256-hex>",
-      "last_processed_at": "<ISO>",
-      "produced_nodes": ["<kind>/<filename>.md", ...]
-    }
-  }
-}
-```
-
-Use the `Bash` tool to compute SHA-256: `shasum -a 256 <file>` on macOS/Linux, or `sha256sum <file>` on Linux.
+After writing nodes, run `npx @e0ipso/ai-knowledge-base index rebuild` so the indices reflect the new nodes before the user reviews `git diff nodes/`.
 
 ### 7. Report back
 
@@ -127,9 +102,10 @@ When you're done, summarize for the user:
 - How many docs you read; which ones you skipped and why.
 - How many practice nodes you wrote.
 - How many map nodes you wrote.
-- Any collisions you skipped (file already existed) - the user may want to merge content manually.
+- Any collisions you skipped (file already existed); the user may want to merge content manually.
 - Any cross-references you noticed but didn't follow (the user might want to direct you to those).
 - Any docs that looked stale or contradictory that the user should double-check.
+- Confirmation that `INDEX.md` and `GRAPH.md` were refreshed.
 
 Then tell the user to review with `git diff nodes/`, accept individual files with `git add nodes/<kind>/<file>.md && git commit`, and reject the rest with `git restore nodes/<kind>/<file>.md`.
 
@@ -137,9 +113,9 @@ Then tell the user to review with `git diff nodes/`, accept individual files wit
 
 - **Never overwrite an existing node in `nodes/`.** Bootstrap only writes files that don't already exist. If you'd collide, skip and report.
 - **Never auto-resolve perceived contradictions during bootstrap.** If you notice two docs that disagree, write only one as a node and surface the conflict in your final report so the user can decide. Do not write a second contradictory node.
-- **Don't hallucinate rationale.** Only include "because…" content that's actually present in the source. If the doc just says "use X," your node says "use X" - not "use X because of [made-up reason]."
+- **Don't hallucinate rationale.** Only include "because…" content that's actually present in the source. If the doc just says "use X," your node says "use X", not "use X because of [made-up reason]."
 - **Don't try to read code files.** Stick to markdown documentation. The point of bootstrap is to extract what's already been written down.
-- **Tools allowed:** `Read`, `Glob`, `Grep`, `Write` (for nodes and the state file only), `Bash` (for `shasum`/`sha256sum`/`mkdir -p` only). Do not run other Bash commands.
+- **Tools allowed:** `Read`, `Glob`, `Grep`, `Write` (for nodes only), and the two scoped `Bash` invocations of `npx @e0ipso/ai-knowledge-base bootstrap-incremental` and `npx @e0ipso/ai-knowledge-base index rebuild`. Do not run other Bash commands; the CLI owns file discovery, hashing, and state.
 
 ## When to stop
 

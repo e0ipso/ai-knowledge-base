@@ -209,15 +209,15 @@ graph TD
     004[Task 004: Trim bootstrap-incremental.md skip list + bump Version]
 ```
 
-### Phase 1: Deterministic discovery + independent prompt trim
+### ✅ Phase 1: Deterministic discovery + independent prompt trim
 **Parallel Tasks:**
-- Task 001: Add STATIC_SKIPS constant and apply it inside `discoverMarkdownFiles`
-- Task 004: Trim `bootstrap-incremental.md` "What to skip" and bump prompt Version
+- ✔️ Task 001: Add STATIC_SKIPS constant and apply it inside `discoverMarkdownFiles`
+- ✔️ Task 004: Trim `bootstrap-incremental.md` "What to skip" and bump prompt Version
 
-### Phase 2: Tests + skill rewrite consuming the new CLI behaviour
+### ✅ Phase 2: Tests + skill rewrite consuming the new CLI behaviour
 **Parallel Tasks:**
-- Task 002: Extend `tests/lib/bootstrap.test.ts` with STATIC_SKIPS coverage (depends on: 001)
-- Task 003: Rewrite `kb-bootstrap` SKILL.md and verify dry-run output is parseable (depends on: 001)
+- ✔️ Task 002: Extend `tests/lib/bootstrap.test.ts` with STATIC_SKIPS coverage (depends on: 001)
+- ✔️ Task 003: Rewrite `kb-bootstrap` SKILL.md and verify dry-run output is parseable (depends on: 001)
 
 ### Post-phase Actions
 

@@ -155,6 +155,86 @@ describe('discoverMarkdownFiles', () => {
     });
     expect(got).toEqual(['docs/keep.md']);
   });
+
+  it('skips static deny patterns by default', () => {
+    writeFileSync(join(harness.sourceDir, 'intro.md'), 'i');
+    writeFileSync(join(harness.sourceDir, 'LICENSE.md'), 'l');
+    writeFileSync(join(harness.sourceDir, 'LICENSE'), 'l');
+    writeFileSync(join(harness.sourceDir, 'COPYING'), 'c');
+    writeFileSync(join(harness.sourceDir, 'NOTICE.md'), 'n');
+    writeFileSync(join(harness.sourceDir, 'CODE_OF_CONDUCT.md'), 'c');
+    writeFileSync(join(harness.sourceDir, 'CONTRIBUTORS.md'), 'c');
+    writeFileSync(join(harness.sourceDir, 'AUTHORS.md'), 'a');
+    writeFileSync(join(harness.sourceDir, 'MAINTAINERS.md'), 'm');
+    writeFileSync(join(harness.sourceDir, 'CHANGELOG.md'), 'c');
+    writeFileSync(join(harness.sourceDir, 'CHANGES.md'), 'c');
+    writeFileSync(join(harness.sourceDir, 'HISTORY.md'), 'h');
+    writeFileSync(join(harness.sourceDir, 'RELEASE_NOTES.md'), 'r');
+    writeFileSync(join(harness.sourceDir, 'INDEX.md'), 'i');
+    writeFileSync(join(harness.sourceDir, 'GRAPH.md'), 'g');
+    mkdirSync(join(harness.sourceDir, 'releases'), { recursive: true });
+    writeFileSync(join(harness.sourceDir, 'releases', 'v1.md'), 'v1');
+    const got = discoverMarkdownFiles({ sourceDir: harness.sourceDir, repoRoot: harness.root });
+    expect(got).toEqual(['docs/intro.md']);
+  });
+
+  it('admits a statically-skipped path when --include matches it explicitly', () => {
+    writeFileSync(join(harness.sourceDir, 'intro.md'), 'i');
+    writeFileSync(join(harness.sourceDir, 'LICENSE.md'), 'l');
+    writeFileSync(join(harness.sourceDir, 'CHANGELOG.md'), 'c');
+    const got = discoverMarkdownFiles({
+      sourceDir: harness.sourceDir,
+      repoRoot: harness.root,
+      include: ['docs/LICENSE.md', 'docs/intro.md'],
+    });
+    expect(got).toEqual(['docs/LICENSE.md', 'docs/intro.md']);
+  });
+
+  it('exclude still wins when --include opts a statically-skipped path in', () => {
+    writeFileSync(join(harness.sourceDir, 'intro.md'), 'i');
+    mkdirSync(join(harness.sourceDir, 'legacy'), { recursive: true });
+    writeFileSync(join(harness.sourceDir, 'legacy', 'LICENSE.md'), 'l');
+    const got = discoverMarkdownFiles({
+      sourceDir: harness.sourceDir,
+      repoRoot: harness.root,
+      include: ['docs/legacy/LICENSE.md', 'docs/intro.md'],
+      exclude: ['docs/legacy/**'],
+    });
+    expect(got).toEqual(['docs/intro.md']);
+  });
+
+  it('gitignore still wins when --include opts a statically-skipped path in', () => {
+    writeFileSync(join(harness.sourceDir, 'intro.md'), 'i');
+    writeFileSync(join(harness.sourceDir, 'LICENSE.md'), 'l');
+    const got = discoverMarkdownFiles({
+      sourceDir: harness.sourceDir,
+      repoRoot: harness.root,
+      include: ['docs/LICENSE.md', 'docs/intro.md'],
+      gitignore: ignore().add('docs/LICENSE.md'),
+    });
+    expect(got).toEqual(['docs/intro.md']);
+  });
+
+  it('skips static deny patterns inside dot-prefixed directories', () => {
+    writeFileSync(join(harness.sourceDir, 'intro.md'), 'i');
+    mkdirSync(join(harness.sourceDir, '.ai', 'knowledge-base'), { recursive: true });
+    writeFileSync(join(harness.sourceDir, '.ai', 'knowledge-base', 'INDEX.md'), 'i');
+    writeFileSync(join(harness.sourceDir, '.ai', 'knowledge-base', 'GRAPH.md'), 'g');
+    const got = discoverMarkdownFiles({ sourceDir: harness.sourceDir, repoRoot: harness.root });
+    expect(got).toEqual(['docs/intro.md']);
+  });
+
+  it('does not filter files that only share a prefix with a static skip', () => {
+    writeFileSync(join(harness.sourceDir, 'CHANGELOG_FORMAT.md'), 'cf');
+    writeFileSync(join(harness.sourceDir, 'LICENSE_HEADER.md'), 'lh');
+    writeFileSync(join(harness.sourceDir, 'licensing-policy.md'), 'lp');
+    const got = discoverMarkdownFiles({ sourceDir: harness.sourceDir, repoRoot: harness.root });
+    expect(got).toEqual([
+      'docs/CHANGELOG_FORMAT.md',
+      'docs/LICENSE_HEADER.md',
+      'docs/licensing-policy.md',
+    ]);
+  });
 });
 
 describe('buildChunkString', () => {

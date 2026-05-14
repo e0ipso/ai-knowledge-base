@@ -2,7 +2,7 @@
 id: 3
 group: "skill-rewrite"
 dependencies: [1]
-status: "pending"
+status: "completed"
 created: 2026-05-13
 skills:
   - claude-code-skills

@@ -172,7 +172,7 @@ export function discoverMarkdownFiles(opts: DiscoverOptions): string[] {
   walk(opts.sourceDir, opts.sourceDir, out);
   const includeMatchers = (opts.include ?? []).map(p => picomatch(p));
   const excludeMatchers = (opts.exclude ?? []).map(p => picomatch(p));
-  const staticSkipMatchers = STATIC_SKIPS.map(p => picomatch(p));
+  const staticSkipMatchers = STATIC_SKIPS.map(p => picomatch(p, { dot: true }));
   const ig = opts.gitignore;
   return out
     .map(abs => relativePosix(opts.repoRoot, abs))
