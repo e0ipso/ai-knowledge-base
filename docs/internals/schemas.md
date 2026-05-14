@@ -52,35 +52,40 @@ The proposal prompt splits combined statements: "use `bravo_analytics.dispatcher
 
 ### Conflict resolution
 
-When the curator emits a `contradict` action, the `/kb-curate` skill walks each entry in `pending-conflicts.json` with the user. The menu is binary:
+When the curator emits a `contradict` action, the `/kb-curate` skill walks each pending file under `.ai/knowledge-base/conflicts/` with the user. The menu is three-way and git-driven:
 
 | Choice | On-disk effect | Side effects |
 |---|---|---|
-| Replace | Delete the existing `nodes/<kind>/<target_node_id>.md` and write the proposed node in its place. | The conflict entry is removed from `pending-conflicts.json`. |
-| Reject | None. The existing node file is untouched and the proposed node is not written. | The conflict entry is removed from `pending-conflicts.json`. |
+| Accept | Skill rewrites `nodes/<kind>/<target_node_id>.md` from the proposed body. | Contributor `git restore`s the conflict file to discard it. |
+| Reject | None. The existing node file is untouched. | Contributor `git restore`s the conflict file to discard it. |
+| Keep as record | None to the node tree. | Contributor `git commit`s the conflict file; it stays in `.ai/knowledge-base/conflicts/` as durable history for future curate runs to read. |
 
-## Pending conflicts (`.state/pending-conflicts.json`)
+## Conflict files (`conflicts/<run-id>-<n>.md`)
 
-The curator records `contradict` actions here instead of writing conflicting nodes to disk. Validated by `PendingConflictsFileSchema`.
+The curator records `contradict` actions as one markdown file per conflict under `.ai/knowledge-base/conflicts/`, instead of writing conflicting nodes to disk. The file shape is set inline by the curate wrapper (`src/lib/curate.ts`); there is no Zod schema for the file (it is reviewed and resolved by humans, not parsed for state).
 
-```json
-{
-  "schema_version": 2,
-  "conflicts": [
-    {
-      "id": "<run-id>-<n>",
-      "detected_at": "<ISO>",
-      "run_id": "<curator run-id>",
-      "candidate_origin": "<session_id>:<practice|map>:<index>",
-      "target_node_id": "practice-foo",
-      "rationale": "...",
-      "proposed_node": { "id": "...", "title": "...", "kind": "...", ... }
-    }
-  ]
-}
+```markdown
+---
+id: <run-id>-<n>
+status: pending
+detected_at: <ISO>
+run_id: <curator run-id>
+candidate_origin: <session_id>:<practice|map>:<index>
+target_node_id: practice-foo
+proposed_kind: practice | map
+proposed_title: "..."
+---
+
+## Rationale
+
+<curator's free-text rationale>
+
+## Proposed node
+
+<the proposed node body as the curator would have written it to nodes/>
 ```
 
-The `/kb-curate` skill reads this file after the curator subprocess exits, walks each entry with the user, applies the chosen resolution by editing the relevant `nodes/<kind>/<id>.md`, and removes the resolved entry from the array. `ai-knowledge-base status` reports the count.
+The `/kb-curate` skill reads every file with `status: pending` after the curator subprocess exits, walks each with the user, and lets the user advance the file via `git restore` (Reject and Accept-after-applying) or `git commit` (Keep as record). `ai-knowledge-base status` reports the pending count.
 
 ## Curator failure reports
 

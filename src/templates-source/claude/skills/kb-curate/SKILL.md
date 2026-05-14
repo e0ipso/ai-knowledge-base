@@ -45,7 +45,7 @@ If the user defers a conflict ("I'll think about it"), leave the file alone. It 
 
 ### 4. Hand off
 
-Tell the user to review the changed nodes and conflict files with `git diff` and commit when they're satisfied. The lint-staged pre-commit hook regenerates `INDEX.md`/`GRAPH.md` and stages them into the same commit.
+Tell the user to review the changed nodes and conflict files with `git diff` and commit when they're satisfied. The curator already regenerated `INDEX.md`/`GRAPH.md` at end-of-run; if the user has a pre-commit hook wired up (see the installation docs), `ai-knowledge-base index rebuild --stage` keeps them aligned on subsequent hand edits.
 
 ## Constraints
 

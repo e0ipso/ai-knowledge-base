@@ -21,7 +21,7 @@ async function main(): Promise<void> {
 
   program
     .command('init')
-    .description('First-time setup: copy templates, install pre-commit hook, record version.')
+    .description('First-time setup: copy templates, register Claude hooks, record version.')
     .requiredOption(
       '-a, --assistants <list>',
       'comma-separated list of assistants to wire up (v1 supports: claude)',
