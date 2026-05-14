@@ -114,6 +114,20 @@ export interface HarnessAdapter {
 
   /** Harness-specific doctor checks (CLI on PATH, hooks registered, skills present, …). */
   doctorChecks(paths: RepoPaths): Promise<NamedDoctorCheck[]>;
+
+  /**
+   * Returns true when this harness is the one currently driving the
+   * process. The detector inspects the env vars the harness itself sets
+   * (e.g. `CLAUDECODE=1` for Claude Code, `CODEX_HOME`/`CODEX_SESSION_ID`
+   * for Codex CLI). Used by `resolveActiveHarness` so the CLI, slash
+   * commands, and the headless runners pick the right adapter when
+   * invoked from inside a session without an explicit `--harness` flag.
+   *
+   * Returning `false` is also fine; if no adapter claims the env we fall
+   * back to the configured default in `config.yaml`, then to the first
+   * registered harness.
+   */
+  detectFromEnv?(env: NodeJS.ProcessEnv): boolean;
 }
 
 export const ok = (detail: string): DoctorCheckResult => ({ ok: true, detail });

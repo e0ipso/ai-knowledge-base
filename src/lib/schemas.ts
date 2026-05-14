@@ -212,6 +212,14 @@ export const SettingsSchema = z
     proposalModel: ModelChoiceSchema.optional(),
     curatorModel: ModelChoiceSchema.optional(),
     bootstrapModel: ModelChoiceSchema.optional(),
+    /**
+     * Harness id used when env detection cannot identify the running
+     * assistant (e.g. a plain shell invocation of the CLI). Must match
+     * a registered harness adapter; the registry validates this at use
+     * time. Omitted from `defaultProjectConfigBody` so existing repos
+     * continue to default to the first registered harness (`claude`).
+     */
+    defaultHarness: z.string().min(1).optional(),
   })
   .strict();
 export type SettingsFile = z.infer<typeof SettingsSchema>;

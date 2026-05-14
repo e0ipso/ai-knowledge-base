@@ -27,6 +27,7 @@ export type EffectiveSettings = {
   proposalModel?: ModelChoice;
   curatorModel?: ModelChoice;
   bootstrapModel?: ModelChoice;
+  defaultHarness?: string;
 };
 
 const MODEL_CHOICE_KEYS = ['proposalModel', 'curatorModel', 'bootstrapModel'] as const;
@@ -69,6 +70,7 @@ function applyOverrides(target: EffectiveSettings, src: SettingsFile | null): vo
     const value = src[key];
     if (value !== undefined) target[key] = value;
   }
+  if (src.defaultHarness !== undefined) target.defaultHarness = src.defaultHarness;
 }
 
 function loadFile(file: string): SettingsFile | null {
