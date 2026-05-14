@@ -1,7 +1,7 @@
 # Bootstrap-Incremental Extraction Prompt
 
 <!--
-  Version: 2
+  Version: 3
   Used by: ai-knowledge-base bootstrap-incremental (via `claude -p`)
   Owner contract: receives a chunk of markdown documentation (one or more whole
   files concatenated, bounded by token budget), produces candidate practice and
@@ -69,8 +69,6 @@ Triggers in docs: section headers naming components ("## Bravo Cards Module"); d
 ## What to skip
 
 - API reference dumps (auto-generated method lists, parameter tables).
-- License files, code-of-conduct files, contributor lists.
-- Changelogs and release notes.
 - Boilerplate (standard MIT license preamble, generic CI badges).
 - Generic framework knowledge (Drupal/React/Django basics that anyone reading the framework docs would know).
 - TODOs, FIXMEs, and aspirational content ("we should eventually do X").

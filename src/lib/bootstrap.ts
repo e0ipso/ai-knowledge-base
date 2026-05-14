@@ -26,6 +26,42 @@ export const BOOTSTRAP_BATCH_SIZE = 20;
 export const DEFAULT_TIMEOUT_MS = 120_000;
 export const CHUNK_PLACEHOLDER = '[CHUNK PLACEHOLDER — substituted at runtime]';
 
+/**
+ * Filenames that are categorically not project knowledge. Applied by
+ * `discoverMarkdownFiles` before `--include` / `--exclude` / `.gitignore`,
+ * with one inversion: an explicit `--include` pattern that matches a
+ * statically-skipped path admits the file (so callers can opt a specific
+ * file back in without rewriting the deny list).
+ */
+export const STATIC_SKIPS: readonly string[] = [
+  '**/LICENSE',
+  '**/LICENSE.md',
+  '**/LICENSE.txt',
+  '**/COPYING',
+  '**/COPYING.md',
+  '**/NOTICE',
+  '**/NOTICE.md',
+  '**/CODE_OF_CONDUCT',
+  '**/CODE_OF_CONDUCT.md',
+  '**/CONTRIBUTORS',
+  '**/CONTRIBUTORS.md',
+  '**/AUTHORS',
+  '**/AUTHORS.md',
+  '**/MAINTAINERS',
+  '**/MAINTAINERS.md',
+  '**/CHANGELOG',
+  '**/CHANGELOG.md',
+  '**/CHANGES',
+  '**/CHANGES.md',
+  '**/HISTORY',
+  '**/HISTORY.md',
+  '**/RELEASE_NOTES',
+  '**/RELEASE_NOTES.md',
+  '**/releases/**/*.md',
+  '**/INDEX.md',
+  '**/GRAPH.md',
+];
+
 export type BootstrapRunner = <T>(
   promptBody: string,
   stdin: string,
@@ -136,10 +172,15 @@ export function discoverMarkdownFiles(opts: DiscoverOptions): string[] {
   walk(opts.sourceDir, opts.sourceDir, out);
   const includeMatchers = (opts.include ?? []).map(p => picomatch(p));
   const excludeMatchers = (opts.exclude ?? []).map(p => picomatch(p));
+  const staticSkipMatchers = STATIC_SKIPS.map(p => picomatch(p));
   const ig = opts.gitignore;
   return out
     .map(abs => relativePosix(opts.repoRoot, abs))
     .filter(rel => {
+      const staticallySkipped = staticSkipMatchers.some(m => m(rel));
+      const explicitlyIncluded =
+        includeMatchers.length > 0 && includeMatchers.some(m => m(rel));
+      if (staticallySkipped && !explicitlyIncluded) return false;
       if (excludeMatchers.some(m => m(rel))) return false;
       if (ig && ig.ignores(rel)) return false;
       if (includeMatchers.length > 0 && !includeMatchers.some(m => m(rel))) return false;
