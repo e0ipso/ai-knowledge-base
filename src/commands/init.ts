@@ -34,8 +34,8 @@ const GITIGNORE_BLOCK_END = '# <<< @e0ipso/ai-knowledge-base <<<';
 const GITIGNORE_LINES = [
   '.ai/knowledge-base/_sessions/',
   '.ai/knowledge-base/_logs/',
-  '.ai/knowledge-base/.state/state.json',
-  '.ai/knowledge-base/.state/bootstrap-state.json',
+  '.ai/knowledge-base/.state/',
+  '!.ai/knowledge-base/.state/installed-version',
 ];
 
 const SUPPORTED_ASSISTANTS = new Set(['claude']);
