@@ -89,11 +89,11 @@ The `kb-curate` Claude Code skill runs the curator on demand. The curator writes
 
 > "I want to know when my new finding contradicts something the KB already says, so I can decide which is right."
 
-The curator flags contradictions as a separate category. It does not write conflicting nodes to disk; instead, it records each conflict in `.ai/knowledge-base/.state/pending-conflicts.json`. The kb-curate skill reads that file after the curator subprocess exits and walks each conflict with the contributor in-session: existing node side-by-side with the new claim, plus a chosen resolution (supersede, keep both with validity windows, reject) that the skill applies by editing `nodes/`.
+The curator flags contradictions as a separate category. It does not write conflicting nodes to disk; instead, it writes one markdown file per conflict under `.ai/knowledge-base/conflicts/<run-id>-<n>.md` (frontmatter carries `status: pending`, `target_node_id`, `proposed_kind`, `proposed_title`, `candidate_origin`, `run_id`, `detected_at`; body has `## Rationale` and `## Proposed node` sections). The kb-curate skill reads every pending file after the curator subprocess exits and walks each conflict with the contributor in-session: existing node side-by-side with the proposed one. The contributor picks Accept (the skill rewrites the existing node from the proposed body, then the contributor `git restore`s the conflict file), Reject (the contributor `git restore`s the conflict file, existing node stands), or Keep as record (the contributor `git commit`s the conflict file as durable history, existing node stands). Conflict-file lifecycle is git-driven; the skill never deletes a conflict file itself.
 
 > "I never want a session containing a database password to leak into a committed file."
 
-Two passes: a deterministic secret scanner (secretlint with the recommended preset) runs on every session log before it is written, and the same scanner runs as a husky `pre-commit` hook via `lint-staged`. Both are installed by `init`.
+A deterministic secret scanner (secretlint with the recommended preset) runs on every session log before it is written; findings are replaced inline with `[REDACTED:<rule>]` and the session log is aborted if the scanner crashes. The package does not install a commit-time secret scanner in the consuming repo; teams that want defense in depth run secretlint in CI (a sample workflow ships in the README) or wire their own pre-commit hook, see [Installation](docs/installation.md).
 
 > "When the curator does something weird, I want to be able to look at exactly what it saw and what it produced."
 
@@ -129,7 +129,7 @@ Plain markdown. Browse in any editor or on the GitHub web UI.
 
 > "I want to see proposed KB changes the same way I see code changes."
 
-Proposed KB changes *are* code changes. Skills and the curator write directly to `nodes/<kind>/<slug>.md`; the reviewer inspects with `git diff nodes/`, accepts with `git commit`, and rejects with `git restore <path>`. The pre-commit hook regenerates `INDEX.md`/`GRAPH.md` from the staged nodes and stages them into the same commit so the index never drifts. KB commits can land as a dedicated PR with a `[KB]` prefix (recommended for shared repos with formal review) or bundled with the code change that motivated them (recommended for solo contributors). The system does not enforce either workflow.
+Proposed KB changes *are* code changes. Skills and the curator write directly to `nodes/<kind>/<slug>.md`; the reviewer inspects with `git diff nodes/`, accepts with `git commit`, and rejects with `git restore <path>`. The curator regenerates `INDEX.md`/`GRAPH.md` at the end of every run, and `ai-knowledge-base index rebuild` does the same on demand. Teams that want commit-time regeneration wire it into their own pre-commit hook (this repo's `.lintstagedrc.cjs` is the dogfood example). KB commits can land as a dedicated PR with a `[KB]` prefix (recommended for shared repos with formal review) or bundled with the code change that motivated them (recommended for solo contributors). The system does not enforce either workflow.
 
 > "I want to know which session a piece of knowledge came from."
 
@@ -140,7 +140,7 @@ Every node carries a `derived_from` list pointing to session log filenames. **Ca
 ### 8.1 First-time setup
 
 1. A contributor runs `npx <pkg> init --assistants claude`.
-2. The installer creates `.ai/knowledge-base/` with starter structure (including `_logs/` and `_sessions/` both gitignored), registers hooks under `.claude/`, installs the `kb-add`, `kb-bootstrap`, and `kb-curate` Claude Code skills, scaffolds a husky `pre-commit` hook driven by `lint-staged` + `secretlint`, writes `.ai/knowledge-base/.state/installed-version`, seeds an empty `.ai/knowledge-base/config.yaml` for project-level tunables, and copies local prompt overrides into `.ai/knowledge-base/.config/prompts/`. Re-running with `init --upgrade` refreshes templates and skills while preserving `config.yaml` and local prompt overrides.
+2. The installer creates `.ai/knowledge-base/` with starter structure (including `_logs/` and `_sessions/` both gitignored), registers hooks under `.claude/`, installs the `kb-add`, `kb-bootstrap`, and `kb-curate` Claude Code skills, writes `.ai/knowledge-base/.state/installed-version`, seeds an empty `.ai/knowledge-base/config.yaml` for project-level tunables, copies local prompt overrides into `.ai/knowledge-base/.config/prompts/`, and adds a managed `.gitignore` block. It does **not** install husky, lint-staged, secretlint, commitlint, or any other commit-time tooling in the consuming repo. Teams that want a commit-time secret scanner or a commit-message linter wire those up themselves (see [Installation](docs/installation.md)). Re-running with `init --upgrade` refreshes templates and skills while preserving `config.yaml` and local prompt overrides.
 3. The contributor commits. KB is live but empty.
 
 ### 8.2 Daily session capture (automatic)
@@ -153,9 +153,9 @@ Every node carries a `derived_from` list pointing to session log filenames. **Ca
 ### 8.3 Curation (deliberate)
 
 1. After enough session logs accumulate (default `curationThreshold` = 5; configurable per project), a nudge appears at session start: "You have 7 pending session logs. Invoke the `kb-curate` skill when ready." Throttled to at most once per hour.
-2. The contributor invokes the `kb-curate` skill. The curator reads pending logs and current KB nodes, then applies its decisions directly to `nodes/`: new files for `add` actions, in-place rewrites for `modify` actions. `contradict` actions are recorded in `.ai/knowledge-base/.state/pending-conflicts.json` instead of writing conflicting files. The curator regenerates `INDEX.md`/`GRAPH.md` inline and writes its stream-json trace to `_logs/curator/`.
-3. The kb-curate skill reads `pending-conflicts.json` and walks each conflict with the contributor in-session, applying the chosen resolution by editing the affected node. Once resolved, the skill removes the entry from the file.
-4. The reviewer inspects all changes with `git diff nodes/`, accepts with `git commit` (the pre-commit hook stages a fresh `INDEX.md`/`GRAPH.md` into the same commit), and rejects unwanted changes with `git restore <path>`.
+2. The contributor invokes the `kb-curate` skill. The curator reads pending logs and current KB nodes, then applies its decisions directly to `nodes/`: new files for `add` actions, in-place rewrites for `modify` actions. `contradict` actions are written as one markdown file per conflict under `.ai/knowledge-base/conflicts/<run-id>-<n>.md` instead of writing the conflicting node to `nodes/`. The curator regenerates `INDEX.md`/`GRAPH.md` inline and writes its stream-json trace to `_logs/curator/`.
+3. The kb-curate skill reads every pending file under `.ai/knowledge-base/conflicts/` and walks each conflict with the contributor in-session. The contributor picks Accept (the skill rewrites the target node from the proposed body, the contributor then `git restore`s the conflict file), Reject (the contributor `git restore`s the conflict file, existing node stands), or Keep as record (the contributor `git commit`s the conflict file as durable history).
+4. The reviewer inspects all changes with `git diff nodes/`, accepts with `git commit`, and rejects unwanted changes with `git restore <path>`. INDEX/GRAPH are already aligned by the curator at end-of-run; `ai-knowledge-base index rebuild` realigns them if a reviewer hand-edits a node afterwards.
 
 ### 8.4 Consuming the KB
 
@@ -167,9 +167,9 @@ Every node carries a `derived_from` list pointing to session log filenames. **Ca
 ### 8.5 Handling contradictions
 
 1. During curation, the curator detects that a new session log conflicts with an existing node.
-2. The curator records the conflict in `.ai/knowledge-base/.state/pending-conflicts.json` (target node id, proposed new content, rationale, run id). It does **not** write the conflicting node to `nodes/`.
-3. The kb-curate skill reads the file after the curator subprocess exits, presents each conflict to the contributor in-session (old node side-by-side with the new claim), and asks for a resolution: supersede (overwrite the old node), keep both (write the new claim as a sibling node with `relates_to` linking them), or reject (do nothing). The skill applies the chosen action by editing or creating the relevant `nodes/<kind>/<slug>.md`, then removes the entry from `pending-conflicts.json`.
-4. The reviewer commits the resulting `nodes/` change. The KB records both old and new states with explicit validity windows when superseding; nothing is deleted.
+2. The curator writes one markdown file per conflict under `.ai/knowledge-base/conflicts/<run-id>-<n>.md` (frontmatter: `status: pending`, `target_node_id`, `proposed_kind`, `proposed_title`, `candidate_origin`, `run_id`, `detected_at`; body: `## Rationale` plus `## Proposed node`). It does **not** write the conflicting node to `nodes/`.
+3. The kb-curate skill reads every pending file after the curator subprocess exits and presents each conflict in-session (existing node side-by-side with the proposed one). The contributor picks Accept (the skill rewrites the existing node from the proposed body; the contributor then `git restore`s the conflict file), Reject (the contributor `git restore`s the conflict file; the existing node stands), or Keep as record (the contributor `git commit`s the conflict file as durable history; the existing node stands).
+4. The reviewer commits the resulting change. Old node state is preserved in git history; conflict files committed as Keep as record remain under `.ai/knowledge-base/conflicts/` as permanent annotations the curator can read for context on future runs.
 
 ### 8.6 First-time bootstrap from existing docs (optional, one-off)
 
@@ -209,9 +209,8 @@ Operational defaults (curation threshold, log retention window, lint cadence, pl
 |---|---|
 | Transcript capture fails (secretlint crashes, disk full) | Session log not written. Brief warning at next session start. Session content is lost; user can paste relevant parts manually. |
 | Proposal extraction fails (CLI error, rate limit) | Session log retained as `proposal_status: failed`. Visible in `ai-knowledge-base status`. Curator retries on next run. Full log under `_logs/proposal/` for diagnosis. |
-| Secretlint blocks a commit | Standard `lint-staged` error message identifies the file and rule. |
 | `SessionStart` hook fails | Session starts without KB context. Single-line warning in transcript. The session works, just without injection. |
-| `INDEX.md` stale (someone hand-edited a node) | `ai-knowledge-base doctor` flags it. Pre-commit check (optional) refuses commit until `ai-knowledge-base index rebuild` is run. |
+| `INDEX.md` stale (someone hand-edited a node) | `ai-knowledge-base doctor` flags it. Run `ai-knowledge-base index rebuild` to refresh. |
 | Two contributors invoke `kb-curate` simultaneously | Second invocation aborts with "curation already in progress, started 4 minutes ago." Cleared by lock TTL (default 30 minutes, configurable). |
 | `derived_from` references a missing session log | Silent ignore in consume path. `ai-knowledge-base doctor --verbose` warns. Curator treats as "evidence not available" and proceeds. |
 

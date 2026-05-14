@@ -10,13 +10,13 @@ The `ai-knowledge-base` binary is available after install (or run via `npx`).
 ## `init`
 
 ```sh
-npx @e0ipso/ai-knowledge-base init --assistants claude [--force] [--upgrade [--dry-run]]
+npx @e0ipso/ai-knowledge-base init --assistants claude [--force] [--upgrade]
 ```
 
-First-time setup. Writes the knowledge-base scaffold, Claude hooks and skills, the commit-time secret-scan scaffold (`.secretlintrc.json`, `.husky/pre-commit`, `.lintstagedrc.cjs`, plus devDeps and a `prepare: husky` script in `package.json`), and a managed `.gitignore` block. The `.lintstagedrc.cjs` runs secretlint on every staged file and `ai-knowledge-base index rebuild --stage` whenever a file under `.ai/knowledge-base/nodes/` is staged. Requires a `package.json` at the repo root.
+First-time setup. Writes the knowledge-base scaffold (`.ai/knowledge-base/`), Claude hooks and skills (under `.claude/`), and a managed `.gitignore` block for the runtime state files. Does not patch `package.json` and does not install any commit-time tooling (husky, lint-staged, secretlint, commitlint); see [Installation → Optional commit-time hardening](installation.md#optional-commit-time-hardening) if you want those.
 
-- `--force`: overwrite existing files (never touches your project config).
-- `--upgrade`: refresh templates while preserving customizations. Pair with `--dry-run` to preview.
+- `--force`: overwrite existing template files (never touches your project config).
+- `--upgrade`: refresh templates and skills while preserving `config.yaml` and local prompt overrides.
 
 ## `doctor`
 
@@ -24,7 +24,7 @@ First-time setup. Writes the knowledge-base scaffold, Claude hooks and skills, t
 npx @e0ipso/ai-knowledge-base doctor [--verbose]
 ```
 
-Checks Node version, that `claude` is on PATH, that secretlint resolves in `node_modules`, that the commit-time scan is wired (`.husky/pre-commit`, `.lintstagedrc.cjs`, `.secretlintrc.json`), settings validity, INDEX freshness, and dangling references. Exits 0 when there are no errors.
+Checks Node version, that `claude` is on PATH, that the Claude hooks are registered in `.claude/settings.json`, that `.ai/knowledge-base/.state/installed-version` matches the installed package, settings validity, INDEX freshness, and dangling node references. Exits 0 when there are no errors.
 
 ## `status`
 
@@ -40,16 +40,7 @@ Prints pending work: queued captures, pending session logs, pending curator conf
 npx @e0ipso/ai-knowledge-base curate [--batch-size <n>] [--timeout <ms>]
 ```
 
-Run the curator over all session logs that have been processed but not yet curated. The curator writes new node files directly to `nodes/<kind>/<id>.md` for `add` actions and overwrites the target file for `modify` actions. `contradict` actions are recorded in `.ai/knowledge-base/.state/pending-conflicts.json` for the `/kb-curate` skill to resolve in-session with the user. Review the resulting changes with `git diff nodes/`.
-
-## `conflict list` / `conflict resolve`
-
-```sh
-npx @e0ipso/ai-knowledge-base conflict list
-npx @e0ipso/ai-knowledge-base conflict resolve <id> --action <replace|reject>
-```
-
-`conflict list` prints the contents of `.ai/knowledge-base/.state/pending-conflicts.json` as JSON on stdout (or `[]` when the file is missing or empty). `conflict resolve` applies the user's decision for a single conflict: `replace` deletes the existing node, writes the proposed node, and drops the entry from `pending-conflicts.json`; `reject` drops the entry and leaves the node tree alone. Both actions regenerate `INDEX.md` and `GRAPH.md`. The `/kb-curate` skill calls these subcommands in-session so the LLM never edits state files or node markdown directly.
+Run the curator over all session logs that have been processed but not yet curated. The curator writes new node files directly to `nodes/<kind>/<id>.md` for `add` actions and overwrites the target file for `modify` actions. `contradict` actions are written as one markdown file per conflict under `.ai/knowledge-base/conflicts/<run-id>-<n>.md` (with frontmatter `status: pending` and a body containing the rationale plus the proposed node); the `/kb-curate` skill walks each pending file with the user in-session. Review the resulting changes with `git diff` and let the skill drive conflict resolution.
 
 ## `node add`
 
@@ -77,7 +68,7 @@ npx @e0ipso/ai-knowledge-base index rebuild [--stage]
 
 Regenerate `INDEX.md` and `GRAPH.md` from `nodes/`. No LLM. Run after hand-edits or rebases.
 
-`--stage` runs `git add` on the regenerated `INDEX.md`/`GRAPH.md` after writing. Used by the `lint-staged` pre-commit hook (configured by `init` in `.lintstagedrc.cjs`) so the freshly regenerated index files land in the same commit as any `nodes/` change. Skips the regen entirely (and stages nothing) when the recorded `nodes_hash` already matches the live tree. No-ops gracefully outside a git repo.
+`--stage` runs `git add` on the regenerated `INDEX.md`/`GRAPH.md` after writing. Intended to be called from a project's own pre-commit hook so freshly regenerated index files land in the same commit as any `nodes/` change (see [Installation → Optional commit-time hardening](installation.md#optional-commit-time-hardening) for a sample `.lintstagedrc.cjs` snippet). Skips the regen entirely (and stages nothing) when the recorded `nodes_hash` already matches the live tree. No-ops gracefully outside a git repo.
 
 ## `logs prune`
 
