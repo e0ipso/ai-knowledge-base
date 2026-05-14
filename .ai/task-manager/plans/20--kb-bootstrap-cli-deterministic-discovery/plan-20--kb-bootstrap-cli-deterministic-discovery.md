@@ -1,5 +1,5 @@
 ---
-id: 17
+id: 20
 summary: "Move file discovery, hashing, state, and name-based skip rules out of the kb-bootstrap skill prompt and into the bootstrap-incremental CLI, leaving the skill responsible only for content judgement"
 created: 2026-05-13
 ---

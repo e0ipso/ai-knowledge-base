@@ -1,5 +1,5 @@
 ---
-id: 18
+id: 21
 summary: "Stop asking the LLM to emit frontmatter and candidate fields whose values the wrapper overwrites or derives deterministically: trim the curator and proposal-extract schemas, make supports_existing_node and contradicts_existing_node literal-null, replace the kb-add skill body with a CLI invocation backed by new ai-knowledge-base node add flags, and switch bootstrap-incremental to single-file batches"
 created: 2026-05-13
 ---
