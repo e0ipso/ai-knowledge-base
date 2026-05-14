@@ -1,72 +1,26 @@
 ---
 name: kb-add
 description: Capture a knowledge-base node manually from the current session. Writes a new node directly under `.ai/knowledge-base/nodes/<kind>/`. The reviewer accepts via `git commit` and rejects via `git restore`. Use when the user wants to record a project convention, gotcha, rationale, or named-thing into the project knowledge base.
-allowed-tools: Write
+allowed-tools: Bash(npx @e0ipso/ai-knowledge-base node add:*)
 ---
 
 # kb-add
 
-Capture a single piece of knowledge that the user wants to record in the project KB. The output is a new node file under `.ai/knowledge-base/nodes/<kind>/`. Review and acceptance happen through git: the user inspects the change with `git diff`, accepts with `git commit`, or rejects with `git restore <file>`.
+Capture one piece of knowledge into the project KB. The CLI writes the file and regenerates the index; the user reviews with `git diff`.
 
-## What to gather from the user
+Ask the user for seven values (do not invent any): **kind** (`practice` or `map`), **title** (≤ 80 chars), **summary** (≤ 140 chars), **tags** (comma-separated), **body** (full markdown; for practice include the rationale), **relates_to** (comma-separated node ids, may be empty), **confidence** (`high`/`medium`/`low`, default `high`).
 
-Ask the user concise questions and gather:
+Before invoking, skim `.ai/knowledge-base/INDEX.md` (already in context) for an overlapping node. If one exists, offer to edit it, refine the candidate's title, or drop the capture instead. Push back if the candidate is: code that speaks for itself, history, a debugging recipe, in-flight plan/task content, or general programming knowledge.
 
-1. **Kind**: `practice` (how we build things) or `map` (what exists in the project).
-2. **Title**: short imperative for practice; noun phrase for map. ≤ 80 chars.
-3. **Summary**: one sentence, ≤ 140 chars. Will appear in INDEX.md.
-4. **Tags**: comma-separated, e.g. `caching, drupal, render-array`.
-5. **Body**: full markdown body. For practice: what to do/avoid and *why*. For map: what it is, where it lives, what it does.
-6. **relates_to** *(optional)*: node ids this should link to. Useful for exceptions, siblings, extensions.
-7. **Confidence**: `high`, `medium`, or `low`. Default to `high` for manual entries; recommend `medium` when the user is uncertain.
+Then invoke:
 
-If anything is missing or ambiguous, ask before writing; the file lands directly in `nodes/`, and editing it after a commit means another commit.
-
-## What is NOT a node
-
-Push back if the user asks to capture any of these. Suggest they record it elsewhere (commit message, CHANGELOG, plan document) or simply drop it.
-
-- **Code that speaks for itself.** Function shapes, file layout, naming patterns, framework idioms. A reader of the codebase can derive these from `grep` and `tsc`. Nodes earn their tokens by carrying intent that the code does not.
-- **History.** "We renamed X to Y", "we used to use Z". Git log is the timeline of record. Capture the current end-state claim, not the journey.
-- **Debugging recipes.** "When test T fails, try Q". The fix lives in the diff that made T pass; the rationale belongs in that commit message.
-- **In-flight work.** Plans, task scopes, success criteria, "we're thinking about". A node is a claim about how the project *is*, not how it might become.
-- **General programming knowledge.** "Prefer pure functions", "validate user input". True everywhere; teaches the agent nothing about *this* project.
-
-If the user insists the item belongs in the KB despite matching one of these, ask them to state the project-specific claim in one sentence. If they cannot, drop it.
-
-## What to write
-
-Create the file at `.ai/knowledge-base/nodes/<kind>/<kind>-<slug>.md`. The slug is derived from the title: lowercase, ascii letters and digits only, hyphens between words.
-
-**Search before writing.** Skim `.ai/knowledge-base/INDEX.md` (already in your context as the SessionStart payload) for nodes whose title or tags overlap the candidate. If you find one, do not write a new file. Show the existing node to the user and ask whether to:
-
-1. Edit the existing node body directly (preferred when the new content extends or refines the old), or
-2. Refine the candidate title so the scopes are clearly distinct, or
-3. Drop the candidate.
-
-Only write a new file when no existing node covers the same scope. The wrapper will also fail loud on exact-id collisions, but the goal is to catch same-topic duplication that uses a different slug.
-
-Frontmatter (every field is required):
-
-```yaml
----
-schema_version: 1
-id: <kind>-<slug>
-title: "<title>"
-kind: <practice|map>
-tags: [<tag1>, <tag2>, ...]
-derived_from: []
-relates_to: [<id1>, <id2>, ...]   # or [] if none
-confidence: <high|medium|low>
-summary: "<summary>"
----
+```bash
+npx @e0ipso/ai-knowledge-base node add \
+  --kind <practice|map> --title "<title>" --summary "<summary>" \
+  --tags "<tags>" --relates-to "<relates-to>" \
+  --confidence <high|medium|low> --body @- --yes <<'EOF'
+<body markdown>
+EOF
 ```
 
-Body: just the markdown the user gave you. Add a `# <title>` H1 at the top if the body doesn't already start with one.
-
-## Constraints
-
-- Only use the `Write` tool, and only on a single file path under `.ai/knowledge-base/nodes/<kind>/`.
-- Do not modify or read any other file in the KB.
-- Do not regenerate `INDEX.md` or `GRAPH.md`; the lint-staged pre-commit hook does that automatically (`npx @e0ipso/ai-knowledge-base index rebuild --stage`) when the user commits.
-- After writing, tell the user the file path and remind them to review with `git diff` and accept with `git commit` (or reject with `git restore <path>`).
+`--body @-` reads stdin so multi-line markdown does not need escaping. The CLI fails loud on a slug collision; pick a more specific title if it complains. After it returns, give the user the printed path and remind them to review with `git diff`.

@@ -248,10 +248,10 @@ No integration with plans 10, 12, 15, 16 expected. The plan touches `src/lib/cur
 - ✔️ Task 003: Trim curator output schema and synthesize `derived_from` in wrapper
 - ✔️ Task 005: Switch bootstrap-incremental to single-file batches; drop `derived_from` from candidates
 
-### Phase 2: Dependents
+### ✅ Phase 2: Dependents
 **Parallel Tasks:**
-- Task 002: Replace kb-add SKILL.md body with CLI invocation (depends on: 001)
-- Task 004: Lock proposal-extract hint fields to literal null; remove hint-consumer wrapper code (depends on: 003)
+- ✔️ Task 002: Replace kb-add SKILL.md body with CLI invocation (depends on: 001)
+- ✔️ Task 004: Lock proposal-extract hint fields to literal null; remove hint-consumer wrapper code (depends on: 003)
 
 ### Dependency Diagram
 

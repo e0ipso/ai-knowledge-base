@@ -42,16 +42,22 @@ export const ModelChoiceSchema = z
   .strict();
 export type ModelChoice = z.infer<typeof ModelChoiceSchema>;
 
-export const ProposalCandidateSchema = z.object({
-  kind: z.enum(['practice', 'map']),
-  tags: z.array(z.string()),
-  title: z.string(),
-  summary: z.string(),
-  body: z.string(),
-  confidence: ConfidenceSchema,
-  supports_existing_node: z.string().nullable(),
-  contradicts_existing_node: z.string().nullable(),
-});
+/**
+ * Candidate emitted by the proposal-extract prompt. The wrapper does not
+ * consume `supports_existing_node` / `contradicts_existing_node` hints; both
+ * are gone from the prompt and the schema. `.strict()` rejects any
+ * reintroduction (including the legacy non-null hint values).
+ */
+export const ProposalCandidateSchema = z
+  .object({
+    kind: z.enum(['practice', 'map']),
+    tags: z.array(z.string()),
+    title: z.string(),
+    summary: z.string(),
+    body: z.string(),
+    confidence: ConfidenceSchema,
+  })
+  .strict();
 
 export type ProposalCandidate = z.infer<typeof ProposalCandidateSchema>;
 

@@ -80,8 +80,6 @@ function successRunner(): ProposalRunner {
         summary: 'Inject services in constructors',
         body: 'Constructor injection is the convention.',
         confidence: 'high',
-        supports_existing_node: null,
-        contradicts_existing_node: null,
       },
     ],
     map: [
@@ -92,8 +90,6 @@ function successRunner(): ProposalRunner {
         summary: 'Personalized section module',
         body: 'Lives at modules/custom/bravo_insider.',
         confidence: 'high',
-        supports_existing_node: null,
-        contradicts_existing_node: null,
       },
     ],
   });

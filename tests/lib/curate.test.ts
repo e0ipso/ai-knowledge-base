@@ -24,7 +24,11 @@ import {
 } from '../../src/lib/curate.js';
 import { repoPaths, type RepoPaths } from '../../src/lib/paths.js';
 import type { CuratorAction, NodeFrontmatter, ProposalCandidate } from '../../src/lib/schemas.js';
-import { CuratorOutputSchema, CuratorProposedNodeSchema } from '../../src/lib/schemas.js';
+import {
+  CuratorOutputSchema,
+  CuratorProposedNodeSchema,
+  ProposalCandidateSchema,
+} from '../../src/lib/schemas.js';
 import { STATE_LOCK_OPTIONS } from '../../src/lib/state.js';
 
 interface Harness {
@@ -112,8 +116,6 @@ function makeCandidate(kind: 'practice' | 'map', title: string): ProposalCandida
     summary: `summary of ${title}`,
     body: `body for ${title}`,
     confidence: 'high',
-    supports_existing_node: null,
-    contradicts_existing_node: null,
   };
 }
 
@@ -496,19 +498,38 @@ describe('runCurate', () => {
     expect(existsSync(join(harness.kbDir, 'INDEX.md'))).toBe(true);
   });
 
-  it('buildBatchPayload includes referenced existing nodes only', () => {
-    // Two existing nodes; only one is referenced by the batch.
+  it('buildBatchPayload always emits an empty existing_nodes array', () => {
     seedExistingNode(harness, 'practice', 'practice-x');
-    seedExistingNode(harness, 'practice', 'practice-y');
-    seedSession(
-      harness,
-      's',
-      [{ ...makeCandidate('practice', 'Hi'), supports_existing_node: 'practice-x' }],
-      []
-    );
+    seedSession(harness, 's', [makeCandidate('practice', 'Hi')], []);
     const sessions = listPendingSessions(harness.sessionsDir);
-    const payload = buildBatchPayload(sessions, harness.nodesDir);
-    expect(payload.existing_nodes.map(n => n.id)).toEqual(['practice-x']);
+    const payload = buildBatchPayload(sessions);
+    expect(payload.existing_nodes).toEqual([]);
+    expect(payload.batch[0]?.session_id).toBe('s');
+  });
+});
+
+describe('ProposalCandidateSchema (strict, hint fields removed)', () => {
+  const valid = {
+    kind: 'practice' as const,
+    tags: ['t'],
+    title: 'X',
+    summary: 's',
+    body: 'b',
+    confidence: 'high' as const,
+  };
+
+  it('accepts the six-field shape', () => {
+    expect(ProposalCandidateSchema.parse(valid)).toMatchObject(valid);
+  });
+
+  it.each([
+    ['supports_existing_node=null', { supports_existing_node: null }],
+    ['supports_existing_node=string', { supports_existing_node: 'practice-x' }],
+    ['contradicts_existing_node=string', { contradicts_existing_node: 'practice-x' }],
+    ['unknown key', { fancy_new_field: true }],
+  ])('rejects %s on a candidate', (_label, extra) => {
+    const result = ProposalCandidateSchema.safeParse({ ...valid, ...extra });
+    expect(result.success).toBe(false);
   });
 });
 

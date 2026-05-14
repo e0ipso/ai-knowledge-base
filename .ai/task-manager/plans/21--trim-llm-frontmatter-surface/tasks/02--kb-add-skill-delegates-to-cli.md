@@ -2,7 +2,7 @@
 id: 2
 group: "kb-add-skill"
 dependencies: [1]
-status: "pending"
+status: "completed"
 created: 2026-05-13
 skills:
   - prompt-engineering

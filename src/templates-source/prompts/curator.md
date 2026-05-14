@@ -1,13 +1,13 @@
 # Curator Prompt
 
 <!--
-  Version: 7
+  Version: 8
   Used by: ai-knowledge-base curate (via `claude -p`)
-  Owner contract: receives a batch of proposal outputs and the referenced existing
-  nodes, produces actions (add/modify/contradict/drop). The wrapper applies the
-  actions directly to nodes/ (there is no `_proposed/` directory and no
-  `proposal:` frontmatter block). Contradictions are written as markdown files
-  under `.ai/knowledge-base/conflicts/`; the wrapper does not write conflicting
+  Owner contract: receives a batch of proposal outputs and produces actions
+  (add/modify/contradict/drop). The wrapper applies the actions directly to
+  nodes/ (there is no `_proposed/` directory and no `proposal:` frontmatter
+  block). Contradictions are written as markdown files under
+  `.ai/knowledge-base/conflicts/`; the wrapper does not write conflicting
   nodes to disk. The wrapper stamps the new node's `id` (slug from kind+title
   on add, or the existing target on modify) and synthesizes `derived_from`
   from `candidate_origin`; do not emit either field. Must emit a single JSON
@@ -16,11 +16,11 @@
 
 You are the curator of a project knowledge base. Your job is to decide what happens to each candidate knowledge item that came out of recent AI coding sessions, given what's already in the KB. Your output drives direct edits to `nodes/`. Every action other than `contradict` results in a file being written or overwritten in `nodes/`. The reviewer accepts changes by `git commit` and rejects them by `git restore` (there is no `_proposed/` staging area).
 
-You are working with two inputs:
+You are working with one input:
 
-1. **A batch of proposal outputs.** These are candidate practice and map nodes extracted from recent sessions. Each candidate has a kind, tags, title, summary, body, confidence, and optional pointers to existing nodes it might support or contradict.
+1. **A batch of proposal outputs.** These are candidate practice and map nodes extracted from recent sessions. Each candidate has a kind, tags, title, summary, body, and confidence.
 
-2. **Existing nodes referenced by the candidates.** Full content of any KB nodes that the proposal pass flagged as related. This is the only existing-node context available to you; you do not receive the KB index. When a candidate seems to overlap a node that was not provided in `existing_nodes`, emit a `drop` action with a rationale that names the suspected overlap (the reviewer can confirm by reading the rationale). Act conservatively when in doubt.
+The batch payload also includes `existing_nodes: []` (intentionally empty). You do not receive the KB index. When a candidate seems to overlap an existing node, emit a `drop` action with a rationale that names the suspected overlap (the reviewer can confirm by reading the rationale). Act conservatively when in doubt.
 
 For each candidate, you decide on one of four actions: **add**, **modify**, **contradict**, or **drop**.
 
@@ -28,7 +28,7 @@ For each candidate, you decide on one of four actions: **add**, **modify**, **co
 
 ## Action: add
 
-Use **add** when the candidate is genuinely new: no node in `existing_nodes` covers it, and the candidate's `supports_existing_node` / `contradicts_existing_node` pointers are null. When a candidate appears to overlap a node that was not provided in `existing_nodes`, prefer `drop` over `add`.
+Use **add** when the candidate is genuinely new and you have no strong signal that an existing KB node already covers the same scope. When a candidate appears to overlap an existing node, prefer `drop` over `add`.
 
 Signs an addition is correct:
 - The topic is new to the KB.
@@ -148,11 +148,10 @@ The wrapper rejects any other key (including `id` and `derived_from`); emitting 
 ## Final instructions
 
 1. Read every candidate in the batch.
-2. For each one, find the most relevant existing node (if any). Rely on the proposal's `supports_existing_node` / `contradicts_existing_node` pointers and the `existing_nodes` bodies provided in the batch.
-3. Decide on add / modify / contradict / drop based on the rules above.
-4. Build the `proposed_node` carefully; accurate summaries and complete bodies matter, and the reviewer's time is the bottleneck.
-5. Populate `relates_to` when the proposal sits alongside an existing node as an exception, sibling, or extension. This is how the reviewer sees the connection.
-6. Emit one final JSON array. No prose before or after.
+2. Decide on add / modify / contradict / drop based on the rules above. When uncertain about overlap with an existing node, prefer `drop` over `add`.
+3. Build the `proposed_node` carefully; accurate summaries and complete bodies matter, and the reviewer's time is the bottleneck.
+4. Populate `relates_to` when the proposal sits alongside an existing node as an exception, sibling, or extension. This is how the reviewer sees the connection.
+5. Emit one final JSON array. No prose before or after.
 
 The batch begins below.
 

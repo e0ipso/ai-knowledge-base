@@ -113,8 +113,6 @@ describe('kb-proposal-drain hook (spawned)', () => {
           summary: 'Use the project PII cache backend',
           body: 'Encrypts at rest.',
           confidence: 'high',
-          supports_existing_node: null,
-          contradicts_existing_node: null,
         },
       ],
       map: [],

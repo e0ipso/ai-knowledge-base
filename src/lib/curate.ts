@@ -158,35 +158,9 @@ export interface CuratorBatchPayload {
   }>;
 }
 
-export function buildBatchPayload(
-  batch: PendingSession[],
-  nodesDir: string
-): CuratorBatchPayload {
-  const referenced = new Set<string>();
-  for (const s of batch) {
-    for (const c of [...s.practiceCandidates, ...s.mapCandidates]) {
-      if (c.supports_existing_node) referenced.add(c.supports_existing_node);
-      if (c.contradicts_existing_node) referenced.add(c.contradicts_existing_node);
-    }
-  }
-
-  const existingNodes: CuratorBatchPayload['existing_nodes'] = [];
-  if (referenced.size > 0) {
-    for (const node of readAllNodes(nodesDir)) {
-      if (!referenced.has(node.frontmatter.id)) continue;
-      existingNodes.push({
-        id: node.frontmatter.id,
-        title: node.frontmatter.title,
-        kind: node.frontmatter.kind,
-        tags: node.frontmatter.tags,
-        summary: node.frontmatter.summary,
-        body: node.body.trim(),
-      });
-    }
-  }
-
+export function buildBatchPayload(batch: PendingSession[]): CuratorBatchPayload {
   return {
-    existing_nodes: existingNodes,
+    existing_nodes: [],
     batch: batch.map(s => ({
       session_id: s.sessionId,
       captured_at: s.capturedAt,
@@ -268,7 +242,7 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
   try {
     for (let i = 0; i < batches.length; i += 1) {
       const batch = batches[i]!;
-      const payload = buildBatchPayload(batch, ctx.paths.nodesDir);
+      const payload = buildBatchPayload(batch);
       const prompt = buildBatchPrompt(ctx.promptTemplate, payload);
       if (ctx.onBatchStart) ctx.onBatchStart({ index: i, total: batches.length, batch });
       const batchStartMs = Date.now();
