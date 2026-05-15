@@ -415,3 +415,34 @@ After Phase 4 completes, run the self-validation flow listed in the plan's "Self
 ### Execution Summary
 - Total Phases: 4
 - Total Tasks: 11
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-15
+
+### Results
+
+All four phases landed: HookEvent generalized to opaque string, HarnessPaths gained `pluginsDir`, tsup discovers per-adapter `plugins/` alongside `hooks/`, and `resolveWithHint` codifies the priority chain shared between the CLI and the runtime skill helper. The OpenCode adapter ships with a TS plugin shim at `.opencode/plugins/kb.mjs`, four per-event Node scripts under `.opencode/kb-hooks/`, a disk-parse-with-export transcript pipeline, a headless runner that drives `opencode run --format json`, and doctor checks. The per-harness skill source trees collapsed into one shared `src/templates-source/skills/` tree; each SKILL.md body materializes `/tmp/kb-detect-harness.mjs` from a byte-identical heredoc and resolves `--harness` at runtime. A CI lint catches drift between the heredoc and the TS resolver. PRD, README, the docs site, and CONTRIBUTING all mention OpenCode as a first-class harness, and three KB nodes (rewritten `practice-explicit-harness-flag`, new `map-opencode-harness-adapter`, new `practice-shared-skill-templates`) align the knowledge base.
+
+Final shape: 328 tests passing, lint clean, `init --harnesses claude,codex,opencode` round-trips with byte-identical SKILL.md across all three harness skill dirs, doctor passes structural checks on a fresh OpenCode install.
+
+### Noteworthy Events
+
+- Self-validation caught two artifact-build issues that the unit tests had missed: (1) the materialized `/tmp/kb-detect-harness.mjs` had a leading three-space indent on every line because the heredoc was nested inside a numbered-list indented code block, so Node refused to parse it; (2) the leading package-marker comment in `plugins/kb.ts` got stripped by tsup's ESM transform, breaking the doctor's plugin check. Fix #1: restructure each SKILL.md so the bash block opens at column zero. Fix #2: inject the marker via a tsup `banner` on the plugins config.
+- The existing `init --upgrade` test asserted the old `allowed-tools` frontmatter. Updated to assert the new shared SKILL.md shape (detect-harness recipe + `--harness "$HARNESS"`) and the absence of `allowed-tools`.
+- `resolveWithHint` and `resolveActiveHarness` diverge by design: the new helper falls through silently on an invalid `hint` (skills must not blow up on LLM typos), while the CLI's `resolveActiveHarness` keeps its strict throw on bogus `--harness` flags and `cliDefaultHarness` values. `resolveActiveHarness` reuses `detectHarnessFromEnv` but does not delegate the full chain to `resolveWithHint` so existing CLI tests stay green.
+- OpenCode has no v1 analog of Claude's `SessionStart` `additionalContext` stdout channel. The OpenCode session-start hook writes the INDEX context to `.opencode/AGENTS.md`; users opt in by referencing that file from their primary AGENTS.md. Documented in installation.md.
+
+### Necessary follow-ups
+
+- The doctor checks for `codex` and `opencode` CLIs on PATH fail in environments where those binaries are not installed (expected). For CI environments running against the real binaries, gate by a runner-side install step.
+- The `kb-bootstrap` SKILL.md body still does not exercise the shared skill installer end-to-end in tests; a follow-up could add a tri-harness install fixture that also runs the bootstrap-incremental CLI to confirm prompt-template loading works under each harness id.
+- The OpenCode `experimental.chat.system.transform` hook would let us inject INDEX as a system message at session start more cleanly than the `.opencode/AGENTS.md` workaround; revisit once OpenCode stabilizes that API.
+
+---
+
+Execution Summary:
+- Plan ID: 23
+- Status: Archived
+- Location: $root/.ai/task-manager/archive/23--opencode-harness-plugin/
