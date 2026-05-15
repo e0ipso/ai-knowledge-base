@@ -401,14 +401,14 @@ graph TD
     T07 --> T14
 ```
 
-### Phase 1: Abstraction refactor
+### ✅ Phase 1: Abstraction refactor
 **Parallel Tasks:**
-- Task 01: Neutralize RepoPaths and route harness paths through the adapter
-- Task 02: HookEvent vocabulary cleanup
-- Task 03: Generalize HeadlessRunOptions with adapter-opaque harnessOpts
-- Task 04: Per-harness model schema (discriminated union)
-- Task 05: --harness CLI flag, init validator broadening, resolver chain
-- Task 06: Parameterize tsup build pipeline per-harness
+- ✔️ Task 01: Neutralize RepoPaths and route harness paths through the adapter
+- ✔️ Task 02: HookEvent vocabulary cleanup
+- ✔️ Task 03: Generalize HeadlessRunOptions with adapter-opaque harnessOpts
+- ✔️ Task 04: Per-harness model schema (discriminated union)
+- ✔️ Task 05: --harness CLI flag, init validator broadening, resolver chain
+- ✔️ Task 06: Parameterize tsup build pipeline per-harness
 
 ### Phase 2: Codex adapter scaffold
 **Parallel Tasks:**

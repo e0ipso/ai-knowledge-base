@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { isAbsolute, join } from 'node:path';
 import matter from 'gray-matter';
 import yaml from 'js-yaml';
-import { getHarness, listHarnessIds } from '../harnesses/registry.js';
+import { getHarness, hasHarness } from '../harnesses/registry.js';
 import { log } from '../lib/log.js';
 import {
   computeNodesHash,
@@ -60,7 +60,8 @@ export async function runDoctor(opts: DoctorOptions): Promise<number> {
         );
 
   const harnessChecks: NamedCheck[] = [];
-  for (const id of listHarnessIds()) {
+  for (const id of installedHarnessIds(paths.installedVersionFile)) {
+    if (!hasHarness(id)) continue;
     const adapter = getHarness(id);
     const checks = await adapter.doctorChecks(paths);
     for (const c of checks) harnessChecks.push({ name: c.name, result: c.result });
@@ -185,6 +186,24 @@ function checkNodeVersion(): CheckResult {
   return Number.isFinite(major) && major >= 22
     ? ok(`Node ${process.versions.node}`)
     : err(`Node ${process.versions.node} (need >= 22)`);
+}
+
+/**
+ * Reads the harness ids recorded in the `installed-version` marker so
+ * doctor only audits adapters the user actually installed. A missing or
+ * unreadable file yields an empty list; that case is surfaced by the
+ * separate `installed-version` check.
+ */
+function installedHarnessIds(file: string): string[] {
+  if (!existsSync(file)) return [];
+  try {
+    const parsed = JSON.parse(readFileSync(file, 'utf8')) as { harnesses?: unknown };
+    return Array.isArray(parsed.harnesses)
+      ? parsed.harnesses.filter((h): h is string => typeof h === 'string')
+      : [];
+  } catch {
+    return [];
+  }
 }
 
 function checkInstalled(file: string): CheckResult {

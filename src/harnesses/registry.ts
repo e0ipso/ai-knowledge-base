@@ -1,4 +1,5 @@
 import { claudeAdapter } from './claude/index.js';
+import { codexAdapter } from './codex/index.js';
 import type { HarnessAdapter } from './types.js';
 
 /**
@@ -12,6 +13,7 @@ import type { HarnessAdapter } from './types.js';
  */
 const ADAPTERS: Readonly<Record<string, HarnessAdapter>> = {
   [claudeAdapter.id]: claudeAdapter,
+  [codexAdapter.id]: codexAdapter,
 };
 
 export function listHarnessIds(): string[] {
