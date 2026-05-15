@@ -434,3 +434,52 @@ After each phase, run `npm run build && npm test` to gate the next phase. After 
 ### Execution Summary
 - Total Phases: 4
 - Total Tasks: 14
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-15
+
+### Results
+
+All 14 tasks across 4 phases landed on branch `feature/22--codex-harness-plugin`. Six commits:
+
+1. `c452985` refactor(harnesses): neutralize shared abstraction (Phase 1, tasks 01-06).
+2. `f0bcd56` feat(codex): scaffold codex harness adapter (Phase 2, task 07).
+3. `416823e` feat(codex): implement adapter modules (Phase 3, tasks 08-10, 12, 14).
+4. `68e1f0f` feat(codex): hook scripts and narrative docs (Phase 4, tasks 11, 13).
+5. `ab23982` fix(codex): doctor and post-install messages (self-validation fixes).
+
+Key deliverables:
+
+- `HarnessAdapter` abstraction no longer leaks claude-specific names. `RepoPaths` is harness-neutral; `HookEvent` is the union of adapter-declared events; `HeadlessRunOptions` takes an opaque `harnessOpts` blob; `ModelChoiceSchema` is a discriminated union on `harness`; `--harnesses` accepts any non-empty subset of registered ids.
+- Global `--harness <id>` CLI flag added to `program` in `src/cli.ts`. Resolver order: flag, env, cliDefault, first registered.
+- `tsup.config.ts` discovers hook entries via fs scan of `src/harnesses/*/hooks/*.ts`. Build emits 8 hook bundles (4 per adapter) into `templates/<id>/hooks/`.
+- New codex adapter under `src/harnesses/codex/` with real `paths()`, `hooks`, `install()`, `upgrade()`, `doctorChecks()`, `runHeadless()`, `parseTranscript()`, `renderTranscript()`, `buildHarnessOpts()`.
+- TOML coexistence guard in `src/harnesses/codex/hooks-config.ts` aborts with a docs URL when `.codex/config.toml` already defines `[hooks]`. Uses `smol-toml` (new runtime dep).
+- Four codex hook scripts (`kb-capture`, `kb-session-start`, `kb-proposal-drain`, `kb-lint-tick`) under `src/harnesses/codex/hooks/`. Capture globs `$CODEX_HOME/sessions/YYYY/MM/DD/rollout-*-<session_id>.jsonl` with today/yesterday/scan fallbacks.
+- Three codex `SKILL.md` files under `src/templates-source/codex/skills/kb-{add,bootstrap,curate}/` with `name + description` frontmatter only; every npx invocation in the body carries `--harness codex`.
+- KB nodes aligned: `practice-claude-code-v1-only.md` deleted; `map-codex-harness-adapter.md` and `practice-explicit-harness-flag.md` added; INDEX.md/GRAPH.md regenerated (32 nodes).
+- Docs aligned: PRD sections 2 and 11 rewritten; README mentions codex; `docs/installation.md` gains a codex subsection; `docs/cli-reference.md` documents `--harness`; `docs/how-it-works.md` notes the codex-Stop-only capture; new `docs/installation/codex-toml-hooks-coexistence.md`; CONTRIBUTING.md gains an "Adding a new harness adapter" section.
+- Test suite grew from 265 to 306 tests across 36 files; lint, typecheck, build all green.
+
+### Noteworthy Events
+
+- **Sub-agent file overlap in Phase 1.** The plan listed Phase 1 as six parallel tasks, but all six touched `src/harnesses/types.ts`, `src/harnesses/claude/`, or `src/lib/`. Dispatching six parallel agents would have produced merge conflicts. Phase 1 ran as a single agent that handled all six tasks coherently. Phases 3 and 4 split into 2 parallel agents each, on disjoint file sets.
+- **TaskCreate not actually used for sub-agent dispatch.** Sub-agents were dispatched via the Agent tool; the TaskCreate task list tracked phases only. The 14 individual task files in `tasks/` were updated to `status: completed` via sed.
+- **`smol-toml` was added as a runtime dependency**, not a dev dependency, because the TOML coexistence guard runs inside the install command path.
+- **Two stale `claudeXyz` callsites were renamed.** The first round of the abstraction refactor missed an import re-export shim under `src/lib/` (back-compat layer); the agent removed it cleanly per the no-back-compat hard constraint. `src/lib/transcript.ts` was deleted entirely; the shared renderer moved to `src/lib/transcript-render.ts`.
+- **Three self-validation bugs found and fixed.**
+  1. The codex doctor's hook-registration check read the JSON as a flat array but the writer produces a nested event-table shape. Fixed by walking the table.
+  2. The top-level `--harness` flag did not scope doctor checks; both harnesses ran regardless. Plan SC#3 required scoping. Fixed by threading `program.opts().harness` into `runDoctor`.
+  3. The post-install "Next steps" message hard-coded the first-adapter dir. Fixed by deriving the list from `adapter.paths(root)`.
+- **Doctor failure on missing codex CLI is expected** in any sandbox where the codex binary is not on PATH; this is a real-world prerequisite check, not a bug. Self-validation in the sandboxed CI environment will surface "codex CLI on PATH" as a single error until codex is installed on the runner.
+- **Two cosmetic improvements rolled into the abstraction refactor.** Sub-agents found and removed redundant back-compat re-export shims (`src/lib/headless.ts`, `src/lib/hook-spec.ts`, `src/lib/hooks-config.ts`, `src/lib/transcript.ts`) per the project's no-backwards-compat principle. Tests were updated to import from the canonical adapter paths.
+
+### Necessary follow-ups
+
+- **Codex CLI installation in CI.** The "codex CLI on PATH" doctor check will fail in any CI runner that does not install the codex binary. A follow-up should either install codex in CI or mark the check as warn-level when codex is not on PATH.
+- **Better merge logic in TOML coexistence.** The current guard refuses to write `.codex/hooks.json` if `[hooks]` exists in `.codex/config.toml`. A future iteration could attempt an automated merge with explicit user confirmation, or extend the guard to detect our own entries inside the TOML and refresh them in place.
+- **`codex exec --output-schema`.** The codex headless runner currently parses the last `agent_message` text as JSON. Future work could use codex's `--output-schema` flag to enforce structured output natively, eliminating the parse-or-throw failure mode.
+- **Implicit skill invocation on codex.** v1 ships skills that are explicitly invoked. If implicit invocation is desired later, the install will need to also ship an `agents/openai.yaml` with `policy.allow_implicit_invocation: true`.
+- **Self-review of skill prose.** The codex SKILL.md bodies were adapted from the existing adapter's prose, dropping `Bash(...)` allowlist references. The first end-to-end run on codex should confirm the rewrites do not lose any critical instructions.
