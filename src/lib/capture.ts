@@ -14,7 +14,8 @@ import {
   CURSORY_MAX_USER_CHARS,
   CURSORY_MAX_USER_TURNS,
 } from './settings.js';
-import { parseTranscriptJsonl, renderRoleTagged } from './transcript.js';
+import { parseTranscriptJsonl } from '../harnesses/claude/transcript.js';
+import { renderRoleTagged } from './transcript-render.js';
 
 export interface HookInput {
   session_id: string;

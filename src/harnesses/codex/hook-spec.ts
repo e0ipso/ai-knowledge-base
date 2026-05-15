@@ -5,7 +5,7 @@ import type { HookSpec } from '../types.js';
  * emit `SessionEnd` or `PreCompact`, so the lint tick that runs on
  * `SessionEnd` for Claude runs on `Stop` here instead. The list is the
  * source of truth consumed by `install()`, `doctorChecks()`, and the
- * `writeCodexHooksConfig` settings writer.
+ * `writeCodexHooks` settings writer.
  */
 export const codexHookSpecs: readonly HookSpec[] = [
   { event: 'Stop', scriptPath: 'kb-capture.mjs' },

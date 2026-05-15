@@ -1,15 +1,16 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:ac141f5fdafa711a4aaef14e127af50ff73783a9aad44afd7112533a6f579bbe'
-node_count: 31
+nodes_hash: 'sha256:d2d57e255c4dabbd29fe6afe325e0034697c23633c1871295d03ef43f0e96dc9'
+node_count: 32
 ---
 # KB Index
 
-_31 nodes • ~9221 estimated tokens_
+_32 nodes • ~10171 estimated tokens_
 
 
 ## Conventions (how we build)
 - **All CLI invocations use `npx @e0ipso/ai-knowledge-base ...`** [`nodes/practice/practice-cli-invocations-use-npx-scoped.md`] #cli #invocation #npx #prompts
+- **Every CLI invocation passes `--harness <id>` explicitly** [`nodes/practice/practice-explicit-harness-flag.md`] #cli #invocation #harness
 - **All KB changes go through git review** [`nodes/practice/practice-human-in-the-loop-via-git.md`] #review #git #workflow
 - **Bootstrap never overwrites an existing node** [`nodes/practice/practice-bootstrap-never-overwrites.md`] #bootstrap #prohibition #conservative
 - **Bump prompt Version: on every behavior change** [`nodes/practice/practice-prompt-version-bump-on-behavior-change.md`] #prompts #versioning #llm
@@ -25,16 +26,16 @@ _31 nodes • ~9221 estimated tokens_
 - **Schema bumps are a clean break; no migrators, no shims** [`nodes/practice/practice-no-migrators-clean-schema-break.md`] #schema #versioning #prohibition
 - **Secretlint redacts every session transcript before write** [`nodes/practice/practice-secretlint-redaction-before-write.md`] #security #secrets #capture
 - **Split combined statements into separate practice and map nodes** [`nodes/practice/practice-split-practice-and-map.md`] #extraction #prompts #modeling
-- **v1 supports only Claude Code** [`nodes/practice/practice-claude-code-v1-only.md`] #scope #assistant #v1
 
 ## Components (what exists)
+- **Assistant adapter interface** [`nodes/map/map-adapter-interface.md`] #adapter #extensibility #interface
 - **@e0ipso/ai-knowledge-base npm package** [`nodes/map/map-ai-knowledge-base-package.md`] #package #cli #scope
+- **Claude Code hooks registered by ai-knowledge-base** [`nodes/map/map-claude-hooks.md`] #hooks #claude-code #integration
 - **Claude Code skills installed by init** [`nodes/map/map-claude-skills.md`] #skills #claude-code #slash-commands
+- **Codex harness adapter** [`nodes/map/map-codex-harness-adapter.md`] #harness #adapter #codex #integration
 - **.ai/knowledge-base/ directory layout** [`nodes/map/map-knowledge-base-directory.md`] #layout #directory #kb
 - **.ai/knowledge-base/config.yaml** [`nodes/map/map-config-yaml.md`] #config #settings #tunables
 - **.state/pending-conflicts.json** [`nodes/map/map-pending-conflicts.md`] #state #conflicts #curator
-- **Assistant adapter interface** [`nodes/map/map-adapter-interface.md`] #adapter #extensibility #interface
-- **Claude Code hooks registered by ai-knowledge-base** [`nodes/map/map-claude-hooks.md`] #hooks #claude-code #integration
 - **Map node** [`nodes/map/map-map-node.md`] #node #kind #vocabulary
 - **Node frontmatter shape** [`nodes/map/map-node-frontmatter.md`] #schema #frontmatter #node
 - **nodes/ directory** [`nodes/map/map-nodes-directory.md`] #layout #nodes #kb
@@ -48,28 +49,30 @@ _31 nodes • ~9221 estimated tokens_
 - **#schema (5):** config.yaml schema is strict; unknown keys are a hard error, Every YAML/JSON shape is validated by Zod at read time, Node frontmatter shape, Schema bumps are a clean break; no migrators, no shims, Session log (_sessions/*.md)
 - **#llm (4):** Bump prompt Version: on every behavior change, Curator subprocess can only use the Read tool, Don't run curate or bootstrap-incremental in CI, Prompt overrides at .config/prompts/
 - **#prompts (4):** All CLI invocations use `npx @e0ipso/ai-knowledge-base ...`, Bump prompt Version: on every behavior change, Prompt overrides at .config/prompts/, Split combined statements into separate practice and map nodes
+- **#cli (3):** @e0ipso/ai-knowledge-base npm package, All CLI invocations use `npx @e0ipso/ai-knowledge-base ...`, Every CLI invocation passes `--harness <id>` explicitly
 - **#curator (3):** .state/pending-conflicts.json, Curator never auto-resolves contradictions, Curator subprocess can only use the Read tool
 - **#hooks (3):** Claude Code hooks registered by ai-knowledge-base, INDEX.md and GRAPH.md are deterministic outputs of nodes/, KB_BUILDER_INTERNAL=1 prevents hook recursion
 - **#layout (3):** .ai/knowledge-base/ directory layout, nodes/ directory, Package source layout
 - **#node (3):** Map node, Node frontmatter shape, Practice node
 - **#prohibition (3):** Bootstrap never overwrites an existing node, Don't run curate or bootstrap-incremental in CI, Schema bumps are a clean break; no migrators, no shims
+- **#adapter (2):** Assistant adapter interface, Codex harness adapter
 - **#capture (2):** Secretlint redacts every session transcript before write, Session log (_sessions/*.md)
-- **#claude-code (2):** Claude Code skills installed by init, Claude Code hooks registered by ai-knowledge-base
-- **#cli (2):** @e0ipso/ai-knowledge-base npm package, All CLI invocations use `npx @e0ipso/ai-knowledge-base ...`
+- **#claude-code (2):** Claude Code hooks registered by ai-knowledge-base, Claude Code skills installed by init
 - **#config (2):** .ai/knowledge-base/config.yaml, config.yaml schema is strict; unknown keys are a hard error
 - **#conflicts (2):** .state/pending-conflicts.json, Curator never auto-resolves contradictions
+- **#harness (2):** Codex harness adapter, Every CLI invocation passes `--harness <id>` explicitly
+- **#integration (2):** Claude Code hooks registered by ai-knowledge-base, Codex harness adapter
+- **#invocation (2):** All CLI invocations use `npx @e0ipso/ai-knowledge-base ...`, Every CLI invocation passes `--harness <id>` explicitly
 - **#kb (2):** .ai/knowledge-base/ directory layout, nodes/ directory
 - **#kind (2):** Map node, Practice node
-- **#scope (2):** @e0ipso/ai-knowledge-base npm package, v1 supports only Claude Code
 - **#state (2):** .state/pending-conflicts.json, Per-pipeline locks in state.json with 30-minute TTL
 - **#versioning (2):** Bump prompt Version: on every behavior change, Schema bumps are a clean break; no migrators, no shims
 - **#vocabulary (2):** Map node, Practice node
 - **#workflow (2):** All KB changes go through git review, Curator never auto-resolves contradictions
-- **#adapter (1):** Assistant adapter interface
-- **#assistant (1):** v1 supports only Claude Code
 - **#bootstrap (1):** Bootstrap never overwrites an existing node
 - **#build (1):** Package source layout
 - **#ci (1):** Don't run curate or bootstrap-incremental in CI
+- **#codex (1):** Codex harness adapter
 - **#commits (1):** Conventional Commits drive semantic-release
 - **#concurrency (1):** Per-pipeline locks in state.json with 30-minute TTL
 - **#conservative (1):** Bootstrap never overwrites an existing node
@@ -84,9 +87,7 @@ _31 nodes • ~9221 estimated tokens_
 - **#git (1):** All KB changes go through git review
 - **#graph (1):** INDEX.md and GRAPH.md are deterministic outputs of nodes/
 - **#index (1):** INDEX.md and GRAPH.md are deterministic outputs of nodes/
-- **#integration (1):** Claude Code hooks registered by ai-knowledge-base
 - **#interface (1):** Assistant adapter interface
-- **#invocation (1):** All CLI invocations use `npx @e0ipso/ai-knowledge-base ...`
 - **#locking (1):** Per-pipeline locks in state.json with 30-minute TTL
 - **#modeling (1):** Split combined statements into separate practice and map nodes
 - **#nodes (1):** nodes/ directory
@@ -95,6 +96,7 @@ _31 nodes • ~9221 estimated tokens_
 - **#recursion (1):** KB_BUILDER_INTERNAL=1 prevents hook recursion
 - **#release (1):** Conventional Commits drive semantic-release
 - **#review (1):** All KB changes go through git review
+- **#scope (1):** @e0ipso/ai-knowledge-base npm package
 - **#secrets (1):** Secretlint redacts every session transcript before write
 - **#security (1):** Secretlint redacts every session transcript before write
 - **#sessions (1):** Session log (_sessions/*.md)
@@ -106,6 +108,5 @@ _31 nodes • ~9221 estimated tokens_
 - **#subprocess (1):** KB_BUILDER_INTERNAL=1 prevents hook recursion
 - **#tool-use (1):** Curator subprocess can only use the Read tool
 - **#tunables (1):** .ai/knowledge-base/config.yaml
-- **#v1 (1):** v1 supports only Claude Code
 - **#validation (1):** Every YAML/JSON shape is validated by Zod at read time
 - **#zod (1):** Every YAML/JSON shape is validated by Zod at read time

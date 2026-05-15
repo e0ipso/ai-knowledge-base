@@ -83,6 +83,7 @@
     "picomatch": "^4.0.4",
     "proper-lockfile": "^4.1.2",
     "secretlint": "^13.0.0",
+    "smol-toml": "^1.6.1",
     "split2": "^4.2.0",
     "zod": "^3.24.1"
   },

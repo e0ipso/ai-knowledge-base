@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { parseTranscriptJsonl, renderRoleTagged } from '../../src/lib/transcript.js';
+import { parseTranscriptJsonl } from '../../src/harnesses/claude/transcript.js';
+import { renderRoleTagged } from '../../src/lib/transcript-render.js';
 
 describe('parseTranscriptJsonl', () => {
   it('extracts user and assistant text from JSONL', () => {

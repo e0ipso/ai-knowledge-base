@@ -10,7 +10,8 @@ import { runHeadlessClaude } from './headless.js';
 import { CLAUDE_HOOK_SPECS } from './hook-spec.js';
 import { installClaude } from './install.js';
 import { buildClaudeHarnessOpts } from './opts.js';
-import { parseTranscriptJsonl, renderRoleTagged } from './transcript.js';
+import { renderRoleTagged } from '../../lib/transcript-render.js';
+import { parseTranscriptJsonl } from './transcript.js';
 
 /**
  * Claude Code harness adapter. Bundles the hook specs, transcript parser,

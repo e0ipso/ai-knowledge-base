@@ -410,9 +410,9 @@ graph TD
 - ✔️ Task 05: --harness CLI flag, init validator broadening, resolver chain
 - ✔️ Task 06: Parameterize tsup build pipeline per-harness
 
-### Phase 2: Codex adapter scaffold
+### ✅ Phase 2: Codex adapter scaffold
 **Parallel Tasks:**
-- Task 07: Codex adapter scaffold + registration (depends on: 01, 02, 05)
+- ✔️ Task 07: Codex adapter scaffold + registration (depends on: 01, 02, 05)
 
 ### Phase 3: Codex adapter implementation
 **Parallel Tasks:**

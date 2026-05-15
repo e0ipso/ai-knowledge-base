@@ -1,11 +1,11 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:ac141f5fdafa711a4aaef14e127af50ff73783a9aad44afd7112533a6f579bbe'
-node_count: 31
+nodes_hash: 'sha256:d2d57e255c4dabbd29fe6afe325e0034697c23633c1871295d03ef43f0e96dc9'
+node_count: 32
 ---
 # KB Graph
 
-Total nodes: 31
+Total nodes: 32
 
 ## map-adapter-interface
 
@@ -34,6 +34,13 @@ Total nodes: 31
 - **title:** Claude Code skills installed by init
 - **tags:** skills, claude-code, slash-commands
 - **derived_from:** docs/cli-reference.md, PRD.md, IMPLEMENTATION.md
+
+## map-codex-harness-adapter
+
+- **kind:** map
+- **title:** Codex harness adapter
+- **tags:** harness, adapter, codex, integration
+- **relates_to:** map-adapter-interface, practice-explicit-harness-flag, map-claude-hooks
 
 ## map-config-yaml
 
@@ -112,13 +119,6 @@ Total nodes: 31
 - **tags:** bootstrap, prohibition, conservative
 - **derived_from:** PRD.md, docs/installation.md, docs/daily-use.md
 
-## practice-claude-code-v1-only
-
-- **kind:** practice
-- **title:** v1 supports only Claude Code
-- **tags:** scope, assistant, v1
-- **derived_from:** PRD.md, docs/installation.md
-
 ## practice-cli-invocations-use-npx-scoped
 
 - **kind:** practice
@@ -153,6 +153,13 @@ Total nodes: 31
 - **title:** INDEX.md and GRAPH.md are deterministic outputs of nodes/
 - **tags:** index, graph, determinism, hooks
 - **derived_from:** docs/internals/architecture.md, docs/internals/schemas.md, docs/cli-reference.md
+
+## practice-explicit-harness-flag
+
+- **kind:** practice
+- **title:** Every CLI invocation passes `--harness <id>` explicitly
+- **tags:** cli, invocation, harness
+- **relates_to:** practice-cli-invocations-use-npx-scoped, map-codex-harness-adapter, map-adapter-interface
 
 ## practice-human-in-the-loop-via-git
 

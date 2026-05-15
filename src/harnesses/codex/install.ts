@@ -2,7 +2,7 @@ import { cpSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import type { HarnessInstallOptions } from '../types.js';
 import { codexHookSpecs } from './hook-spec.js';
-import { writeCodexHooksConfig } from './hooks-config.js';
+import { writeCodexHooks } from './hooks-config.js';
 
 /**
  * Where the Codex adapter's template tree lives under the package
@@ -38,7 +38,7 @@ export async function installCodex(opts: HarnessInstallOptions): Promise<void> {
   if (existsSync(join(templateDir, 'skills'))) {
     copyTree(join(templateDir, 'skills'), paths.skillsDir);
   }
-  await writeCodexHooksConfig(
+  await writeCodexHooks(
     opts.root,
     codexHookSpecs.map(spec => ({
       event: spec.event,
