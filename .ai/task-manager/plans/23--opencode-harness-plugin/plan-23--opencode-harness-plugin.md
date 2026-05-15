@@ -385,11 +385,11 @@ graph TD
     T08 --> T11
 ```
 
-### Phase 1: Abstraction Polish
+### ✅ Phase 1: Abstraction Polish
 **Parallel Tasks:**
-- Task 01: Generalize HookEvent to opaque string and add HarnessPaths.pluginsDir
-- Task 02: Parameterize tsup to discover per-adapter hooks/ AND plugins/ artifacts
-- Task 03: Add resolveWithHint to detect.ts implementing the --hint priority chain
+- ✔️ Task 01: Generalize HookEvent to opaque string and add HarnessPaths.pluginsDir
+- ✔️ Task 02: Parameterize tsup to discover per-adapter hooks/ AND plugins/ artifacts
+- ✔️ Task 03: Add resolveWithHint to detect.ts implementing the --hint priority chain
 
 ### Phase 2: OpenCode Adapter Scaffold
 **Parallel Tasks:**
