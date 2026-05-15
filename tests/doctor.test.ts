@@ -24,7 +24,7 @@ describe('doctor', () => {
   });
 
   it('passes core checks after init', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const result = await runCli(sandbox, ['doctor']);
     expect(result.exitCode).toBe(0);
     const combined = result.stdout + result.stderr;
@@ -37,7 +37,7 @@ describe('doctor', () => {
   });
 
   it('flags nodes with invalid frontmatter and skips the dangling check', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const dir = join(sandbox, '.ai/knowledge-base/nodes/practice');
     mkdirSync(dir, { recursive: true });
     // Missing required `summary` field triggers schema validation failure.
@@ -70,7 +70,7 @@ describe('doctor', () => {
   });
 
   it('reports a missing kb-lint-tick.mjs as an error in the Claude hooks check', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     rmSync(join(sandbox, '.claude/hooks/kb-lint-tick.mjs'));
     const result = await runCli(sandbox, ['doctor']);
     expect(result.exitCode).toBe(1);
@@ -80,7 +80,7 @@ describe('doctor', () => {
   });
 
   it('flags an invalid config.yaml as an error', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     writeFileSync(
       join(sandbox, '.ai/knowledge-base/config.yaml'),
       'schema_version: 1\ncurationThreshold: -1\n'
@@ -109,7 +109,7 @@ describe('status', () => {
   });
 
   it('reports zeros after init', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const result = await runCli(sandbox, ['status']);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Practice nodes: 0');

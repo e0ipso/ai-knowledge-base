@@ -21,7 +21,7 @@ describe('init', () => {
   afterEach(() => cleanSandbox(sandbox));
 
   it('creates the knowledge-base skeleton', async () => {
-    const result = await runCli(sandbox, ['init', '--assistants', 'claude']);
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude']);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Initialized.');
 
@@ -59,7 +59,7 @@ describe('init', () => {
   });
 
   it('stamps installed-version with current package version', async () => {
-    const result = await runCli(sandbox, ['init', '--assistants', 'claude']);
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude']);
     expect(result.exitCode).toBe(0);
 
     const installed = JSON.parse(
@@ -69,35 +69,35 @@ describe('init', () => {
     expect(installed.package).toBe('@e0ipso/ai-knowledge-base');
     expect(typeof installed.version).toBe('string');
     expect(installed.version.length).toBeGreaterThan(0);
-    expect(installed.assistants).toEqual(['claude']);
+    expect(installed.harnesses).toEqual(['claude']);
     expect(typeof installed.installed_at).toBe('string');
   });
 
   it('appends an idempotent block to .gitignore', async () => {
     writeFileSync(join(sandbox, '.gitignore'), 'node_modules\n');
 
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const first = readFileSync(join(sandbox, '.gitignore'), 'utf8');
     expect(first).toContain('node_modules');
     expect(first).toContain('# >>> @e0ipso/ai-knowledge-base >>>');
     expect(first).toContain('.ai/knowledge-base/_sessions/');
 
     // Re-run with --force; gitignore should not pick up duplicate blocks.
-    await runCli(sandbox, ['init', '--assistants', 'claude', '--force']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude', '--force']);
     const second = readFileSync(join(sandbox, '.gitignore'), 'utf8');
     const occurrences = second.match(/>>> @e0ipso\/ai-knowledge-base >>>/g) ?? [];
     expect(occurrences.length).toBe(1);
   });
 
   it('refuses to overwrite without --force', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
-    const second = await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    const second = await runCli(sandbox, ['init', '--harnesses', 'claude']);
     expect(second.exitCode).toBe(0);
     expect(second.stdout + second.stderr).toContain('Already initialized');
   });
 
   it('rejects unsupported assistants', async () => {
-    const result = await runCli(sandbox, ['init', '--assistants', 'cursor']);
+    const result = await runCli(sandbox, ['init', '--harnesses', 'cursor']);
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr + result.stdout).toMatch(/cursor|Unsupported assistant/i);
   });
@@ -105,7 +105,7 @@ describe('init', () => {
   it('succeeds in a repo without a package.json and produces no husky/secretlint artefacts', async () => {
     expect(existsSync(join(sandbox, 'package.json'))).toBe(false);
 
-    const result = await runCli(sandbox, ['init', '--assistants', 'claude']);
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude']);
     expect(result.exitCode).toBe(0);
 
     expect(existsSync(join(sandbox, '.ai/knowledge-base'))).toBe(true);
@@ -118,7 +118,7 @@ describe('init', () => {
   });
 
   it('registers Stop, SessionEnd, and PreCompact capture hooks in .claude/settings.json', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const settings = JSON.parse(readFileSync(join(sandbox, '.claude/settings.json'), 'utf8')) as {
       hooks?: Record<string, Array<{ hooks: Array<{ type: string; command: string }> }>>;
     };
@@ -133,7 +133,7 @@ describe('init', () => {
   });
 
   it('registers SessionStart drain (async) and session-start (sync) hooks', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const settings = JSON.parse(readFileSync(join(sandbox, '.claude/settings.json'), 'utf8')) as {
       hooks?: Record<
         string,
@@ -160,7 +160,7 @@ describe('init', () => {
   });
 
   it('emits every owned hook command with the $CLAUDE_PROJECT_DIR prefix', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const settings = JSON.parse(readFileSync(join(sandbox, '.claude/settings.json'), 'utf8')) as {
       hooks?: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
     };
@@ -176,7 +176,7 @@ describe('init', () => {
   });
 
   it('emitted Stop hook command loads when invoked from a subdirectory CWD', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
 
     const settings = JSON.parse(readFileSync(join(sandbox, '.claude/settings.json'), 'utf8')) as {
       hooks?: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
@@ -206,7 +206,7 @@ describe('init', () => {
   });
 
   it('writes a default config.yaml populated with defaults', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const body = yaml.load(
       readFileSync(join(sandbox, '.ai/knowledge-base/config.yaml'), 'utf8')
     ) as Record<string, unknown>;
@@ -220,7 +220,7 @@ describe('init', () => {
   });
 
   it('registers both SessionEnd capture and lint-tick hooks and ships kb-lint-tick.mjs', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     expect(existsSync(join(sandbox, '.claude/hooks/kb-lint-tick.mjs'))).toBe(true);
 
     const settings = JSON.parse(readFileSync(join(sandbox, '.claude/settings.json'), 'utf8')) as {
@@ -237,8 +237,8 @@ describe('init', () => {
   });
 
   it('re-running init --force preserves a single set of SessionEnd entries (no duplicates)', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
-    await runCli(sandbox, ['init', '--assistants', 'claude', '--force']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude', '--force']);
 
     const settings = JSON.parse(readFileSync(join(sandbox, '.claude/settings.json'), 'utf8')) as {
       hooks?: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
@@ -256,12 +256,12 @@ describe('init', () => {
   });
 
   it('does not overwrite an existing config.yaml even with --force', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const configFile = join(sandbox, '.ai/knowledge-base/config.yaml');
     const customized = 'schema_version: 1\ncurationThreshold: 99\n';
     writeFileSync(configFile, customized);
 
-    const result = await runCli(sandbox, ['init', '--assistants', 'claude', '--force']);
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--force']);
     expect(result.exitCode).toBe(0);
     expect(readFileSync(configFile, 'utf8')).toBe(customized);
     expect(result.stdout + result.stderr).toContain('config.yaml already exists');

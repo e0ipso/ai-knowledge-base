@@ -189,7 +189,7 @@ function checkNodeVersion(): CheckResult {
 
 function checkInstalled(file: string): CheckResult {
   if (!existsSync(file)) {
-    return err('missing. Run `npx @e0ipso/ai-knowledge-base init --assistants claude` from the repo root.');
+    return err('missing. Run `npx @e0ipso/ai-knowledge-base init --harnesses claude` from the repo root.');
   }
   let parsed: { version?: string };
   try {

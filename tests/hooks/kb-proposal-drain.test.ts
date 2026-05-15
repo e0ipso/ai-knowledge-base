@@ -83,7 +83,7 @@ describe('kb-proposal-drain hook (spawned)', () => {
     await new Promise<void>((res, rej) =>
       ef('git', ['init', '-q'], { cwd: sandbox }, err => (err ? rej(err) : res()))
     );
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
   });
   afterEach(() => cleanSandbox(sandbox));
 

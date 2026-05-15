@@ -38,7 +38,7 @@ describe('lint command', () => {
   beforeEach(async () => {
     sandbox = makeSandbox();
     await exec('git', ['init', '-q'], { cwd: sandbox });
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
   });
 
   afterEach(() => cleanSandbox(sandbox));

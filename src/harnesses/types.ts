@@ -75,12 +75,12 @@ export interface NamedDoctorCheck {
 }
 
 /**
- * Pluggable per-harness adapter. Every assistant integration (Claude Code,
+ * Pluggable per-harness adapter. Every harness integration (Claude Code,
  * Codex CLI, OpenCode, …) implements this interface in
  * `src/harnesses/<id>/` and registers itself in `src/harnesses/registry.ts`.
  */
 export interface HarnessAdapter {
-  /** Stable id used in `--assistants` and stamped into `installed-version`. */
+  /** Stable id used in `--harnesses` and stamped into `installed-version`. */
   readonly id: string;
 
   /** Canonical hook lifecycle declarations for this harness. */

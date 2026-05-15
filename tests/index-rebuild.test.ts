@@ -30,7 +30,7 @@ describe('index rebuild', () => {
   beforeEach(async () => {
     sandbox = makeSandbox();
     await exec('git', ['init', '-q'], { cwd: sandbox });
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
   });
   afterEach(() => cleanSandbox(sandbox));
 
@@ -162,7 +162,7 @@ describe('doctor: stale INDEX detection', () => {
   beforeEach(async () => {
     sandbox = makeSandbox();
     await exec('git', ['init', '-q'], { cwd: sandbox });
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
   });
   afterEach(() => cleanSandbox(sandbox));
 
@@ -182,7 +182,7 @@ describe('doctor: missing INDEX', () => {
   beforeEach(async () => {
     sandbox = makeSandbox();
     await exec('git', ['init', '-q'], { cwd: sandbox });
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
   });
   afterEach(() => cleanSandbox(sandbox));
 

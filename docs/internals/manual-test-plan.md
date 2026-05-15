@@ -16,7 +16,7 @@ git init
 echo "node_modules" > .gitignore
 npm pack ../path/to/ai-knowledge-base
 npm init -y
-npx ./e0ipso-ai-knowledge-base-<v>.tgz init --assistants claude
+npx ./e0ipso-ai-knowledge-base-<v>.tgz init --harnesses claude
 npm install
 npx @e0ipso/ai-knowledge-base doctor
 ```

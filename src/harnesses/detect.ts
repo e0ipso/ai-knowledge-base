@@ -21,8 +21,8 @@ export interface ResolveActiveHarnessOpts {
   /**
    * The `cliDefaultHarness` value read from `config.yaml`. Only used
    * when env detection finds no match — i.e. the CLI was invoked from
-   * a plain shell outside any assistant session. Skills and hooks are
-   * always invoked from inside their host assistant, where env
+   * a plain shell outside any harness session. Skills and hooks are
+   * always invoked from inside their host harness, where env
    * detection succeeds and this value is ignored.
    */
   cliDefault?: string | undefined;
@@ -35,7 +35,7 @@ export interface ResolveActiveHarnessOpts {
  *
  *   1. **Env detection.** Each registered adapter's `detectFromEnv` is
  *      asked in turn; the first match wins. This is the path skills
- *      and hooks take, because their host assistant always sets a
+ *      and hooks take, because their host harness always sets a
  *      detectable env var (`CLAUDECODE=1`, `CLAUDE_PROJECT_DIR`, …).
  *      Skills therefore use the harness they were invoked from, never
  *      a configured default.
@@ -48,7 +48,7 @@ export interface ResolveActiveHarnessOpts {
  *      In v1 this is always `claude`.
  *
  * This is the single entry point CLI commands use to pick an adapter.
- * `init` takes its harness list from the `--assistants` flag and
+ * `init` takes its harness list from the `--harnesses` flag and
  * bypasses this function.
  */
 export function resolveActiveHarness(opts: ResolveActiveHarnessOpts = {}): HarnessAdapter {

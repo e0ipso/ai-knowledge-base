@@ -19,20 +19,20 @@ describe('init --upgrade', () => {
   afterEach(() => cleanSandbox(sandbox));
 
   it('errors when the repo is not initialized', async () => {
-    const result = await runCli(sandbox, ['init', '--assistants', 'claude', '--upgrade']);
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr + result.stdout).toMatch(/Not initialized/i);
   });
 
   it('runs idempotently when already current', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
-    const result = await runCli(sandbox, ['init', '--assistants', 'claude', '--upgrade']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
     expect(result.exitCode).toBe(0);
     expect(result.stdout + result.stderr).toMatch(/Upgraded to/);
   });
 
   it('refreshes hooks but preserves a customized config.yaml', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
 
     const configFile = join(sandbox, '.ai/knowledge-base/config.yaml');
     const customized = 'schema_version: 1\ncurationThreshold: 42\n';
@@ -44,7 +44,7 @@ describe('init --upgrade', () => {
     installed.version = '0.0.0-test-old';
     writeFileSync(versionFile, JSON.stringify(installed, null, 2) + '\n');
 
-    const result = await runCli(sandbox, ['init', '--assistants', 'claude', '--upgrade']);
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toMatch(/Upgraded to/);
 
@@ -60,7 +60,7 @@ describe('init --upgrade', () => {
   });
 
   it('ships the tightened kb-curate allowed-tools after upgrade', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
 
     const versionFile = join(sandbox, '.ai/knowledge-base/.state/installed-version');
     const installed = JSON.parse(readFileSync(versionFile, 'utf8'));
@@ -75,7 +75,7 @@ describe('init --upgrade', () => {
       '---\nname: kb-curate\nallowed-tools: Bash(rm:*), Read, Edit, Write\n---\nold\n'
     );
 
-    const result = await runCli(sandbox, ['init', '--assistants', 'claude', '--upgrade']);
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
     expect(result.exitCode).toBe(0);
 
     const skill = readFileSync(skillFile, 'utf8');
@@ -86,7 +86,7 @@ describe('init --upgrade', () => {
   });
 
   it('preserves a customized local prompt override', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
 
     const promptFile = join(sandbox, '.ai/knowledge-base/.config/prompts/proposal-extract.md');
     writeFileSync(promptFile, '# my local override\n');
@@ -96,13 +96,13 @@ describe('init --upgrade', () => {
     installed.version = '0.0.0-test-old';
     writeFileSync(versionFile, JSON.stringify(installed, null, 2) + '\n');
 
-    const result = await runCli(sandbox, ['init', '--assistants', 'claude', '--upgrade']);
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
     expect(result.exitCode).toBe(0);
     expect(readFileSync(promptFile, 'utf8')).toBe('# my local override\n');
   });
 
   it('re-copies a missing prompt during upgrade', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
 
     const promptFile = join(sandbox, '.ai/knowledge-base/.config/prompts/proposal-extract.md');
     rmSync(promptFile);
@@ -112,13 +112,13 @@ describe('init --upgrade', () => {
     installed.version = '0.0.0-test-old';
     writeFileSync(versionFile, JSON.stringify(installed, null, 2) + '\n');
 
-    const result = await runCli(sandbox, ['init', '--assistants', 'claude', '--upgrade']);
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
     expect(result.exitCode).toBe(0);
     expect(existsSync(promptFile)).toBe(true);
   });
 
   it('preserves byte-for-byte edits to config.yaml and a prompt across repeated upgrades', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
 
     const configFile = join(sandbox, '.ai/knowledge-base/config.yaml');
     const promptFile = join(sandbox, '.ai/knowledge-base/.config/prompts/proposal-extract.md');
@@ -129,19 +129,19 @@ describe('init --upgrade', () => {
     const editedPrompt = readFileSync(promptFile, 'utf8') + '\n<!-- local marker -->\n';
     writeFileSync(promptFile, editedPrompt);
 
-    const first = await runCli(sandbox, ['init', '--assistants', 'claude', '--upgrade']);
+    const first = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
     expect(first.exitCode).toBe(0);
     expect(readFileSync(configFile, 'utf8')).toBe(editedConfig);
     expect(readFileSync(promptFile, 'utf8')).toBe(editedPrompt);
 
-    const second = await runCli(sandbox, ['init', '--assistants', 'claude', '--upgrade']);
+    const second = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
     expect(second.exitCode).toBe(0);
     expect(readFileSync(configFile, 'utf8')).toBe(editedConfig);
     expect(readFileSync(promptFile, 'utf8')).toBe(editedPrompt);
   });
 
   it('creates config.yaml on upgrade when missing', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const configFile = join(sandbox, '.ai/knowledge-base/config.yaml');
     rmSync(configFile);
 
@@ -150,7 +150,7 @@ describe('init --upgrade', () => {
     installed.version = '0.0.0-test-old';
     writeFileSync(versionFile, JSON.stringify(installed, null, 2) + '\n');
 
-    const result = await runCli(sandbox, ['init', '--assistants', 'claude', '--upgrade']);
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
     expect(result.exitCode).toBe(0);
     expect(existsSync(configFile)).toBe(true);
     const body = yaml.load(readFileSync(configFile, 'utf8')) as Record<string, unknown>;
@@ -168,7 +168,7 @@ describe('doctor: installed-version currency', () => {
   afterEach(() => cleanSandbox(sandbox));
 
   it('warns when installed-version is older than the package', async () => {
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const versionFile = join(sandbox, '.ai/knowledge-base/.state/installed-version');
     const installed = JSON.parse(readFileSync(versionFile, 'utf8'));
     installed.version = '0.0.0-test-old';

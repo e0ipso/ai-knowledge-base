@@ -23,7 +23,7 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
 
   if (!existsSync(paths.installedVersionFile)) {
     log.error(
-      'ai-knowledge-base is not initialized in this repo. Run `npx @e0ipso/ai-knowledge-base init --assistants claude`.'
+      'ai-knowledge-base is not initialized in this repo. Run `npx @e0ipso/ai-knowledge-base init --harnesses claude`.'
     );
     return 1;
   }

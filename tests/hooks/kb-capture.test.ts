@@ -74,7 +74,7 @@ describe('kb-capture hook (spawned)', () => {
   beforeEach(async () => {
     sandbox = makeSandbox();
     await gitInit(sandbox);
-    await runCli(sandbox, ['init', '--assistants', 'claude']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
   });
   afterEach(() => cleanSandbox(sandbox));
 

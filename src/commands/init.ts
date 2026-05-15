@@ -15,7 +15,7 @@ import { defaultProjectConfigBody } from '../lib/settings.js';
 import { packageVersion } from '../lib/version.js';
 
 export interface InitOptions {
-  assistants: string[];
+  harnesses: string[];
   force?: boolean;
   upgrade?: boolean;
 }
@@ -25,7 +25,7 @@ interface InstalledVersion {
   package: string;
   version: string;
   installed_at: string;
-  assistants: string[];
+  harnesses: string[];
 }
 
 const GITIGNORE_BLOCK_START = '# >>> @e0ipso/ai-knowledge-base >>>';
@@ -39,7 +39,7 @@ const GITIGNORE_LINES = [
 ];
 
 export async function runInit(opts: InitOptions): Promise<void> {
-  validateAssistants(opts.assistants);
+  validateHarnesses(opts.harnesses);
 
   const root = findRepoRoot();
   const paths = repoPaths(root);
@@ -73,7 +73,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
 
   // 2. Per-harness files (templates + hook registration). Each adapter in
   //    src/harnesses/<id>/ knows where its own files live.
-  for (const id of opts.assistants) {
+  for (const id of opts.harnesses) {
     const adapter = getHarness(id);
     await adapter.install({ root, paths, templatesDir, upgrade: false });
   }
@@ -99,7 +99,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
   }
 
   // 6. Write installed-version marker.
-  writeInstalledVersion(paths.installedVersionFile, paths.stateDir, opts.assistants);
+  writeInstalledVersion(paths.installedVersionFile, paths.stateDir, opts.harnesses);
 
   log.success('Initialized.');
   log.plain('');
@@ -108,16 +108,16 @@ export async function runInit(opts: InitOptions): Promise<void> {
   log.plain('  2. Run `npx @e0ipso/ai-knowledge-base doctor` to verify the setup.');
 }
 
-function validateAssistants(assistants: string[]): void {
-  for (const a of assistants) {
-    if (!hasHarness(a)) {
+function validateHarnesses(harnesses: string[]): void {
+  for (const h of harnesses) {
+    if (!hasHarness(h)) {
       throw new Error(
-        `Unsupported assistant '${a}'. v1 only supports: ${listHarnessIds().join(', ')}.`
+        `Unsupported harness '${h}'. v1 only supports: ${listHarnessIds().join(', ')}.`
       );
     }
   }
-  if (!assistants.includes('claude')) {
-    throw new Error('Assistant list must include "claude" (the only assistant supported in v1).');
+  if (!harnesses.includes('claude')) {
+    throw new Error('Harness list must include "claude" (the only harness supported in v1).');
   }
 }
 
@@ -129,7 +129,7 @@ async function runUpgrade(
 ): Promise<void> {
   if (!existsSync(paths.installedVersionFile)) {
     throw new Error(
-      'Not initialized. Run `npx @e0ipso/ai-knowledge-base init --assistants claude` for a first-time install.'
+      'Not initialized. Run `npx @e0ipso/ai-knowledge-base init --harnesses claude` for a first-time install.'
     );
   }
   const current = packageVersion();
@@ -140,7 +140,7 @@ async function runUpgrade(
   // through their own modules.
   refreshClaudeTemplates({ root, paths, templatesDir, upgrade: true });
 
-  for (const id of opts.assistants) {
+  for (const id of opts.harnesses) {
     const adapter = getHarness(id);
     await adapter.upgrade({ root, paths, templatesDir, upgrade: true });
   }
@@ -154,7 +154,7 @@ async function runUpgrade(
     writeFileSync(paths.projectConfigFile, defaultProjectConfigBody());
   }
 
-  writeInstalledVersion(paths.installedVersionFile, paths.stateDir, opts.assistants);
+  writeInstalledVersion(paths.installedVersionFile, paths.stateDir, opts.harnesses);
 
   log.success(`Upgraded to ${current}.`);
   log.plain('Run `npx @e0ipso/ai-knowledge-base doctor` to verify.');
@@ -174,13 +174,13 @@ function copyPromptsPreservingLocal(src: string, dst: string): void {
   }
 }
 
-function writeInstalledVersion(file: string, stateDir: string, assistants: string[]): void {
+function writeInstalledVersion(file: string, stateDir: string, harnesses: string[]): void {
   const installed: InstalledVersion = {
     schema_version: 1,
     package: '@e0ipso/ai-knowledge-base',
     version: packageVersion(),
     installed_at: new Date().toISOString(),
-    assistants,
+    harnesses,
   };
   mkdirSync(stateDir, { recursive: true });
   writeFileSync(file, `${JSON.stringify(installed, null, 2)}\n`);

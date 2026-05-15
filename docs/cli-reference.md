@@ -10,7 +10,7 @@ The `ai-knowledge-base` binary is available after install (or run via `npx`).
 ## `init`
 
 ```sh
-npx @e0ipso/ai-knowledge-base init --assistants claude [--force] [--upgrade]
+npx @e0ipso/ai-knowledge-base init --harnesses claude [--force] [--upgrade]
 ```
 
 First-time setup. Writes the knowledge-base scaffold (`.ai/knowledge-base/`), Claude hooks and skills (under `.claude/`), and a managed `.gitignore` block for the runtime state files. Does not patch `package.json` and does not install any commit-time tooling (husky, lint-staged, secretlint, commitlint); see [Installation → Optional commit-time hardening](installation.md#optional-commit-time-hardening) if you want those.
@@ -127,7 +127,7 @@ If a key is absent, neither flag is passed and the user's `claude` CLI default a
 
 ## Slash commands (Claude Code)
 
-After `init --assistants claude`, three skills are available inside a session:
+After `init --harnesses claude`, three skills are available inside a session:
 
 | Command | Equivalent |
 |---|---|

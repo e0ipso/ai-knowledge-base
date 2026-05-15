@@ -23,8 +23,8 @@ async function main(): Promise<void> {
     .command('init')
     .description('First-time setup: copy templates, register Claude hooks, record version.')
     .requiredOption(
-      '-a, --assistants <list>',
-      'comma-separated list of assistants to wire up (v1 supports: claude)',
+      '-h, --harnesses <list>',
+      'comma-separated list of harnesses to wire up (v1 supports: claude)',
       (value: string) =>
         value
           .split(',')
@@ -39,7 +39,7 @@ async function main(): Promise<void> {
     )
     .action(
       async (opts: {
-        assistants: string[];
+        harnesses: string[];
         force: boolean;
         upgrade: boolean;
       }) => {

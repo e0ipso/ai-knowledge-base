@@ -8,7 +8,7 @@ import type { HarnessAdapter } from './types.js';
  *
  * The registry is intentionally a plain map — every consumer surface
  * (`init`, `doctor`, `curate`, …) goes through `getHarness(id)` so the
- * rest of the codebase has no knowledge of which assistants exist.
+ * rest of the codebase has no knowledge of which harnesses exist.
  */
 const ADAPTERS: Readonly<Record<string, HarnessAdapter>> = {
   [claudeAdapter.id]: claudeAdapter,
@@ -21,7 +21,7 @@ export function listHarnessIds(): string[] {
 export function getHarness(id: string): HarnessAdapter {
   const adapter = ADAPTERS[id];
   if (!adapter) {
-    throw new Error(`Unsupported assistant '${id}'. Supported: ${listHarnessIds().join(', ')}.`);
+    throw new Error(`Unsupported harness '${id}'. Supported: ${listHarnessIds().join(', ')}.`);
   }
   return adapter;
 }

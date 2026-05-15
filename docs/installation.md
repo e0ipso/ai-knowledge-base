@@ -17,7 +17,7 @@ No Anthropic API key required. The tool uses `claude -p` and inherits your exist
 In the root of your repository:
 
 ```sh
-npx @e0ipso/ai-knowledge-base init --assistants claude
+npx @e0ipso/ai-knowledge-base init --harnesses claude
 npx @e0ipso/ai-knowledge-base doctor
 ```
 
@@ -137,7 +137,7 @@ When a new version of the package ships:
 
 ```sh
 npm install --save-dev @e0ipso/ai-knowledge-base@latest
-npx @e0ipso/ai-knowledge-base init --assistants claude --upgrade
+npx @e0ipso/ai-knowledge-base init --harnesses claude --upgrade
 npx @e0ipso/ai-knowledge-base doctor
 ```
 

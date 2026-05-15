@@ -48,7 +48,7 @@ Every kept fact is a markdown file under `nodes/` with YAML frontmatter. Two kin
 Frontmatter carries the edges of a directed graph: `derived_from` for provenance, `relates_to` (loose) and `depends_on` (strict) for cross-references. Two artifacts are regenerated deterministically from `nodes/` every curate run:
 
 - **`INDEX.md`**: catalog of every node (title, path, and tags). This is what gets injected into every new session.
-- **`GRAPH.md`**: full edge listing. Not injected; the assistant reads it on demand when it needs the whole graph.
+- **`GRAPH.md`**: full edge listing. Not injected; the harness reads it on demand when it needs the whole graph.
 
 Everything is plain text, diffable, reviewable, version-controlled like any code. The full frontmatter shape lives in [Schemas](internals/schemas.md).
 

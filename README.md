@@ -5,12 +5,12 @@
 
 Build and maintain a per-repo knowledge base from AI coding sessions, for use with [Claude Code](https://docs.claude.com/en/docs/claude-code).
 
-Your AI sessions produce a steady stream of project-specific knowledge - conventions, prohibitions, gotchas, named modules, decision rationale. Today, almost all of it evaporates when the session ends. This tool captures it, asks a human to curate it, and injects it back into every future session so the assistant starts each conversation with your team's accumulated context.
+Your AI sessions produce a steady stream of project-specific knowledge - conventions, prohibitions, gotchas, named modules, decision rationale. Today, almost all of it evaporates when the session ends. This tool captures it, asks a human to curate it, and injects it back into every future session so the harness starts each conversation with your team's accumulated context.
 
 ## Quick start
 
 ```sh
-npx @e0ipso/ai-knowledge-base init --assistants claude
+npx @e0ipso/ai-knowledge-base init --harnesses claude
 npx @e0ipso/ai-knowledge-base doctor
 ```
 
