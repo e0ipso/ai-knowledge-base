@@ -20,9 +20,20 @@ flowchart LR
 
 ## 1. Capture (automatic)
 
-When a Claude Code session ends, a hook reads the transcript, runs it through [secretlint](https://github.com/secretlint/secretlint) (with the recommended preset) to redact secrets, and writes it to `.ai/knowledge-base/_sessions/`. Then a background extractor turns that transcript into structured _candidates_ (small bits of practice or vocabulary worth remembering).
+When an AI session ends, a hook reads the transcript, runs it through [secretlint](https://github.com/secretlint/secretlint) (with the recommended preset) to redact secrets, and writes it to `.ai/knowledge-base/_sessions/`. Then a background extractor turns that transcript into structured _candidates_ (small bits of practice or vocabulary worth remembering).
 
 You don't run this. It just happens.
+
+### Capture events per harness
+
+Which lifecycle events fire capture depends on the active harness:
+
+| Harness | Capture events |
+|---|---|
+| Claude Code | `Stop`, `SessionEnd`, `PreCompact` |
+| Codex CLI | `Stop` only |
+
+Codex does not emit `SessionEnd` or `PreCompact`, so the Codex adapter wires capture and the lint tick to `Stop` only. The practical consequence: a Codex session contributes one rolling capture (rewritten on each Stop) instead of one capture per session-end plus a pre-compaction safety net. Curation and review behave identically across harnesses.
 
 ## 2. Curate (mostly automatic)
 

@@ -8,11 +8,13 @@ nav_order: 3
 ## Prerequisites
 
 - Node.js 22+
-- [Claude Code CLI](https://docs.claude.com/en/docs/claude-code/getting-started)
+- One of the supported AI harnesses:
+  - [Claude Code CLI](https://docs.claude.com/en/docs/claude-code/getting-started), or
+  - [OpenAI Codex CLI](https://developers.openai.com/codex/cli/)
 
-No Anthropic API key required. The tool uses `claude -p` and inherits your existing Claude Code auth. A `package.json` is no longer required at the repo root; `init` does not patch your project manifest.
+No API key required for either harness. The tool spawns the harness's own headless driver (`claude -p` or `codex exec`) and inherits whatever auth that CLI already uses. A `package.json` is no longer required at the repo root; `init` does not patch your project manifest.
 
-## Install
+## Claude Code
 
 In the root of your repository:
 
@@ -29,9 +31,51 @@ This creates / updates:
 
 `init` does **not** install husky, lint-staged, secretlint, commitlint, or any other commit-time tooling. If you want those, wire them up yourself (see [Optional: commit-time hardening](#optional-commit-time-hardening) below).
 
-## Verify
+The Claude adapter wires capture on three lifecycle events: `Stop`, `SessionEnd`, and `PreCompact`.
+
+### Verify
 
 `npx @e0ipso/ai-knowledge-base doctor` checks your Node version, that `claude` is on PATH, that the Claude hooks are registered, that the installed-version marker is present, and that INDEX is fresh. Exits 0 when clean.
+
+## Codex CLI
+
+In the root of your repository:
+
+```sh
+npx @e0ipso/ai-knowledge-base init --harnesses codex
+npx @e0ipso/ai-knowledge-base --harness codex doctor
+```
+
+This creates / updates:
+
+- `.ai/knowledge-base/`: your knowledge base scaffold (same layout as the Claude install).
+- `.codex/hooks.json`: the Codex hook registration file; entries we own are tagged by command prefix and refreshed on `init --upgrade`. User-authored entries in the same file are preserved.
+- `.codex/hooks/`: the hook scripts (`kb-capture.mjs`, `kb-session-start.mjs`, `kb-proposal-drain.mjs`, `kb-lint-tick.mjs`).
+- `.agents/skills/`: the `kb-add`, `kb-bootstrap`, and `kb-curate` skills. Codex reads skills from this shared location instead of a harness-specific subdirectory.
+- A managed block in `.gitignore` for the runtime state files.
+
+If your `.codex/config.toml` already defines its own `[hooks]` table, `init` refuses to write `.codex/hooks.json` and points you at [`codex-toml-hooks-coexistence.md`](installation/codex-toml-hooks-coexistence.md) for the manual merge procedure. We do not auto-merge because round-tripping TOML loses comments and whitespace.
+
+### The `--harness <id>` flag
+
+Every CLI subcommand accepts a global `--harness <id>` flag (`claude` or `codex`). When you are inside an active session the detector picks the right harness from the environment, so the flag is optional; pass it explicitly when running CLI commands outside a session or when a repo has both harnesses installed. Example:
+
+```sh
+npx @e0ipso/ai-knowledge-base --harness codex doctor
+npx @e0ipso/ai-knowledge-base --harness codex curate
+```
+
+### Capture-event gap
+
+Codex emits a `Stop` event at the end of every assistant turn but does not emit `SessionEnd` or `PreCompact`. The Codex adapter therefore wires capture and the lint tick to `Stop` only. The practical consequence: a single Codex session contributes one rolling capture (overwritten on each Stop) instead of one capture per session-end plus a pre-compaction safety net. Curation, conflict resolution, and review are unchanged.
+
+### Verify
+
+```sh
+npx @e0ipso/ai-knowledge-base --harness codex doctor
+```
+
+Checks your Node version, that `codex` is on PATH, that `.codex/hooks.json` is registered with our entries, and that INDEX is fresh.
 
 ## Optional: commit-time hardening
 

@@ -7,13 +7,27 @@ nav_order: 5
 
 The `ai-knowledge-base` binary is available after install (or run via `npx`).
 
+## Global options
+
+### `--harness <id>`
+
+Selects which harness adapter (`claude` or `codex`) drives this invocation. Inherited by every subcommand. When omitted, the CLI inspects the environment for harness-specific markers (e.g. `CLAUDECODE=1`); if no harness claims the env it falls back to the configured default, then to the first registered harness.
+
+Use the flag explicitly when running CLI commands outside an active session, or in a repo where multiple harnesses are installed.
+
+```sh
+npx @e0ipso/ai-knowledge-base --harness codex doctor
+```
+
 ## `init`
 
 ```sh
-npx @e0ipso/ai-knowledge-base init --harnesses claude [--force] [--upgrade]
+npx @e0ipso/ai-knowledge-base init --harnesses <id[,id,...]> [--force] [--upgrade]
 ```
 
-First-time setup. Writes the knowledge-base scaffold (`.ai/knowledge-base/`), Claude hooks and skills (under `.claude/`), and a managed `.gitignore` block for the runtime state files. Does not patch `package.json` and does not install any commit-time tooling (husky, lint-staged, secretlint, commitlint); see [Installation → Optional commit-time hardening](installation.md#optional-commit-time-hardening) if you want those.
+First-time setup. Writes the knowledge-base scaffold (`.ai/knowledge-base/`), per-harness hooks and skills, and a managed `.gitignore` block for the runtime state files. Does not patch `package.json` and does not install any commit-time tooling (husky, lint-staged, secretlint, commitlint); see [Installation, Optional commit-time hardening](installation.md#optional-commit-time-hardening) if you want those.
+
+Supported `--harnesses` ids: `claude`, `codex`. Pass a comma-separated list to install several at once (`--harnesses claude,codex`).
 
 - `--force`: overwrite existing template files (never touches your project config).
 - `--upgrade`: refresh templates and skills while preserving `config.yaml` and local prompt overrides.

@@ -14,8 +14,10 @@ import {
   CURSORY_MAX_USER_CHARS,
   CURSORY_MAX_USER_TURNS,
 } from './settings.js';
-import { parseTranscriptJsonl } from '../harnesses/claude/transcript.js';
+import type { RoleTaggedTranscript } from '../harnesses/types.js';
 import { renderRoleTagged } from './transcript-render.js';
+
+export type TranscriptParser = (text: string) => RoleTaggedTranscript;
 
 export interface HookInput {
   session_id: string;
@@ -39,6 +41,7 @@ export interface CaptureResult {
 
 export interface CaptureContext {
   sessionsDir: string;
+  parseTranscript: TranscriptParser;
   now?: () => Date;
   scan?: SecretScanner;
   scanTimeoutMs?: number;
@@ -71,7 +74,7 @@ export async function captureSession(
   }
 
   const transcriptText = readFileSync(transcriptPath, 'utf8');
-  const parsed = parseTranscriptJsonl(transcriptText);
+  const parsed = ctx.parseTranscript(transcriptText);
   const slice = renderRoleTagged(parsed);
   if (!slice.trim()) {
     return { status: 'no-content' };

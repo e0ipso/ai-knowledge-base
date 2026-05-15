@@ -414,13 +414,13 @@ graph TD
 **Parallel Tasks:**
 - ✔️ Task 07: Codex adapter scaffold + registration (depends on: 01, 02, 05)
 
-### Phase 3: Codex adapter implementation
+### ✅ Phase 3: Codex adapter implementation
 **Parallel Tasks:**
-- Task 08: Codex hooks-config writer with TOML coexistence guard (depends on: 07)
-- Task 09: Codex rollout JSONL transcript parser (depends on: 07)
-- Task 10: Codex headless runner (depends on: 03, 04, 07)
-- Task 12: Codex skill templates and `.agents/skills/` install (depends on: 07)
-- Task 14: KB node alignment (depends on: 05, 07)
+- ✔️ Task 08: Codex hooks-config writer with TOML coexistence guard (depends on: 07)
+- ✔️ Task 09: Codex rollout JSONL transcript parser (depends on: 07)
+- ✔️ Task 10: Codex headless runner (depends on: 03, 04, 07)
+- ✔️ Task 12: Codex skill templates and `.agents/skills/` install (depends on: 07)
+- ✔️ Task 14: KB node alignment (depends on: 05, 07)
 
 ### Phase 4: Hook scripts and narrative docs
 **Parallel Tasks:**

@@ -30,16 +30,20 @@ npm run build
 src/
   cli.ts                          # commander entry, registers subcommands
   commands/                       # one file per subcommand (init, doctor, status, ...)
-  adapters/
-    types.ts                      # assistant-agnostic adapter contract
-    claude.ts                     # Claude Code adapter implementation
-  lib/                            # shared utilities (paths, log, version, ...)
+  harnesses/
+    types.ts                      # harness-agnostic adapter contract
+    registry.ts                   # central HarnessAdapter registry
+    detect.ts                     # env-based active-harness resolver
+    claude/                       # Claude Code adapter
+    codex/                        # OpenAI Codex CLI adapter
+  lib/                            # shared utilities (paths, log, version, schemas, ...)
   templates-source/               # source for the shipped templates/ directory
 scripts/
-  build-templates.mjs             # copies templates-source/ → templates/
+  build-templates.mjs             # copies templates-source/ to templates/, builds hook scripts
 templates/                        # built; bundled into the npm package
 tests/
   fixtures/                       # transcripts and bootstrap docs used by integration tests
+  harnesses/                      # per-adapter test suites
 docs/                             # Jekyll/Just-the-Docs site, served via GitHub Pages
 PRD.md                            # product requirements (authoritative)
 ```
@@ -87,6 +91,20 @@ bundle exec jekyll serve
 ```
 
 CI deploys on push to `main`.
+
+## Adding a new harness adapter
+
+A "harness" is one of the assistant CLIs we drive (Claude Code, Codex CLI, ...). Each harness lives under `src/harnesses/<id>/` and ships as a `HarnessAdapter` implementation. To wire up a new one (call it `<id>`):
+
+1. **Implement `HarnessAdapter`.** The interface lives in [`src/harnesses/types.ts`](src/harnesses/types.ts). Provide `id`, `hooks`, `paths`, `install`, `upgrade`, `parseTranscript`, `renderTranscript`, `runHeadless`, `buildHarnessOpts`, `doctorChecks`, and (optionally) `detectFromEnv`.
+2. **Register the adapter.** Add it to the central registry in [`src/harnesses/registry.ts`](src/harnesses/registry.ts) so `--harness <id>` and the env detector pick it up.
+3. **Add hook scripts.** Place compiled-source hook scripts under `src/harnesses/<id>/hooks/` (one `.mjs` per hook). The build pipeline in `scripts/build-templates.mjs` auto-discovers them and emits them into the bundled `templates/<id>/hooks/` tree.
+4. **Add templates.** Place static template assets (skills, settings stubs, prompts) under `src/templates-source/<id>/`. The build pipeline auto-copies them into `templates/<id>/`.
+5. **Add doctor checks.** Implement harness-specific health probes (CLI on PATH, settings file validity, hook registration intact) in `src/harnesses/<id>/doctor.ts` and surface them via the adapter's `doctorChecks(paths)` method.
+6. **Add a `ModelChoiceSchema` discriminator option.** The discriminated union in [`src/lib/schemas.ts`](src/lib/schemas.ts) keys per-call model selection on the `harness` field. Add a new schema variant (`{ harness: '<id>', name, effort }`) so `proposalModel`, `curatorModel`, and `bootstrapModel` accept your harness in `config.yaml`.
+7. **Write tests.** Place unit and integration tests under `tests/harnesses/<id>/`. Cover at minimum: transcript parsing, hook registration round-trip, doctor checks, and headless-run option mapping.
+
+Adapters never reach into each other's directories. Anything shared (paths under `.ai/knowledge-base/`, the curator pipeline, the node schema, the secret scanner) lives in the harness-neutral modules under `src/lib/` or `src/commands/`.
 
 ## Submitting a PR
 

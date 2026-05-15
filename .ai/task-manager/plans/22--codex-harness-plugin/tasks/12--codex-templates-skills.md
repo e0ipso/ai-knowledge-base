@@ -2,7 +2,7 @@
 id: 12
 group: "codex-adapter"
 dependencies: [7]
-status: "pending"
+status: "completed"
 created: 2026-05-15
 skills:
   - typescript

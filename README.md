@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@e0ipso/ai-knowledge-base.svg)](https://www.npmjs.com/package/@e0ipso/ai-knowledge-base)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Build and maintain a per-repo knowledge base from AI coding sessions, for use with [Claude Code](https://docs.claude.com/en/docs/claude-code).
+Build and maintain a per-repo knowledge base from AI coding sessions, for use with [Claude Code](https://docs.claude.com/en/docs/claude-code) or [OpenAI Codex CLI](https://developers.openai.com/codex/cli/).
 
 Your AI sessions produce a steady stream of project-specific knowledge - conventions, prohibitions, gotchas, named modules, decision rationale. Today, almost all of it evaporates when the session ends. This tool captures it, asks a human to curate it, and injects it back into every future session so the harness starts each conversation with your team's accumulated context.
 
@@ -13,6 +13,8 @@ Your AI sessions produce a steady stream of project-specific knowledge - convent
 npx @e0ipso/ai-knowledge-base init --harnesses claude
 npx @e0ipso/ai-knowledge-base doctor
 ```
+
+For OpenAI Codex CLI, install with `npx @e0ipso/ai-knowledge-base init --harnesses codex` instead; Codex skills install under `.agents/skills/` (Claude skills install under `.claude/skills/`).
 
 That's the consumer path. After running `init`, AI sessions in this repo automatically capture candidate knowledge; `npx @e0ipso/ai-knowledge-base curate` (or `/kb-curate` from inside a session) writes new knowledge nodes directly under `nodes/`. You review with `git diff`, accept with `git commit`, reject with `git restore`.
 

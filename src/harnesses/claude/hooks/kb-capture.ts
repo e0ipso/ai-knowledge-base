@@ -9,6 +9,7 @@
 import { captureSession, type HookInput } from '../../../lib/capture.js';
 import { findRepoRoot, repoPaths } from '../../../lib/paths.js';
 import { assertValidSessionId } from '../../../lib/session-log.js';
+import { parseTranscriptJsonl } from '../transcript.js';
 
 const HARD_DEADLINE_MS = 1000;
 const PACKAGE_TAG = '[ai-knowledge-base]';
@@ -51,7 +52,10 @@ async function main(): Promise<void> {
         : {}),
       ...(typeof payload['cwd'] === 'string' ? { cwd: payload['cwd'] as string } : {}),
     };
-    const result = await captureSession(input, { sessionsDir: paths.sessionsDir });
+    const result = await captureSession(input, {
+      sessionsDir: paths.sessionsDir,
+      parseTranscript: parseTranscriptJsonl,
+    });
     if (result.status === 'secret-scan-blocked') {
       process.stderr.write(
         `${PACKAGE_TAG} secret scan blocked transcript capture: ${result.error ?? 'unknown error'}\n`

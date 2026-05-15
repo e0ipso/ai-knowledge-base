@@ -19,7 +19,7 @@ Two cooperating pieces:
 - **A builder tool** (installed once per repo, used by anyone running AI sessions) that watches sessions, extracts candidate knowledge, and proposes changes to the knowledge base for human review.
 - **A knowledge base** (lives inside the repo as plain markdown files) that any teammate gets when they clone the repo, and that the AI can navigate progressively during their own sessions.
 
-Knowledge is captured automatically. Knowledge is curated deliberately, with a human in the loop for every change. Consuming the KB requires Claude Code (the v1 supported assistant) plus Node 22+ for the SessionStart hook. Adapters for other AI assistants are planned for v2; v1 ships with Claude Code only.
+Knowledge is captured automatically. Knowledge is curated deliberately, with a human in the loop for every change. Consuming the KB requires Node 22+ plus one of the supported AI harnesses: Claude Code or OpenAI Codex CLI. Each harness ships as its own adapter (`src/harnesses/claude/` and `src/harnesses/codex/`); selecting which one a repo uses happens at install time via `--harnesses <id[,id,...]>` and at runtime via the `--harness <id>` global CLI flag. The Claude adapter wires capture on `Stop`, `SessionEnd`, and `PreCompact`; the Codex adapter captures on `Stop` only (Codex does not emit `SessionEnd` or `PreCompact`). Both harnesses share the same node format, curator, and review surface, so a KB curated under one harness loads correctly under the other.
 
 ## 3. Users
 
@@ -46,7 +46,6 @@ Knowledge is captured automatically. Knowledge is curated deliberately, with a h
 - **Not a vector database or semantic search engine.** Plain markdown navigated with normal file-reading tools.
 - **Not a replacement for documentation.** ADRs, READMEs, and inline comments still belong where they belong. The KB captures the AI-session-derived layer.
 - **Not autonomous.** The system never modifies the KB without human approval.
-- **Not multi-assistant in v1.** Claude Code first; the architecture isolates assistant-specific code so adapters can be added later, but only Claude Code ships in v1.
 
 ## 6. What counts as knowledge
 
@@ -232,7 +231,6 @@ The system is working if, after three months of use on a real project:
 - Integration with project management tools (Jira, Linear).
 - Active learning loops where the AI proactively asks "should I save this?" mid-session.
 - Anything that requires running infrastructure.
-- Multi-assistant adapters beyond Claude Code.
 
 ## 12. Open questions deferred to implementation or v2
 
