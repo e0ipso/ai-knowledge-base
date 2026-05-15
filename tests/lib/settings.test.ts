@@ -82,23 +82,67 @@ describe('settings', () => {
     );
   });
 
-  it('accepts a complete model choice and treats all three keys as optional', () => {
+  it('accepts a complete claude model choice and treats all three keys as optional', () => {
     expect(
       SettingsSchema.safeParse({
         schema_version: 1,
-        proposalModel: { name: 'haiku', effort: 'low' },
+        proposalModel: { harness: 'claude', name: 'haiku', effort: 'low' },
       }).success
     ).toBe(true);
     expect(SettingsSchema.safeParse({ schema_version: 1 }).success).toBe(true);
   });
 
-  it('rejects invalid or half-set model choices', () => {
+  it('accepts a codex model choice with opaque strings', () => {
+    expect(
+      SettingsSchema.safeParse({
+        schema_version: 1,
+        curatorModel: { harness: 'codex', model: 'gpt-5-codex' },
+      }).success
+    ).toBe(true);
+    expect(
+      SettingsSchema.safeParse({
+        schema_version: 1,
+        curatorModel: {
+          harness: 'codex',
+          model: 'gpt-5-codex',
+          reasoningEffort: 'high',
+        },
+      }).success
+    ).toBe(true);
+  });
+
+  it('rejects invalid claude variants and missing discriminator', () => {
     const invalid = [
-      { proposalModel: { name: 'turbo', effort: 'low' } },
-      { proposalModel: { name: 'haiku', effort: 'turbo' } },
-      { proposalModel: { name: 'haiku' } },
-      { proposalModel: { effort: 'low' } },
-      { proposalModel: { name: 'haiku', effort: 'low', extra: true } },
+      // Missing harness discriminator.
+      { proposalModel: { name: 'haiku', effort: 'low' } },
+      // Wrong family.
+      { proposalModel: { harness: 'claude', name: 'turbo', effort: 'low' } },
+      // Wrong effort.
+      { proposalModel: { harness: 'claude', name: 'haiku', effort: 'turbo' } },
+      // Half-set.
+      { proposalModel: { harness: 'claude', name: 'haiku' } },
+      { proposalModel: { harness: 'claude', effort: 'low' } },
+      // Strict: extra key not allowed.
+      {
+        proposalModel: {
+          harness: 'claude',
+          name: 'haiku',
+          effort: 'low',
+          extra: true,
+        },
+      },
+    ];
+    for (const payload of invalid) {
+      const result = SettingsSchema.safeParse({ schema_version: 1, ...payload });
+      expect(result.success).toBe(false);
+    }
+  });
+
+  it('rejects invalid codex variants (empty model, strict mode)', () => {
+    const invalid = [
+      { curatorModel: { harness: 'codex' } },
+      { curatorModel: { harness: 'codex', model: '' } },
+      { curatorModel: { harness: 'codex', model: 'gpt-5-codex', extra: true } },
     ];
     for (const payload of invalid) {
       const result = SettingsSchema.safeParse({ schema_version: 1, ...payload });
@@ -110,13 +154,13 @@ describe('settings', () => {
     expect(
       SettingsSchema.safeParse({
         schema_version: 1,
-        curatorModel: { name: 'haiku' },
+        curatorModel: { harness: 'claude', name: 'haiku' },
       }).success
     ).toBe(false);
     expect(
       SettingsSchema.safeParse({
         schema_version: 1,
-        bootstrapModel: { name: 'sonnet', effort: 'turbo' },
+        bootstrapModel: { harness: 'claude', name: 'sonnet', effort: 'turbo' },
       }).success
     ).toBe(false);
   });

@@ -3,6 +3,8 @@ import { join } from 'node:path';
 import yaml from 'js-yaml';
 import { SettingsSchema, type ModelChoice, type SettingsFile } from './schemas.js';
 
+export type { ModelChoice };
+
 /**
  * Documented defaults for the user-facing settings.
  */
@@ -100,6 +102,11 @@ export function projectConfigPath(kbDir: string): string {
 /**
  * The default committed `config.yaml` body. Written by `init` and
  * `init --upgrade` when the file does not exist.
+ *
+ * The serialized YAML is preceded by a short comment block that documents
+ * the per-harness shape of `proposalModel` / `curatorModel` /
+ * `bootstrapModel`, so a human editing the file knows which fields each
+ * harness expects without consulting the source.
  */
 export function defaultProjectConfigBody(): string {
   const body: SettingsFile = {
@@ -108,5 +115,28 @@ export function defaultProjectConfigBody(): string {
     logsRetentionDays: SETTINGS_DEFAULTS.logsRetentionDays,
     lintEveryNSessions: SETTINGS_DEFAULTS.lintEveryNSessions,
   };
-  return yaml.dump(body, { indent: 2, lineWidth: 0, noRefs: true });
+  const header = [
+    '# ai-knowledge-base project settings.',
+    '#',
+    '# Per-call model selection (optional). Each entry is keyed by the',
+    '# `harness` discriminator and only consumed when the active adapter',
+    '# matches that id.',
+    '#',
+    '# proposalModel:',
+    "#   harness: claude       # one of: claude, codex",
+    '#   name: haiku           # claude only: haiku | sonnet | opus',
+    '#   effort: low           # claude only: low | medium | high | xhigh | max',
+    '#',
+    '# curatorModel:',
+    '#   harness: codex',
+    '#   model: gpt-5-codex    # codex only: opaque model id',
+    '#   reasoningEffort: high # codex only: opaque effort string (optional)',
+    '#',
+    "# Set `cliDefaultHarness: <id>` to pick the adapter for plain-shell",
+    '# CLI invocations (e.g. `npx ai-knowledge-base curate` typed in a',
+    '# terminal). Skills and hooks always resolve via env detection or',
+    "# the explicit `--harness <id>` flag and ignore this setting.",
+    '',
+  ].join('\n');
+  return `${header}${yaml.dump(body, { indent: 2, lineWidth: 0, noRefs: true })}`;
 }

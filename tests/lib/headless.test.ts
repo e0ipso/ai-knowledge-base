@@ -5,7 +5,7 @@ import { Readable } from 'node:stream';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { execa } from 'execa';
-import { runHeadlessClaude } from '../../src/lib/headless.js';
+import { runHeadlessClaude } from '../../src/harnesses/claude/headless.js';
 
 vi.mock('execa', () => ({ execa: vi.fn() }));
 
@@ -122,7 +122,7 @@ describe('runHeadlessClaude', () => {
       }),
     ]);
     await runHeadlessClaude('hello prompt', 'stdin', Schema, {
-      allowedTools: ['Read'],
+      harnessOpts: { allowedTools: ['Read'] },
       env: { FOO: 'bar' },
     });
     const env = captured.options?.['env'] as NodeJS.ProcessEnv;
@@ -149,8 +149,7 @@ describe('runHeadlessClaude', () => {
     });
     const both = mockExecaOnce([resultLine]);
     await runHeadlessClaude('p', '', Schema, {
-      model: 'haiku',
-      effort: 'low',
+      harnessOpts: { model: 'haiku', effort: 'low' },
     });
     expect(both.captured.args).toContain('--model');
     expect(both.captured.args).toContain('haiku');
@@ -158,7 +157,7 @@ describe('runHeadlessClaude', () => {
     expect(both.captured.args).toContain('low');
 
     const onlyModel = mockExecaOnce([resultLine]);
-    await runHeadlessClaude('p', '', Schema, { model: 'opus' });
+    await runHeadlessClaude('p', '', Schema, { harnessOpts: { model: 'opus' } });
     expect(onlyModel.captured.args).toContain('--model');
     expect(onlyModel.captured.args).toContain('opus');
     expect(onlyModel.captured.args).not.toContain('--effort');

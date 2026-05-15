@@ -5,6 +5,7 @@ import type { Readable } from 'node:stream';
 import split2 from 'split2';
 import type { ZodSchema } from 'zod';
 import type { HeadlessRunOptions, HeadlessStreamMessage } from '../types.js';
+import { ClaudeHarnessOptsSchema } from './opts.js';
 
 export const DEFAULT_TIMEOUT_MS = 60_000;
 
@@ -17,6 +18,10 @@ export const DEFAULT_TIMEOUT_MS = 60_000;
  * The recursion guard env var (`KB_BUILDER_INTERNAL=1`) is always set on the
  * child so that capture/drain hooks fired from the spawned process exit
  * silently.
+ *
+ * Claude-specific knobs (`model`, `effort`, `allowedTools`) live inside the
+ * adapter-opaque `harnessOpts` blob and are validated by
+ * `ClaudeHarnessOptsSchema` at the top of the call.
  */
 export async function runHeadlessClaude<T>(
   promptBody: string,
@@ -25,7 +30,8 @@ export async function runHeadlessClaude<T>(
   opts: HeadlessRunOptions = {}
 ): Promise<T> {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const allowedTools = opts.allowedTools ?? [];
+  const harnessOpts = ClaudeHarnessOptsSchema.parse(opts.harnessOpts ?? {});
+  const allowedTools = harnessOpts.allowedTools ?? [];
   const args = [
     '-p',
     promptBody,
@@ -35,8 +41,8 @@ export async function runHeadlessClaude<T>(
     'stream-json',
     '--verbose',
   ];
-  if (opts.model) args.push('--model', opts.model);
-  if (opts.effort) args.push('--effort', opts.effort);
+  if (harnessOpts.model) args.push('--model', harnessOpts.model);
+  if (harnessOpts.effort) args.push('--effort', harnessOpts.effort);
   const env: NodeJS.ProcessEnv = {
     ...(opts.env ?? process.env),
     KB_BUILDER_INTERNAL: '1',

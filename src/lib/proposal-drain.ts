@@ -2,11 +2,7 @@ import matter from 'gray-matter';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { ZodSchema } from 'zod';
-import {
-  ProposalOutputSchema,
-  type EffortLevel,
-  type ModelFamily,
-} from './schemas.js';
+import { ProposalOutputSchema } from './schemas.js';
 import lockfile from 'proper-lockfile';
 import type { RepoPaths } from './paths.js';
 import { STATE_LOCK_OPTIONS } from './state.js';
@@ -22,10 +18,8 @@ export type ProposalRunner = <T>(
   schema: ZodSchema<T>,
   opts: {
     timeoutMs: number;
-    allowedTools?: string[];
     logFile?: string;
-    model?: ModelFamily;
-    effort?: EffortLevel;
+    harnessOpts?: Record<string, unknown>;
   }
 ) => Promise<T>;
 
@@ -35,8 +29,8 @@ export interface DrainContext {
   runner: ProposalRunner;
   maxEntries?: number;
   timeoutMs?: number;
-  model?: ModelFamily;
-  effort?: EffortLevel;
+  /** Adapter-specific knobs (model, effort, allowedTools, ...). */
+  harnessOpts?: Record<string, unknown>;
 }
 
 export type DrainEntryStatus = 'done' | 'failed';
@@ -96,8 +90,7 @@ export async function drainProposalQueue(ctx: DrainContext): Promise<DrainSummar
         promptTemplate: ctx.promptTemplate,
         runner: ctx.runner,
         timeoutMs,
-        ...(ctx.model !== undefined ? { model: ctx.model } : {}),
-        ...(ctx.effort !== undefined ? { effort: ctx.effort } : {}),
+        ...(ctx.harnessOpts !== undefined ? { harnessOpts: ctx.harnessOpts } : {}),
       });
       processed.push(result);
     }
@@ -146,12 +139,11 @@ interface ProcessArgs {
   promptTemplate: string;
   runner: ProposalRunner;
   timeoutMs: number;
-  model?: ModelFamily;
-  effort?: EffortLevel;
+  harnessOpts?: Record<string, unknown>;
 }
 
 async function processSessionLog(args: ProcessArgs): Promise<DrainEntryResult> {
-  const { entry, sessionsDir, logsDir, promptTemplate, runner, timeoutMs, model, effort } = args;
+  const { entry, sessionsDir, logsDir, promptTemplate, runner, timeoutMs, harnessOpts } = args;
   const parsed = matter(readFileSync(entry.file, 'utf8'));
   const transcript = extractTranscript(parsed.content);
   const prompt = buildProposalPrompt(promptTemplate, transcript);
@@ -161,10 +153,8 @@ async function processSessionLog(args: ProcessArgs): Promise<DrainEntryResult> {
   try {
     const out = await runner(prompt, '', ProposalOutputSchema, {
       timeoutMs,
-      allowedTools: [],
       logFile,
-      ...(model !== undefined ? { model } : {}),
-      ...(effort !== undefined ? { effort } : {}),
+      ...(harnessOpts !== undefined ? { harnessOpts } : {}),
     });
     writeSessionLogFrontmatter(entry.file, parsed, {
       proposal_status: 'done',

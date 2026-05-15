@@ -8,6 +8,7 @@ import { runLintCommand } from './commands/lint.js';
 import { runLogsPrune } from './commands/logs-prune.js';
 import { runNodeAdd } from './commands/node-add.js';
 import { runStatus } from './commands/status.js';
+import { listHarnessIds } from './harnesses/registry.js';
 import { intArg } from './lib/cli-args.js';
 import { log } from './lib/log.js';
 import { packageVersion } from './lib/version.js';
@@ -17,14 +18,23 @@ async function main(): Promise<void> {
   program
     .name('ai-knowledge-base')
     .description('Build and maintain a per-repo knowledge base from AI coding sessions.')
-    .version(packageVersion());
+    .version(packageVersion())
+    .option(
+      '--harness <id>',
+      `select the active harness adapter for this invocation (one of: ${listHarnessIds().join(', ')})`
+    );
+
+  const getHarnessFlag = (): string | undefined => {
+    const value = program.opts<{ harness?: string }>().harness;
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  };
 
   program
     .command('init')
-    .description('First-time setup: copy templates, register Claude hooks, record version.')
+    .description('First-time setup: copy templates, register harness hooks, record version.')
     .requiredOption(
       '-h, --harnesses <list>',
-      'comma-separated list of harnesses to wire up (v1 supports: claude)',
+      `comma-separated list of harnesses to wire up (supported: ${listHarnessIds().join(', ')})`,
       (value: string) =>
         value
           .split(',')
@@ -79,7 +89,10 @@ async function main(): Promise<void> {
     .description('Run the curator non-interactively over pending session logs.')
     .option('--timeout <ms>', 'per-batch subprocess timeout (default 120000)', intArg('--timeout'))
     .action(async (opts: { timeout?: number }) => {
-      const code = await runCurateCommand({ timeoutMs: opts.timeout });
+      const code = await runCurateCommand({
+        ...(opts.timeout !== undefined ? { timeoutMs: opts.timeout } : {}),
+        ...(getHarnessFlag() !== undefined ? { harness: getHarnessFlag() } : {}),
+      });
       process.exit(code);
     });
 
@@ -116,7 +129,8 @@ async function main(): Promise<void> {
           include: opts.include,
           exclude: opts.exclude,
           dryRun: opts.dryRun,
-          timeoutMs: opts.timeout,
+          ...(opts.timeout !== undefined ? { timeoutMs: opts.timeout } : {}),
+          ...(getHarnessFlag() !== undefined ? { harness: getHarnessFlag() } : {}),
         });
         process.exit(code);
       }

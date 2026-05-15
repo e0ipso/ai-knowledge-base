@@ -109,15 +109,17 @@ export async function runInit(opts: InitOptions): Promise<void> {
 }
 
 function validateHarnesses(harnesses: string[]): void {
+  if (harnesses.length === 0) {
+    throw new Error(
+      `--harnesses requires at least one entry. Supported: ${listHarnessIds().join(', ')}.`
+    );
+  }
   for (const h of harnesses) {
     if (!hasHarness(h)) {
       throw new Error(
-        `Unsupported harness '${h}'. v1 only supports: ${listHarnessIds().join(', ')}.`
+        `Unsupported harness '${h}'. Supported: ${listHarnessIds().join(', ')}.`
       );
     }
-  }
-  if (!harnesses.includes('claude')) {
-    throw new Error('Harness list must include "claude" (the only harness supported in v1).');
   }
 }
 

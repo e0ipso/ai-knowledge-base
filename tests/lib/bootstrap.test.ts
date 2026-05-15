@@ -476,25 +476,23 @@ describe('runBootstrapIncremental', () => {
     expect(byTitle['From C']).toEqual(['docs/c.md']);
   });
 
-  it('forwards model and effort to the runner when set, omits them otherwise', async () => {
+  it('forwards harnessOpts to the runner when set, omits them otherwise', async () => {
     writeFileSync(join(harness.sourceDir, 'a.md'), '# A');
-    let captured: { model?: string; effort?: string } = {};
+    let captured: Record<string, unknown> | undefined;
     const runner: BootstrapRunner = (async (_p, _s, _schema, opts) => {
-      captured = { model: opts.model, effort: opts.effort };
+      captured = opts.harnessOpts;
       return { practice: [], map: [] };
     }) as BootstrapRunner;
     await runBootstrapIncremental({
       ...ctxFor(harness, runner),
-      model: 'sonnet',
-      effort: 'high',
+      harnessOpts: { model: 'sonnet', effort: 'high' },
     });
     expect(captured).toEqual({ model: 'sonnet', effort: 'high' });
 
     writeFileSync(join(harness.sourceDir, 'b.md'), '# B');
-    captured = {};
+    captured = undefined;
     await runBootstrapIncremental(ctxFor(harness, runner));
-    expect(captured.model).toBeUndefined();
-    expect(captured.effort).toBeUndefined();
+    expect(captured).toBeUndefined();
   });
 });
 

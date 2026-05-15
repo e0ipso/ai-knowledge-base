@@ -10,8 +10,6 @@ import {
   type BootstrapCandidate,
   type BootstrapOutput,
   type BootstrapState,
-  type EffortLevel,
-  type ModelFamily,
   type NodeFrontmatter,
 } from './schemas.js';
 import lockfile from 'proper-lockfile';
@@ -66,10 +64,8 @@ export type BootstrapRunner = <T>(
   schema: ZodSchema<T>,
   opts: {
     timeoutMs: number;
-    allowedTools?: string[];
     logFile?: string;
-    model?: ModelFamily;
-    effort?: EffortLevel;
+    harnessOpts?: Record<string, unknown>;
   }
 ) => Promise<T>;
 
@@ -80,14 +76,14 @@ export interface BootstrapContext {
   paths: RepoPaths;
   /** Bootstrap-incremental prompt body. */
   promptTemplate: string;
-  /** Subprocess runner (`claude -p` adapter). Unused when `dryRun: true`. */
+  /** Subprocess runner (per-adapter headless driver). Unused when `dryRun: true`. */
   runner?: BootstrapRunner;
   include?: string[];
   exclude?: string[];
   dryRun?: boolean;
   timeoutMs?: number;
-  model?: ModelFamily;
-  effort?: EffortLevel;
+  /** Adapter-specific knobs (model, effort, allowedTools, ...). */
+  harnessOpts?: Record<string, unknown>;
 }
 
 export interface DocCandidateFile {
@@ -383,10 +379,8 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
       try {
         output = await ctx.runner(prompt, '', BootstrapOutputSchema, {
           timeoutMs,
-          allowedTools: [],
           logFile,
-          ...(ctx.model !== undefined ? { model: ctx.model } : {}),
-          ...(ctx.effort !== undefined ? { effort: ctx.effort } : {}),
+          ...(ctx.harnessOpts !== undefined ? { harnessOpts: ctx.harnessOpts } : {}),
         });
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);

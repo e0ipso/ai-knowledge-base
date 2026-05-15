@@ -15,6 +15,7 @@ import { findRepoRoot, packageTemplatesDir, repoPaths } from '../../../lib/paths
 import { resolveSettings } from '../../../lib/settings.js';
 import { drainProposalQueue, type ProposalRunner } from '../../../lib/proposal-drain.js';
 import { runHeadlessClaude } from '../headless.js';
+import { buildClaudeHarnessOpts } from '../opts.js';
 
 const PACKAGE_TAG = '[ai-knowledge-base]';
 
@@ -54,9 +55,7 @@ async function main(): Promise<void> {
       paths,
       promptTemplate,
       runner,
-      ...(settings.proposalModel
-        ? { model: settings.proposalModel.name, effort: settings.proposalModel.effort }
-        : {}),
+      harnessOpts: buildClaudeHarnessOpts(settings, 'proposal'),
     });
     if (summary.status === 'locked') {
       // Another drain is in flight; nothing to do.

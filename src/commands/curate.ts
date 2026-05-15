@@ -15,6 +15,7 @@ import { resolveSettings } from '../lib/settings.js';
 
 export interface CurateCommandOptions {
   timeoutMs?: number | undefined;
+  harness?: string | undefined;
 }
 
 export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise<number> {
@@ -35,7 +36,10 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
   }
 
   const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
-  const harness = resolveActiveHarness({ cliDefault: settings.cliDefaultHarness });
+  const harness = resolveActiveHarness({
+    ...(opts.harness !== undefined ? { flag: opts.harness } : {}),
+    ...(settings.cliDefaultHarness !== undefined ? { cliDefault: settings.cliDefaultHarness } : {}),
+  });
   const runner: CuratorRunner = (prompt, stdin, schema, runnerOpts) =>
     harness.runHeadless(prompt, stdin, schema, runnerOpts as HeadlessRunOptions);
 
@@ -46,14 +50,13 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
   log.plain(`  curator log: ${logFile}`);
   log.plain(`  follow live: tail -f ${logFile}`);
 
+  const harnessOpts = harness.buildHarnessOpts(settings, 'curator');
   const baseOpts = {
     paths,
     promptTemplate,
     runner,
     logFile,
-    ...(settings.curatorModel
-      ? { model: settings.curatorModel.name, effort: settings.curatorModel.effort }
-      : {}),
+    harnessOpts,
     onBatchStart: ({
       index,
       total,

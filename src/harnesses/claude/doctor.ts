@@ -9,14 +9,24 @@ import { CLAUDE_HOOK_SPECS } from './hook-spec.js';
 const exec = promisify(execFile);
 const EXPECTED_SKILLS = ['kb-add', 'kb-bootstrap', 'kb-curate'];
 
+function claudeLocations(root: string) {
+  const dir = join(root, '.claude');
+  return {
+    settingsFile: join(dir, 'settings.json'),
+    hooksDir: join(dir, 'hooks'),
+    skillsDir: join(dir, 'skills'),
+  };
+}
+
 export async function claudeDoctorChecks(paths: RepoPaths): Promise<NamedDoctorCheck[]> {
+  const locs = claudeLocations(paths.root);
   return [
     { name: 'claude CLI on PATH', result: await checkClaudeCli() },
     {
       name: 'Claude hooks registered',
-      result: checkClaudeHooks(paths.claudeSettingsFile, paths.claudeHooksDir),
+      result: checkClaudeHooks(locs.settingsFile, locs.hooksDir),
     },
-    { name: 'Claude skills installed', result: checkClaudeSkills(paths.claudeSkillsDir) },
+    { name: 'Claude skills installed', result: checkClaudeSkills(locs.skillsDir) },
   ];
 }
 

@@ -1,8 +1,15 @@
-import type { HarnessAdapter } from '../types.js';
+import { join } from 'node:path';
+import type { EffectiveSettings } from '../../lib/settings.js';
+import type {
+  HarnessAdapter,
+  HarnessPaths,
+  ModelChoiceRole,
+} from '../types.js';
 import { claudeDoctorChecks } from './doctor.js';
 import { runHeadlessClaude } from './headless.js';
 import { CLAUDE_HOOK_SPECS } from './hook-spec.js';
 import { installClaude } from './install.js';
+import { buildClaudeHarnessOpts } from './opts.js';
 import { parseTranscriptJsonl, renderRoleTagged } from './transcript.js';
 
 /**
@@ -10,7 +17,7 @@ import { parseTranscriptJsonl, renderRoleTagged } from './transcript.js';
  * headless runner, install logic, and doctor checks that are specific to
  * Claude Code into a single plug.
  *
- * Register additional harnesses (Codex, OpenCode, …) by adding a sibling
+ * Register additional harnesses (Codex, OpenCode, ...) by adding a sibling
  * directory under `src/harnesses/` and entering it in the registry.
  */
 /**
@@ -25,15 +32,29 @@ function detectClaudeFromEnv(env: NodeJS.ProcessEnv): boolean {
   return typeof projectDir === 'string' && projectDir.length > 0;
 }
 
+function claudePaths(root: string): HarnessPaths {
+  const dir = join(root, '.claude');
+  return {
+    dir,
+    commandsDir: join(dir, 'commands'),
+    skillsDir: join(dir, 'skills'),
+    hooksDir: join(dir, 'hooks'),
+    settingsFile: join(dir, 'settings.json'),
+  };
+}
+
 export const claudeAdapter: HarnessAdapter = {
   id: 'claude',
   hooks: CLAUDE_HOOK_SPECS,
+  paths: claudePaths,
   install: opts => installClaude(opts),
   upgrade: opts => installClaude(opts),
   parseTranscript: parseTranscriptJsonl,
   renderTranscript: renderRoleTagged,
   runHeadless: (promptBody, stdin, schema, opts) =>
     runHeadlessClaude(promptBody, stdin, schema, opts ?? {}),
+  buildHarnessOpts: (settings: EffectiveSettings, role: ModelChoiceRole) =>
+    buildClaudeHarnessOpts(settings, role),
   doctorChecks: paths => claudeDoctorChecks(paths),
   detectFromEnv: detectClaudeFromEnv,
 };

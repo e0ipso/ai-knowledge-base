@@ -61,11 +61,6 @@ export interface RepoPaths {
    * `git diff` and committed or `git restore`d like any other tracked file.
    */
   conflictsDir: string;
-  claudeDir: string;
-  claudeCommandsDir: string;
-  claudeSkillsDir: string;
-  claudeHooksDir: string;
-  claudeSettingsFile: string;
   gitignoreFile: string;
 }
 
@@ -75,7 +70,6 @@ export function repoPaths(root: string): RepoPaths {
   const stateDir = join(kbDir, '.state');
   const configDir = join(kbDir, '.config');
   const promptsDir = join(configDir, 'prompts');
-  const claudeDir = join(root, '.claude');
   return {
     root,
     aiDir,
@@ -89,11 +83,6 @@ export function repoPaths(root: string): RepoPaths {
     logsDir: join(kbDir, '_logs'),
     nodesDir: join(kbDir, 'nodes'),
     conflictsDir: join(kbDir, 'conflicts'),
-    claudeDir,
-    claudeCommandsDir: join(claudeDir, 'commands'),
-    claudeSkillsDir: join(claudeDir, 'skills'),
-    claudeHooksDir: join(claudeDir, 'hooks'),
-    claudeSettingsFile: join(claudeDir, 'settings.json'),
     gitignoreFile: join(root, '.gitignore'),
   };
 }

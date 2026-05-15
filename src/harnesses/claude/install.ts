@@ -7,9 +7,19 @@ import { writeClaudeHookConfig } from './hooks-config.js';
 /**
  * Where the Claude adapter's template tree lives under the package
  * `templates/` directory (created at build time from
- * `src/templates-source/claude/`).
+ * `src/templates-source/claude/` plus compiled hook scripts).
  */
 export const CLAUDE_TEMPLATE_SUBDIR = 'claude';
+
+function claudePaths(root: string) {
+  const dir = join(root, '.claude');
+  return {
+    dir,
+    skillsDir: join(dir, 'skills'),
+    hooksDir: join(dir, 'hooks'),
+    settingsFile: join(dir, 'settings.json'),
+  };
+}
 
 /**
  * Copies the Claude-specific template tree into the consumer repo and
@@ -18,8 +28,9 @@ export const CLAUDE_TEMPLATE_SUBDIR = 'claude';
  */
 export async function installClaude(opts: HarnessInstallOptions): Promise<void> {
   const claudeTemplateDir = join(opts.templatesDir, CLAUDE_TEMPLATE_SUBDIR);
+  const paths = claudePaths(opts.root);
   if (existsSync(claudeTemplateDir)) {
-    copyTree(claudeTemplateDir, opts.paths.claudeDir);
+    copyTree(claudeTemplateDir, paths.dir);
   }
   await writeClaudeHookConfig(
     opts.root,
@@ -39,8 +50,9 @@ export async function installClaude(opts: HarnessInstallOptions): Promise<void> 
  */
 export function refreshClaudeTemplates(opts: HarnessInstallOptions): void {
   const templates = join(opts.templatesDir, CLAUDE_TEMPLATE_SUBDIR);
-  copyTree(join(templates, 'hooks'), opts.paths.claudeHooksDir);
-  copyTree(join(templates, 'skills'), opts.paths.claudeSkillsDir);
+  const paths = claudePaths(opts.root);
+  copyTree(join(templates, 'hooks'), paths.hooksDir);
+  copyTree(join(templates, 'skills'), paths.skillsDir);
 }
 
 function copyTree(src: string, dest: string): void {

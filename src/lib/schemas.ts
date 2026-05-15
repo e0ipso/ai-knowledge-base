@@ -37,9 +37,34 @@ export type ModelFamily = z.infer<typeof ModelFamilySchema>;
 export const EffortLevelSchema = z.enum(['low', 'medium', 'high', 'xhigh', 'max']);
 export type EffortLevel = z.infer<typeof EffortLevelSchema>;
 
-export const ModelChoiceSchema = z
-  .object({ name: ModelFamilySchema, effort: EffortLevelSchema })
+/**
+ * Per-call model choice. Discriminated on `harness` so each adapter can
+ * declare its own validation rules: Claude exposes a closed enum of
+ * families and effort levels, Codex accepts opaque strings (the Codex CLI
+ * validates them at spawn time).
+ */
+export const ClaudeModelChoiceSchema = z
+  .object({
+    harness: z.literal('claude'),
+    name: ModelFamilySchema,
+    effort: EffortLevelSchema,
+  })
   .strict();
+export type ClaudeModelChoice = z.infer<typeof ClaudeModelChoiceSchema>;
+
+export const CodexModelChoiceSchema = z
+  .object({
+    harness: z.literal('codex'),
+    model: z.string().min(1),
+    reasoningEffort: z.string().min(1).optional(),
+  })
+  .strict();
+export type CodexModelChoice = z.infer<typeof CodexModelChoiceSchema>;
+
+export const ModelChoiceSchema = z.discriminatedUnion('harness', [
+  ClaudeModelChoiceSchema,
+  CodexModelChoiceSchema,
+]);
 export type ModelChoice = z.infer<typeof ModelChoiceSchema>;
 
 /**
@@ -197,11 +222,12 @@ export interface FailureReport {
  * `schema_version` field is the only required key when a file is present.
  * Unknown keys are rejected by the strict schema.
  *
- * Model and effort selection: `proposalModel`, `curatorModel`, and `bootstrapModel`
- * each take a `{ name, effort }` object that steers the corresponding `claude -p`
- * subprocess. `name` is one of `haiku`, `sonnet`, `opus`. `effort` is one of
- * `low`, `medium`, `high`, `xhigh`, `max`. When a key is unset the spawn omits
- * both `--model` and `--effort` and the user's `claude` CLI default applies.
+ * Model and effort selection: `proposalModel`, `curatorModel`, and
+ * `bootstrapModel` each take a single per-harness variant keyed by the
+ * `harness` discriminator: `{ harness: 'claude', name, effort }` or
+ * `{ harness: 'codex', model, reasoningEffort? }`. The active adapter
+ * consumes only the variant whose `harness` matches its id; a mismatch
+ * yields the adapter's CLI defaults.
  */
 export const SettingsSchema = z
   .object({

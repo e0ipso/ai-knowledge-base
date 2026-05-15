@@ -16,13 +16,18 @@ export function detectHarnessFromEnv(env: NodeJS.ProcessEnv = process.env): Harn
 }
 
 export interface ResolveActiveHarnessOpts {
+  /**
+   * Explicit `--harness <id>` flag value, if the user supplied one.
+   * Highest-priority signal: when set and valid, it is returned
+   * unconditionally; when set and unknown, the call throws.
+   */
+  flag?: string | undefined;
   /** Defaults to `process.env`. */
   env?: NodeJS.ProcessEnv;
   /**
    * The `cliDefaultHarness` value read from `config.yaml`. Only used
-   * when env detection finds no match — i.e. the CLI was invoked from
-   * a plain shell outside any harness session. Skills and hooks are
-   * always invoked from inside their host harness, where env
+   * when neither `flag` nor env detection produced a match. Skills and
+   * hooks are always invoked from inside their host harness, where env
    * detection succeeds and this value is ignored.
    */
   cliDefault?: string | undefined;
@@ -33,19 +38,19 @@ export interface ResolveActiveHarnessOpts {
  *
  * Resolution order (strict):
  *
- *   1. **Env detection.** Each registered adapter's `detectFromEnv` is
- *      asked in turn; the first match wins. This is the path skills
- *      and hooks take, because their host harness always sets a
- *      detectable env var (`CLAUDECODE=1`, `CLAUDE_PROJECT_DIR`, …).
- *      Skills therefore use the harness they were invoked from, never
- *      a configured default.
- *   2. **`cliDefaultHarness` from config.yaml.** Plain-shell CLI
+ *   1. **`--harness <id>` flag.** Highest priority. Skills and hook
+ *      scripts always pass this so the harness identity is explicit and
+ *      portable across shells with no harness-detectable env. An
+ *      unregistered id throws.
+ *   2. **Env detection.** Each registered adapter's `detectFromEnv` is
+ *      asked in turn; the first match wins. Used when the CLI runs
+ *      inside a harness session that exports a known env var (Claude
+ *      sets `CLAUDECODE=1` and `CLAUDE_PROJECT_DIR`).
+ *   3. **`cliDefaultHarness` from config.yaml.** Plain-shell CLI
  *      invocations (e.g. `npx ai-knowledge-base curate` typed in a
- *      terminal) fall through to this setting. Skills and hooks never
- *      reach this branch.
- *   3. **First registered harness.** Final fallback so the CLI keeps
+ *      terminal) fall through to this setting.
+ *   4. **First registered harness.** Final fallback so the CLI keeps
  *      working in a brand-new repo without `cliDefaultHarness` set.
- *      In v1 this is always `claude`.
  *
  * This is the single entry point CLI commands use to pick an adapter.
  * `init` takes its harness list from the `--harnesses` flag and
@@ -53,6 +58,15 @@ export interface ResolveActiveHarnessOpts {
  */
 export function resolveActiveHarness(opts: ResolveActiveHarnessOpts = {}): HarnessAdapter {
   const env = opts.env ?? process.env;
+
+  if (opts.flag) {
+    if (!hasHarness(opts.flag)) {
+      throw new Error(
+        `Unsupported harness '${opts.flag}'. Supported: ${listHarnessIds().join(', ') || '(none)'}.`
+      );
+    }
+    return getHarness(opts.flag);
+  }
 
   const detected = detectHarnessFromEnv(env);
   if (detected) return detected;

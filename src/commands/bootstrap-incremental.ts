@@ -17,6 +17,7 @@ export interface BootstrapIncrementalOptions {
   exclude?: string[] | undefined;
   dryRun?: boolean | undefined;
   timeoutMs?: number | undefined;
+  harness?: string | undefined;
 }
 
 export async function runBootstrapIncrementalCommand(
@@ -45,7 +46,10 @@ export async function runBootstrapIncrementalCommand(
   }
 
   const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
-  const harness = resolveActiveHarness({ cliDefault: settings.cliDefaultHarness });
+  const harness = resolveActiveHarness({
+    ...(opts.harness !== undefined ? { flag: opts.harness } : {}),
+    ...(settings.cliDefaultHarness !== undefined ? { cliDefault: settings.cliDefaultHarness } : {}),
+  });
   const runner: BootstrapRunner = (prompt, stdin, schema, runnerOpts) =>
     harness.runHeadless(prompt, stdin, schema, runnerOpts as HeadlessRunOptions);
 
@@ -54,13 +58,11 @@ export async function runBootstrapIncrementalCommand(
     paths,
     promptTemplate,
     runner,
+    harnessOpts: harness.buildHarnessOpts(settings, 'bootstrap'),
     ...(opts.include !== undefined ? { include: opts.include } : {}),
     ...(opts.exclude !== undefined ? { exclude: opts.exclude } : {}),
     ...(opts.dryRun ? { dryRun: true } : {}),
     ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
-    ...(settings.bootstrapModel
-      ? { model: settings.bootstrapModel.name, effort: settings.bootstrapModel.effort }
-      : {}),
   };
 
   log.info(

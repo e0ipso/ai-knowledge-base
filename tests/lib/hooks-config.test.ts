@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync, mkdirSync
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { writeClaudeHookConfig } from '../../src/lib/hooks-config.js';
+import { writeClaudeHookConfig } from '../../src/harnesses/claude/hooks-config.js';
 
 describe('writeClaudeHookConfig', () => {
   let root: string;

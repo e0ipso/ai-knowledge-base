@@ -267,31 +267,29 @@ describe('drainProposalQueue', () => {
     expect(existsSync(harness.logsDir)).toBe(true);
   });
 
-  it('forwards model and effort to the runner when set, omits them otherwise', async () => {
+  it('forwards harnessOpts to the runner when set, omits them otherwise', async () => {
     seedSession(harness, 's-model', '[USER]: hi');
-    let captured: { model?: string; effort?: string } = {};
+    let captured: Record<string, unknown> | undefined;
     const runner: ProposalRunner = async (_p, _s, _schema, opts) => {
-      captured = { model: opts.model, effort: opts.effort };
+      captured = opts.harnessOpts;
       return { practice: [], map: [] };
     };
     await drainProposalQueue({
       paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner,
-      model: 'haiku',
-      effort: 'low',
+      harnessOpts: { model: 'haiku', effort: 'low' },
     });
     expect(captured).toEqual({ model: 'haiku', effort: 'low' });
 
     seedSession(harness, 's-no-model', '[USER]: hi');
-    captured = {};
+    captured = undefined;
     await drainProposalQueue({
       paths: harness.paths,
       promptTemplate: PROMPT_TEMPLATE,
       runner,
     });
-    expect(captured.model).toBeUndefined();
-    expect(captured.effort).toBeUndefined();
+    expect(captured).toBeUndefined();
   });
 });
 

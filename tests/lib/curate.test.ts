@@ -473,21 +473,23 @@ describe('runCurate', () => {
     expect(starts.every(s => s.total === 3)).toBe(true);
   });
 
-  it('forwards model and effort to the runner when set, omits them otherwise', async () => {
+  it('forwards harnessOpts to the runner when set, omits them otherwise', async () => {
     seedSession(harness, 's-mod', [makeCandidate('practice', 'A')], []);
-    let captured: { model?: string; effort?: string } = {};
+    let captured: Record<string, unknown> | undefined;
     const runner: CuratorRunner = async (_p, _s, _schema, opts) => {
-      captured = { model: opts.model, effort: opts.effort };
+      captured = opts.harnessOpts;
       return [];
     };
-    await runCurate({ ...ctx(runner), model: 'opus', effort: 'max' });
-    expect(captured).toEqual({ model: 'opus', effort: 'max' });
+    await runCurate({
+      ...ctx(runner),
+      harnessOpts: { model: 'opus', effort: 'max', allowedTools: ['Read'] },
+    });
+    expect(captured).toEqual({ model: 'opus', effort: 'max', allowedTools: ['Read'] });
 
     seedSession(harness, 's-nomod', [makeCandidate('practice', 'B')], [], '2026-05-12T10:02:00Z');
-    captured = {};
+    captured = undefined;
     await runCurate(ctx(runner));
-    expect(captured.model).toBeUndefined();
-    expect(captured.effort).toBeUndefined();
+    expect(captured).toBeUndefined();
   });
 
   it('reports no-pending and still regenerates INDEX/GRAPH when nothing is queued', async () => {

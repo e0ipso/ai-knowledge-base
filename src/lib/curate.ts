@@ -14,9 +14,7 @@ import {
   CuratorOutputSchema,
   type CuratorAction,
   type CuratorOutput,
-  type EffortLevel,
   type FailureReport,
-  type ModelFamily,
   type NodeFrontmatter,
   type NodeKind,
   SessionLogFrontmatterSchema,
@@ -39,10 +37,8 @@ export type CuratorRunner = <T>(
   schema: ZodSchema<T>,
   opts: {
     timeoutMs: number;
-    allowedTools?: string[];
     logFile?: string;
-    model?: ModelFamily;
-    effort?: EffortLevel;
+    harnessOpts?: Record<string, unknown>;
     onMessage?: (msg: unknown) => void;
   }
 ) => Promise<T>;
@@ -60,8 +56,8 @@ export interface CurateContext {
   onCuratorMessage?: (msg: unknown) => void;
   /** Pre-computed curator log file path (used by the CLI to show it up front). */
   logFile?: string;
-  model?: ModelFamily;
-  effort?: EffortLevel;
+  /** Adapter-specific knobs (model, effort, allowedTools, ...). */
+  harnessOpts?: Record<string, unknown>;
 }
 
 export interface CurateResult {
@@ -248,11 +244,9 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
       const batchStartMs = Date.now();
       const runnerOpts: Parameters<CuratorRunner>[3] = {
         timeoutMs,
-        allowedTools: ['Read'],
         logFile,
       };
-      if (ctx.model !== undefined) runnerOpts.model = ctx.model;
-      if (ctx.effort !== undefined) runnerOpts.effort = ctx.effort;
+      if (ctx.harnessOpts !== undefined) runnerOpts.harnessOpts = ctx.harnessOpts;
       if (ctx.onCuratorMessage) runnerOpts.onMessage = ctx.onCuratorMessage;
       const actions: CuratorOutput = await ctx.runner(prompt, '', CuratorOutputSchema, runnerOpts);
       if (ctx.onBatchEnd) {
