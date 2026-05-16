@@ -61,9 +61,19 @@ export const CodexModelChoiceSchema = z
   .strict();
 export type CodexModelChoice = z.infer<typeof CodexModelChoiceSchema>;
 
+export const OpenCodeModelChoiceSchema = z
+  .object({
+    harness: z.literal('opencode'),
+    model: z.string().min(1),
+    agent: z.string().min(1).optional(),
+  })
+  .strict();
+export type OpenCodeModelChoice = z.infer<typeof OpenCodeModelChoiceSchema>;
+
 export const ModelChoiceSchema = z.discriminatedUnion('harness', [
   ClaudeModelChoiceSchema,
   CodexModelChoiceSchema,
+  OpenCodeModelChoiceSchema,
 ]);
 export type ModelChoice = z.infer<typeof ModelChoiceSchema>;
 
