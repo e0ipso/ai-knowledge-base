@@ -1,3 +1,13 @@
+## [0.10.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.9.0...v0.10.0) (2026-05-18)
+
+### Features
+
+* switch devcontainer from Claude Code to OpenCode ([a5d73d1](https://github.com/e0ipso/ai-knowledge-base/commit/a5d73d13261b2960026103b4e29a68ddaae339ef))
+
+### Bug Fixes
+
+* use comma in CHUNK and TRANSCRIPT placeholders to avoid hyphen/em-dash ambiguity ([ac33960](https://github.com/e0ipso/ai-knowledge-base/commit/ac339608f858e27c91474c562db3e3da151a6cf7))
+
 ## [0.9.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.8.0...v0.9.0) (2026-05-16)
 
 ### Features
