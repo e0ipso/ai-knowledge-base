@@ -283,4 +283,4 @@ The transcript begins below.
 
 ---
 
-[TRANSCRIPT PLACEHOLDER - substituted at runtime]
+[TRANSCRIPT PLACEHOLDER, substituted at runtime]

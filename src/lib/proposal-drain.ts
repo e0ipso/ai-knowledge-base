@@ -49,7 +49,7 @@ export interface DrainSummary {
   reason?: string;
 }
 
-export const TRANSCRIPT_PLACEHOLDER = '[TRANSCRIPT PLACEHOLDER - substituted at runtime]';
+export const TRANSCRIPT_PLACEHOLDER = '[TRANSCRIPT PLACEHOLDER, substituted at runtime]';
 
 interface PendingSessionLog {
   sessionId: string;

@@ -1,11 +1,11 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:40724d33d2636fba09ee3e8cd5307fd88c53e8a55ab2084285bed98037cbfd1d'
+nodes_hash: 'sha256:5d9145b886482a628a8641a58509b639092b3d78952432926a4ad85e870c92f0'
 node_count: 34
 ---
 # KB Index
 
-_34 nodes • ~12314 estimated tokens_
+_34 nodes • ~12313 estimated tokens_
 
 
 ## Conventions (how we build)

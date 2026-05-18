@@ -68,7 +68,7 @@ function seedSessionWithStatus(
 }
 
 const PROMPT_TEMPLATE =
-  'Extract knowledge from the following transcript.\n\n[TRANSCRIPT PLACEHOLDER - substituted at runtime]';
+  'Extract knowledge from the following transcript.\n\n[TRANSCRIPT PLACEHOLDER, substituted at runtime]';
 
 function successRunner(): ProposalRunner {
   return async () => ({

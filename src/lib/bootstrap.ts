@@ -20,7 +20,7 @@ import type { RepoPaths } from './paths.js';
 import { compactStamp } from './time.js';
 
 export const DEFAULT_TIMEOUT_MS = 120_000;
-export const CHUNK_PLACEHOLDER = '[CHUNK PLACEHOLDER — substituted at runtime]';
+export const CHUNK_PLACEHOLDER = '[CHUNK PLACEHOLDER, substituted at runtime]';
 
 /**
  * Filenames that are categorically not project knowledge. Applied by

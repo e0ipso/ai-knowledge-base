@@ -27,8 +27,8 @@ The agent-driven `/kb-bootstrap` skill is *not* in this list. Its body lives at 
 
 Placeholders substituted at runtime:
 
-- Proposal: `[TRANSCRIPT PLACEHOLDER - substituted at runtime]`.
+- Proposal: `[TRANSCRIPT PLACEHOLDER, substituted at runtime]`.
 - Curator: `[BATCH PLACEHOLDER]`.
-- Bootstrap-incremental: `[CHUNK PLACEHOLDER - substituted at runtime]`.
+- Bootstrap-incremental: `[CHUNK PLACEHOLDER, substituted at runtime]`.
 
 If the placeholder is missing, the runtime appends the payload at the end of the prompt.

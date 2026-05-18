@@ -98,4 +98,4 @@ The chunk begins below.
 
 ---
 
-[CHUNK PLACEHOLDER - substituted at runtime]
+[CHUNK PLACEHOLDER, substituted at runtime]

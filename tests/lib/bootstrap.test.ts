@@ -61,7 +61,7 @@ function makeHarness(): Harness {
   };
 }
 
-const PROMPT_TEMPLATE = 'Extract.\n\n[CHUNK PLACEHOLDER — substituted at runtime]';
+const PROMPT_TEMPLATE = 'Extract.\n\n[CHUNK PLACEHOLDER, substituted at runtime]';
 
 function makeCandidate(kind: 'practice' | 'map', title: string): BootstrapCandidate {
   return {

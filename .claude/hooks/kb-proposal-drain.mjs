@@ -362,7 +362,7 @@ function compactStamp(d) {
 var DEFAULT_MAX_ENTRIES = 5;
 var DEFAULT_TIMEOUT_MS2 = 6e4;
 var MAX_PROPOSAL_ERROR_LEN = 500;
-var TRANSCRIPT_PLACEHOLDER = "[TRANSCRIPT PLACEHOLDER - substituted at runtime]";
+var TRANSCRIPT_PLACEHOLDER = "[TRANSCRIPT PLACEHOLDER, substituted at runtime]";
 async function drainProposalQueue(ctx) {
   const maxEntries = ctx.maxEntries ?? DEFAULT_MAX_ENTRIES;
   const timeoutMs = ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS2;

@@ -37,7 +37,7 @@ The biggest quality lever in capture. Controls what the extractor treats as wort
 5. **Inline example** - a worked transcript with expected JSON.
 6. **Output schema** - must match `ProposalOutputSchema`.
 
-The drain replaces `[TRANSCRIPT PLACEHOLDER - substituted at runtime]` with the redacted slice. If the placeholder is removed, the transcript is appended at the end.
+The drain replaces `[TRANSCRIPT PLACEHOLDER, substituted at runtime]` with the redacted slice. If the placeholder is removed, the transcript is appended at the end.
 
 ### Calibration
 
@@ -130,7 +130,7 @@ Controls what `bootstrap-incremental` treats as candidates from your source docs
 5. **Confidence calibration**.
 6. **Rules** - never invent facts, quote rationale verbatim, emit only the JSON object.
 
-The chunk replaces `[CHUNK PLACEHOLDER - substituted at runtime]`. If removed, the chunk is appended.
+The chunk replaces `[CHUNK PLACEHOLDER, substituted at runtime]`. If removed, the chunk is appended.
 
 ### Calibration loop
 
