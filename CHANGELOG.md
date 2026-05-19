@@ -1,3 +1,13 @@
+## [0.11.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.10.1...v0.11.0) (2026-05-19)
+
+### Features
+
+* **curate:** expand conflict-resolution output ([65403bf](https://github.com/e0ipso/ai-knowledge-base/commit/65403bfcfc02dc68ad55e2a4f20bdcf54e2f5f6c))
+
+### Bug Fixes
+
+* update knowledge base ([08e8349](https://github.com/e0ipso/ai-knowledge-base/commit/08e8349b31ccad2bb4b03ead86ddb26017309fa8))
+
 ## [0.10.1](https://github.com/e0ipso/ai-knowledge-base/compare/v0.10.0...v0.10.1) (2026-05-19)
 
 ### Bug Fixes
