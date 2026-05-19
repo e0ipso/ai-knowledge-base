@@ -100,9 +100,14 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
         for (const f of result.failures) log.plain(`  ! [${f.reason}] ${f.detail}`);
       }
       if (result.conflicts > 0) {
-        log.plain(
-          `${result.conflicts} conflict(s) written to .ai/knowledge-base/conflicts/. Review with git diff.`
+        log.warn(
+          `${result.conflicts} conflict(s) need resolution in .ai/knowledge-base/conflicts/.`
         );
+        log.plain('  Run `/kb-curate` to resolve interactively, or for each file:');
+        log.plain('    accept → edit the target node, then `git restore` the conflict file');
+        log.plain('    reject → `git restore` the conflict file');
+        log.plain('    keep as record → `git commit` the conflict file');
+        log.plain('  Unresolved conflicts re-surface on the next curate run.');
       }
       log.plain('Review changed files with `git diff nodes/` before committing.');
       return 0;
