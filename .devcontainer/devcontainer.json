@@ -46,9 +46,11 @@
   "mounts": [
     "source=opencode-bashhistory-${devcontainerId},target=/commandhistory,type=volume",
 
-    "source=${localEnv:HOME}/.agents/AGENTS.md,target=/home/node/.config/opencode/AGENTS.md,readonly,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.agents/agents,target=/home/node/.config/opencode/agents,readonly,type=bind,consistency=cached",
-    "source=${localEnv:HOME}/.agents/skills,target=/home/node/.config/opencode/skills,readonly,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.agents/AGENTS.md,target=/home/node/.agents/AGENTS.md,readonly,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.agents/agents,target=/home/node/.agents/agents,readonly,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.agents/skills,target=/home/node/.agents/skills,readonly,type=bind,consistency=cached",
+    "source=${localEnv:HOME}/.agents/hooks,target=/home/node/.agents/hooks,readonly,type=bind,consistency=cached",
+
     "source=${localEnv:HOME}/.config/opencode/opencode.jsonc,target=/home/node/.config/opencode/opencode.jsonc,readonly,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.config/opencode/plugin,target=/home/node/.config/opencode/plugin,readonly,type=bind,consistency=cached",
     "source=${localEnv:HOME}/.config/opencode/node_modules,target=/home/node/.config/opencode/node_modules,readonly,type=bind,consistency=cached",
