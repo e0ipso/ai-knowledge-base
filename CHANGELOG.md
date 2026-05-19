@@ -1,3 +1,9 @@
+## [0.10.1](https://github.com/e0ipso/ai-knowledge-base/compare/v0.10.0...v0.10.1) (2026-05-19)
+
+### Bug Fixes
+
+* **hooks:** bundle hooks as self-contained .cjs ([19f934b](https://github.com/e0ipso/ai-knowledge-base/commit/19f934ba8b790a0cb5aa98ca78c6d2bd50f371f0))
+
 ## [0.10.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.9.0...v0.10.0) (2026-05-18)
 
 ### Features
