@@ -1,3 +1,5 @@
+## [0.11.1](https://github.com/e0ipso/ai-knowledge-base/compare/v0.11.0...v0.11.1) (2026-05-20)
+
 ## [0.11.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.10.1...v0.11.0) (2026-05-19)
 
 ### Features
