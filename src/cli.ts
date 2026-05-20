@@ -41,7 +41,6 @@ async function main(): Promise<void> {
           .map(s => s.trim())
           .filter(Boolean)
     )
-    .option('-f, --force', 'overwrite existing ai-knowledge-base files', false)
     .option(
       '-u, --upgrade',
       'refresh hooks/slash commands/prompts to the current package version while preserving local overrides and config.yaml',
@@ -50,7 +49,6 @@ async function main(): Promise<void> {
     .action(
       async (opts: {
         harnesses: string[];
-        force: boolean;
         upgrade: boolean;
       }) => {
         await runInit(opts);

@@ -11,7 +11,7 @@ Start with `npx @e0ipso/ai-knowledge-base doctor --verbose`.
 
 `.ai/knowledge-base/_sessions/` stays empty.
 
-- **Hooks aren't registered.** Check `.claude/settings.json` for the KB hook entries. Re-run `init --force` if missing.
+- **Hooks aren't registered.** Check `.claude/settings.json` for the KB hook entries. Re-run `init --upgrade` if missing.
 - **secretlint isn't installed.** Capture refuses to write when the secret scanner can't load. Run `npm install` (the project's devDeps include `secretlint` and the recommended preset after `init`).
 - **A wrapper script around `claude` leaked the internal flag** (`KB_BUILDER_INTERNAL=1`) into a normal session.
 

@@ -53,7 +53,7 @@ async function checkOpenCodeCli(): Promise<DoctorCheckResult> {
 function checkPlugin(pluginFile: string): DoctorCheckResult {
   if (!existsSync(pluginFile)) {
     return errCheck(
-      'no .opencode/plugins/kb.mjs. Run `npx @e0ipso/ai-knowledge-base init --harnesses opencode --force`.'
+      'no .opencode/plugins/kb.mjs. Run `npx @e0ipso/ai-knowledge-base init --harnesses opencode --upgrade`.'
     );
   }
   let contents: string;
@@ -65,7 +65,7 @@ function checkPlugin(pluginFile: string): DoctorCheckResult {
   if (!contents.includes(OPENCODE_PLUGIN_MARKER)) {
     return errCheck(
       `plugin file does not carry the package marker (expected leading comment ${OPENCODE_PLUGIN_MARKER}). ` +
-        `Re-run \`npx @e0ipso/ai-knowledge-base init --harnesses opencode --force\`.`
+        `Re-run \`npx @e0ipso/ai-knowledge-base init --harnesses opencode --upgrade\`.`
     );
   }
   return ok('plugin marker present');
@@ -74,7 +74,7 @@ function checkPlugin(pluginFile: string): DoctorCheckResult {
 function checkKbHooks(kbHooksDir: string): DoctorCheckResult {
   if (!existsSync(kbHooksDir)) {
     return errCheck(
-      'no .opencode/kb-hooks/. Re-run `npx @e0ipso/ai-knowledge-base init --harnesses opencode --force`.'
+      'no .opencode/kb-hooks/. Re-run `npx @e0ipso/ai-knowledge-base init --harnesses opencode --upgrade`.'
     );
   }
   const expected = new Set(openCodeHookSpecs.map(s => s.scriptPath));
@@ -84,14 +84,14 @@ function checkKbHooks(kbHooksDir: string): DoctorCheckResult {
   }
   return errCheck(
     `missing scripts: ${missing.join(', ')}. ` +
-      `Re-run \`npx @e0ipso/ai-knowledge-base init --harnesses opencode --force\`.`
+      `Re-run \`npx @e0ipso/ai-knowledge-base init --harnesses opencode --upgrade\`.`
   );
 }
 
 function checkSkills(skillsDir: string): DoctorCheckResult {
   if (!existsSync(skillsDir)) {
     return errCheck(
-      'no .opencode/skills/ directory. Re-run `npx @e0ipso/ai-knowledge-base init --harnesses opencode --force`.'
+      'no .opencode/skills/ directory. Re-run `npx @e0ipso/ai-knowledge-base init --harnesses opencode --upgrade`.'
     );
   }
   const missing = EXPECTED_SKILLS.filter(name => !existsSync(join(skillsDir, name, 'SKILL.md')));

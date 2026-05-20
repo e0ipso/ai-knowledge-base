@@ -38,15 +38,14 @@ The LLM authoring the skill body substitutes its own best-guess id for the `<hin
 ## `init`
 
 ```sh
-npx @e0ipso/ai-knowledge-base init --harnesses <id[,id,...]> [--force] [--upgrade]
+npx @e0ipso/ai-knowledge-base init --harnesses <id[,id,...]> [--upgrade]
 ```
 
 First-time setup. Writes the knowledge-base scaffold (`.ai/knowledge-base/`), per-harness hooks and skills, and a managed `.gitignore` block for the runtime state files. Does not patch `package.json` and does not install any commit-time tooling (husky, lint-staged, secretlint, commitlint); see [Installation, Optional commit-time hardening](installation.md#optional-commit-time-hardening) if you want those.
 
 Supported `--harnesses` ids: `claude`, `codex`, `opencode`. Pass a comma-separated list to install several at once (`--harnesses claude,codex,opencode`).
 
-- `--force`: overwrite existing template files (never touches your project config).
-- `--upgrade`: refresh templates and skills while preserving `config.yaml` and local prompt overrides.
+- `--upgrade`: refresh templates and skills while preserving `config.yaml` and local prompt overrides. Use this when re-running `init` over an existing install.
 
 ## `doctor`
 

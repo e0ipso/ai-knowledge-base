@@ -80,14 +80,14 @@ describe('init', () => {
     expect(first).toContain('# >>> @e0ipso/ai-knowledge-base >>>');
     expect(first).toContain('.ai/knowledge-base/_sessions/');
 
-    // Re-run with --force; gitignore should not pick up duplicate blocks.
-    await runCli(sandbox, ['init', '--harnesses', 'claude', '--force']);
+    // Re-run with --upgrade; gitignore should not pick up duplicate blocks.
+    await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
     const second = readFileSync(join(sandbox, '.gitignore'), 'utf8');
     const occurrences = second.match(/>>> @e0ipso\/ai-knowledge-base >>>/g) ?? [];
     expect(occurrences.length).toBe(1);
   });
 
-  it('refuses to overwrite without --force', async () => {
+  it('refuses to overwrite when already initialized', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const second = await runCli(sandbox, ['init', '--harnesses', 'claude']);
     expect(second.exitCode).toBe(0);
@@ -254,9 +254,9 @@ describe('init', () => {
     );
   });
 
-  it('re-running init --force preserves a single set of SessionEnd entries (no duplicates)', async () => {
+  it('re-running init --upgrade preserves a single set of SessionEnd entries (no duplicates)', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    await runCli(sandbox, ['init', '--harnesses', 'claude', '--force']);
+    await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
 
     const settings = JSON.parse(readFileSync(join(sandbox, '.claude/settings.json'), 'utf8')) as {
       hooks?: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
@@ -273,15 +273,14 @@ describe('init', () => {
     expect(lintCount).toBe(1);
   });
 
-  it('does not overwrite an existing config.yaml even with --force', async () => {
+  it('does not overwrite an existing config.yaml on --upgrade', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const configFile = join(sandbox, '.ai/knowledge-base/config.yaml');
     const customized = 'schema_version: 1\ncurationThreshold: 99\n';
     writeFileSync(configFile, customized);
 
-    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--force']);
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
     expect(result.exitCode).toBe(0);
     expect(readFileSync(configFile, 'utf8')).toBe(customized);
-    expect(result.stdout + result.stderr).toContain('config.yaml already exists');
   });
 });

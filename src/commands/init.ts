@@ -16,7 +16,6 @@ import { packageVersion } from '../lib/version.js';
 
 export interface InitOptions {
   harnesses: string[];
-  force?: boolean;
   upgrade?: boolean;
 }
 
@@ -58,12 +57,12 @@ export async function runInit(opts: InitOptions): Promise<void> {
   log.info(`Initializing in ${root}`);
 
   // Already initialized?
-  if (existsSync(paths.installedVersionFile) && !opts.force) {
+  if (existsSync(paths.installedVersionFile)) {
     const existing = JSON.parse(
       readFileSync(paths.installedVersionFile, 'utf8')
     ) as InstalledVersion;
     log.warn(
-      `Already initialized (version ${existing.version}). Re-run with --force to overwrite templates, or use \`init --upgrade\` to refresh templates while preserving local prompt overrides and \`config.yaml\`.`
+      `Already initialized (version ${existing.version}). Use \`init --upgrade\` to refresh templates while preserving local prompt overrides and \`config.yaml\`.`
     );
     return;
   }
@@ -87,15 +86,11 @@ export async function runInit(opts: InitOptions): Promise<void> {
   // 4. Update .gitignore.
   updateGitignore(paths.gitignoreFile);
 
-  // 5. Write default settings file unless one is already present. `--force`
-  // intentionally does not overwrite an existing config.yaml; users edit it.
+  // 5. Write default settings file unless one is already present. Users edit
+  // config.yaml; init never overwrites it.
   if (!existsSync(paths.projectConfigFile)) {
     mkdirSync(paths.kbDir, { recursive: true });
     writeFileSync(paths.projectConfigFile, defaultProjectConfigBody());
-  } else if (opts.force) {
-    log.warn(
-      `.ai/knowledge-base/config.yaml already exists; not overwriting (use \`init --upgrade\` to refresh templates without touching settings).`
-    );
   }
 
   // 6. Write installed-version marker.

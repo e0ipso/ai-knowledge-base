@@ -234,7 +234,7 @@ function checkPrompts(promptsDir: string): CheckResult {
   return missing.length === 0
     ? ok('proposal-extract, curator, bootstrap-incremental')
     : warn(
-        `missing local override(s): ${missing.join(', ')}. The bundled package fallback is still used; re-run \`init --force\` to restore.`
+        `missing local override(s): ${missing.join(', ')}. The bundled package fallback is still used; re-run \`init --upgrade\` to restore.`
       );
 }
 
