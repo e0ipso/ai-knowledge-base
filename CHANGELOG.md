@@ -1,3 +1,9 @@
+## [0.12.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.11.1...v0.12.0) (2026-05-21)
+
+### Features
+
+* **curate:** reduce curation friction ([599af39](https://github.com/e0ipso/ai-knowledge-base/commit/599af3999b305807704e964adb6dc591a36b76ff)), closes [#29](https://github.com/e0ipso/ai-knowledge-base/issues/29) [#29](https://github.com/e0ipso/ai-knowledge-base/issues/29)
+
 ## [0.11.1](https://github.com/e0ipso/ai-knowledge-base/compare/v0.11.0...v0.11.1) (2026-05-20)
 
 ## [0.11.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.10.1...v0.11.0) (2026-05-19)
