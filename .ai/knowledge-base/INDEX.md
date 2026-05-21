@@ -1,11 +1,11 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:1412f29ff7780dadc035e63dcfbc8c8dec39249a1a313db76ac18d2219e8cf29'
-node_count: 44
+nodes_hash: 'sha256:ddc2436269df14174603523f21d326fae7de275ec1e134c77ffcda9207a8d9aa'
+node_count: 45
 ---
 # KB Index
 
-_44 nodes • ~15685 estimated tokens_
+_45 nodes • ~16419 estimated tokens_
 
 
 ## Conventions (how we build)
@@ -18,7 +18,7 @@ _44 nodes • ~15685 estimated tokens_
 - **Don't run curate or bootstrap-incremental in CI** [`nodes/practice/practice-dont-run-llm-pipelines-in-ci.md`] #ci #llm #workflow
 - **Don't translate event names across harness adapters** [`nodes/practice/practice-no-event-translation-across-adapters.md`] #adapter #events #harness
 - **Local prompt overrides fall back to bundled templates** [`nodes/practice/practice-local-prompt-overrides-fall-back-to-bundled.md`] #prompts #customization #override
-- **Pass --harness explicitly outside an active Claude session** [`nodes/practice/practice-explicit-harness-flag-outside-claude.md`] #harness #cli #codex #opencode
+- **Pass --harness explicitly outside an active harness session** [`nodes/practice/practice-explicit-harness-flag-outside-claude.md`] #harness #cli #codex #cursor #opencode
 - **Pre-commit regenerates and stages INDEX.md and GRAPH.md** [`nodes/practice/practice-pre-commit-stages-index-graph.md`] #pre-commit #index #graph #lint-staged
 - **Adapters never reach into each other's directories** [`nodes/practice/practice-adapters-never-cross-directories.md`] #adapter #architecture #isolation
 - **Bump the prompt's Version comment on every behavior change** [`nodes/practice/practice-bump-prompt-version-comment.md`] #prompts #versioning #audit
@@ -31,7 +31,7 @@ _44 nodes • ~15685 estimated tokens_
 - **Strict schema-version bump policy: no migrators** [`nodes/practice/practice-strict-schema-version-bump-policy.md`] #schema #versioning #breaking-change
 
 ## Components (what exists)
-- **Harness adapter** [`nodes/map/map-harness-adapter.md`] #harness #adapter #claude #codex #opencode #architecture
+- **Harness adapter** [`nodes/map/map-harness-adapter.md`] #harness #adapter #claude #codex #cursor #opencode #architecture
 - **INDEX.md** [`nodes/map/map-index-md.md`] #index #deterministic #sessionstart
 - **bootstrap-incremental (CLI)** [`nodes/map/map-bootstrap-incremental-command.md`] #cli #bootstrap #deterministic
 - **curate (CLI command + /kb-curate skill)** [`nodes/map/map-curate-command.md`] #cli #curate #skill
@@ -50,6 +50,7 @@ _44 nodes • ~15685 estimated tokens_
 - **.ai/knowledge-base/ directory layout** [`nodes/map/map-knowledge-base-directory.md`] #layout #state #directory
 - **Claude Code harness adapter** [`nodes/map/map-claude-harness.md`] #harness #claude #hooks
 - **Codex CLI harness adapter** [`nodes/map/map-codex-harness.md`] #harness #codex #hooks
+- **Cursor harness adapter** [`nodes/map/map-cursor-harness-adapter.md`] #harness #cursor #hooks
 - **nodes_hash algorithm** [`nodes/map/map-nodes-hash.md`] #hash #deterministic #sha256
 - **OpenCode harness adapter** [`nodes/map/map-opencode-harness.md`] #harness #opencode #hooks #plugin
 - **Proposal candidate schema** [`nodes/map/map-proposal-candidate-schema.md`] #schema #proposal #candidate
@@ -59,19 +60,20 @@ _44 nodes • ~15685 estimated tokens_
 ## By topic
 
 - **#schema (9):** Curator action (add / modify / contradict / drop), Node frontmatter schema, Conflict files (conflicts/<run-id>-<n>.md), .state/bootstrap-state.json (per-doc hash cache), nodes/ directory and the two kinds, Session log (_sessions/*.md), Proposal candidate schema, .state/state.json (lock + nudge state), Strict schema-version bump policy: no migrators
-- **#hooks (7):** kb-proposal-drain.mjs (extraction hook), kb-capture.mjs (capture hook), kb-session-start.mjs (consume hook), Set KB_BUILDER_INTERNAL=1 on every claude -p child, Claude Code harness adapter, Codex CLI harness adapter, OpenCode harness adapter
+- **#hooks (8):** kb-proposal-drain.mjs (extraction hook), kb-capture.mjs (capture hook), kb-session-start.mjs (consume hook), Set KB_BUILDER_INTERNAL=1 on every claude -p child, Claude Code harness adapter, Codex CLI harness adapter, Cursor harness adapter, OpenCode harness adapter
+- **#harness (7):** Harness adapter, Claude Code harness adapter, Codex CLI harness adapter, Cursor harness adapter, OpenCode harness adapter, Don't translate event names across harness adapters, Pass --harness explicitly outside an active harness session
 - **#bootstrap (6):** bootstrap-incremental (CLI), /kb-bootstrap skill, .state/bootstrap-state.json (per-doc hash cache), Bootstrap never overwrites existing nodes, Bootstrap is supervised and judgmental, not exhaustive, Default bootstrap nodes to confidence: medium
-- **#harness (6):** Harness adapter, Claude Code harness adapter, Codex CLI harness adapter, OpenCode harness adapter, Don't translate event names across harness adapters, Pass --harness explicitly outside an active Claude session
 - **#curator (4):** Curator action (add / modify / contradict / drop), Conflict files (conflicts/<run-id>-<n>.md), Curator never auto-resolves contradictions, Curator drops non-productive and change-oriented candidates
 - **#deterministic (4):** INDEX.md, bootstrap-incremental (CLI), GRAPH.md, nodes_hash algorithm
 - **#nodes (4):** Node frontmatter schema, nodes/ directory and the two kinds, Bootstrap never overwrites existing nodes, Node naming: id, filename, and kind must agree
 - **#state (4):** .state/bootstrap-state.json (per-doc hash cache), Session log (_sessions/*.md), .ai/knowledge-base/ directory layout, .state/state.json (lock + nudge state)
 - **#adapter (3):** Harness adapter, Don't translate event names across harness adapters, Adapters never reach into each other's directories
 - **#capture (3):** kb-capture.mjs (capture hook), Session log (_sessions/*.md), Capture runs secretlint and aborts on loader failure
-- **#cli (3):** bootstrap-incremental (CLI), curate (CLI command + /kb-curate skill), Pass --harness explicitly outside an active Claude session
-- **#codex (3):** Harness adapter, Codex CLI harness adapter, Pass --harness explicitly outside an active Claude session
+- **#cli (3):** bootstrap-incremental (CLI), curate (CLI command + /kb-curate skill), Pass --harness explicitly outside an active harness session
+- **#codex (3):** Harness adapter, Codex CLI harness adapter, Pass --harness explicitly outside an active harness session
+- **#cursor (3):** Harness adapter, Cursor harness adapter, Pass --harness explicitly outside an active harness session
 - **#index (3):** INDEX.md, kb-session-start.mjs (consume hook), Pre-commit regenerates and stages INDEX.md and GRAPH.md
-- **#opencode (3):** Harness adapter, OpenCode harness adapter, Pass --harness explicitly outside an active Claude session
+- **#opencode (3):** Harness adapter, OpenCode harness adapter, Pass --harness explicitly outside an active harness session
 - **#prompts (3):** Local prompt overrides fall back to bundled templates, Bump the prompt's Version comment on every behavior change, Curator drops non-productive and change-oriented candidates
 - **#architecture (2):** Harness adapter, Adapters never reach into each other's directories
 - **#calibration (2):** Curator drops non-productive and change-oriented candidates, Default bootstrap nodes to confidence: medium

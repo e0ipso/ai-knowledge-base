@@ -1,11 +1,11 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:1412f29ff7780dadc035e63dcfbc8c8dec39249a1a313db76ac18d2219e8cf29'
-node_count: 44
+nodes_hash: 'sha256:ddc2436269df14174603523f21d326fae7de275ec1e134c77ffcda9207a8d9aa'
+node_count: 45
 ---
 # KB Graph
 
-Total nodes: 44
+Total nodes: 45
 
 ## map-ai-knowledge-base-package
 
@@ -87,6 +87,14 @@ Total nodes: 44
 - **relates_to:** map-curate-command, map-conflict-files
 - **derived_from:** docs/internals/schemas.md, docs/internals/prompts.md
 
+## map-cursor-harness-adapter
+
+- **kind:** map
+- **title:** Cursor harness adapter
+- **tags:** harness, cursor, hooks
+- **relates_to:** map-harness-adapter
+- **derived_from:** docs/installation.md, docs/how-it-works.md, https://cursor.com/docs/hooks, https://cursor.com/docs/cli/using
+
 ## map-graph-md
 
 - **kind:** map
@@ -99,8 +107,8 @@ Total nodes: 44
 
 - **kind:** map
 - **title:** Harness adapter
-- **tags:** harness, adapter, claude, codex, opencode, architecture
-- **relates_to:** map-claude-harness, map-codex-harness, map-opencode-harness, practice-explicit-harness-flag-outside-claude
+- **tags:** harness, adapter, claude, codex, cursor, opencode, architecture
+- **relates_to:** map-claude-harness, map-codex-harness, map-cursor-harness-adapter, map-opencode-harness, practice-explicit-harness-flag-outside-claude
 - **derived_from:** README.md, docs/installation.md, docs/internals/architecture.md, CONTRIBUTING.md
 
 ## map-index-md
@@ -289,9 +297,9 @@ Total nodes: 44
 ## practice-explicit-harness-flag-outside-claude
 
 - **kind:** practice
-- **title:** Pass --harness explicitly outside an active Claude session
-- **tags:** harness, cli, codex, opencode
-- **relates_to:** map-harness-adapter, map-config-yaml
+- **title:** Pass --harness explicitly outside an active harness session
+- **tags:** harness, cli, codex, cursor, opencode
+- **relates_to:** map-harness-adapter, map-cursor-harness-adapter, map-config-yaml
 - **derived_from:** docs/cli-reference.md, docs/installation.md
 
 ## practice-init-does-not-install-commit-tooling
