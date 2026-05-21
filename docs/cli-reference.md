@@ -11,7 +11,7 @@ The `ai-knowledge-base` binary is available after install (or run via `npx`).
 
 ### `--harness <id>`
 
-Selects which harness adapter (`claude`, `codex`, or `opencode`) drives this invocation. Inherited by every subcommand. When omitted, the CLI inspects the environment for harness-specific markers (e.g. `CLAUDECODE=1`); if no harness claims the env it falls back to the configured default, then to the first registered harness. Codex and OpenCode do not export an in-session env var, so when invoking from inside a Codex or OpenCode session you must pass `--harness` explicitly or set `cliDefaultHarness` in `config.yaml`.
+Selects which harness adapter (`claude`, `codex`, `cursor`, or `opencode`) drives this invocation. Inherited by every subcommand. When omitted, the CLI inspects the environment for harness-specific markers (`CLAUDECODE=1` for Claude; `CURSOR_VERSION` for Cursor); if no harness claims the env it falls back to the configured default, then to the first registered harness. Codex and OpenCode do not export an in-session env var, so when invoking from inside a Codex or OpenCode session you must pass `--harness` explicitly or set `cliDefaultHarness` in `config.yaml`.
 
 Use the flag explicitly when running CLI commands outside an active session, or in a repo where multiple harnesses are installed.
 
@@ -29,7 +29,7 @@ if [ ! -f /tmp/kb-detect-harness.mjs ]; then
 # (script body; ~50 lines, mirrored from src/harnesses/detect.ts resolveWithHint)
 EOF
 fi
-HARNESS=$(node /tmp/kb-detect-harness.mjs --hint <claude|codex|opencode>)
+HARNESS=$(node /tmp/kb-detect-harness.mjs --hint <claude|codex|cursor|opencode>)
 npx @e0ipso/ai-knowledge-base curate --harness "$HARNESS"
 ```
 
@@ -43,7 +43,7 @@ npx @e0ipso/ai-knowledge-base init --harnesses <id[,id,...]> [--upgrade]
 
 First-time setup. Writes the knowledge-base scaffold (`.ai/knowledge-base/`), per-harness hooks and skills, and a managed `.gitignore` block for the runtime state files. Does not patch `package.json` and does not install any commit-time tooling (husky, lint-staged, secretlint, commitlint); see [Installation, Optional commit-time hardening](installation.md#optional-commit-time-hardening) if you want those.
 
-Supported `--harnesses` ids: `claude`, `codex`, `opencode`. Pass a comma-separated list to install several at once (`--harnesses claude,codex,opencode`).
+Supported `--harnesses` ids: `claude`, `codex`, `cursor`, `opencode`. Pass a comma-separated list to install several at once (`--harnesses claude,codex,cursor,opencode`).
 
 - `--upgrade`: refresh templates and skills while preserving `config.yaml` and local prompt overrides. Use this when re-running `init` over an existing install.
 

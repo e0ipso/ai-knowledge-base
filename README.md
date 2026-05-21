@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@e0ipso/ai-knowledge-base.svg)](https://www.npmjs.com/package/@e0ipso/ai-knowledge-base)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-A **team-shared, git-native knowledge base** for AI coding sessions on [Claude Code](https://docs.claude.com/en/docs/claude-code), [OpenAI Codex CLI](https://developers.openai.com/codex/cli/), and [OpenCode](https://opencode.ai/). Knowledge lives in your repo as plain markdown — not in a per-user database on one developer's laptop — so it propagates to teammates through `git pull` and is **reviewable like code** in PR diffs and commit history.
+A **team-shared, git-native knowledge base** for AI coding sessions on [Claude Code](https://docs.claude.com/en/docs/claude-code), [OpenAI Codex CLI](https://developers.openai.com/codex/cli/), [Cursor](https://cursor.com/docs), and [OpenCode](https://opencode.ai/). Knowledge lives in your repo as plain markdown — not in a per-user database on one developer's laptop — so it propagates to teammates through `git pull` and is **reviewable like code** in PR diffs and commit history.
 
 No daemons. No services. No external runtimes. Just Node + git.
 
@@ -16,7 +16,7 @@ npx @e0ipso/ai-knowledge-base init --harnesses claude
 npx @e0ipso/ai-knowledge-base doctor
 ```
 
-For OpenAI Codex CLI, install with `npx @e0ipso/ai-knowledge-base init --harnesses codex`; Codex skills install under `.agents/skills/`. For OpenCode, install with `npx @e0ipso/ai-knowledge-base init --harnesses opencode`; OpenCode ships a single TS plugin shim at `.opencode/plugins/kb.mjs` plus per-event Node scripts under `.opencode/kb-hooks/`, and skills install under `.opencode/skills/`. All three harnesses share the same SKILL.md source; the active harness is resolved at runtime from inside each skill via a small `/tmp/kb-detect-harness.mjs` helper that the skill body materializes on first use.
+For OpenAI Codex CLI, install with `npx @e0ipso/ai-knowledge-base init --harnesses codex`; Codex skills install under `.agents/skills/`. For Cursor, install with `npx @e0ipso/ai-knowledge-base init --harnesses cursor`; hooks register in `.cursor/hooks.json`, scripts live under `.cursor/hooks/`, and skills install under `.cursor/skills/`. The Cursor CLI (`agent` on PATH) is required for headless `curate`/`bootstrap`. For OpenCode, install with `npx @e0ipso/ai-knowledge-base init --harnesses opencode`; OpenCode ships a single TS plugin shim at `.opencode/plugins/kb.mjs` plus per-event Node scripts under `.opencode/kb-hooks/`, and skills install under `.opencode/skills/`. All four harnesses share the same SKILL.md source; the active harness is resolved at runtime from inside each skill via a small `/tmp/kb-detect-harness.mjs` helper that the skill body materializes on first use.
 
 That's the consumer path. After running `init`, AI sessions in this repo automatically capture candidate knowledge; `npx @e0ipso/ai-knowledge-base curate` (or `/kb-curate` from inside a session) writes new knowledge nodes directly under `nodes/`. You review with `git diff`, accept with `git commit`, reject with `git restore`.
 
@@ -42,7 +42,7 @@ Two cooperating pieces. The **builder tool** (this npm package) installs hooks u
 
 - **Search.** claude-mem ships SQLite with FTS5 plus a vector index, so you can ask fuzzy semantic questions across past sessions and get ranked results. This tool relies on the AI agent reading `INDEX.md` and grepping markdown — fine for an LLM, not a substitute for a real search engine.
 - **Zero-friction capture.** claude-mem captures observations automatically across the full session lifecycle, with no curation step. This tool deliberately puts a human in the loop between capture and merge — fewer entries land, but every entry is something a teammate signed off on.
-- **Integration surface.** claude-mem advertises support for a wider set of harnesses and agents. This tool currently targets Claude Code, OpenAI Codex CLI, and OpenCode.
+- **Integration surface.** claude-mem advertises support for a wider set of harnesses and agents. This tool currently targets Claude Code, OpenAI Codex CLI, Cursor, and OpenCode.
 
 **Where this tool is differentiated**
 

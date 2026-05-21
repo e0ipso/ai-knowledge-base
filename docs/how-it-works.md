@@ -32,9 +32,10 @@ Which lifecycle events fire capture depends on the active harness:
 |---|---|
 | Claude Code | `Stop`, `SessionEnd`, `PreCompact` |
 | Codex CLI | `Stop` only |
+| Cursor | `stop`, `sessionEnd`, `preCompact` |
 | OpenCode | `session.idle` only |
 
-Codex does not emit `SessionEnd` or `PreCompact`, so the Codex adapter wires capture and the lint tick to `Stop` only. OpenCode's idiomatic event surface is a long-lived plugin module subscribed to the runtime event bus; the OpenCode adapter ships a single TS plugin shim under `.opencode/plugins/kb.mjs` that dispatches `session.idle` and `session.created` events to per-event Node scripts under `.opencode/kb-hooks/`. OpenCode's hook payload does not carry a `transcript_path`, so the OpenCode capture script parses the on-disk session storage under `${XDG_DATA_HOME:-$HOME/.local/share}/opencode/storage/` (with `opencode export <sessionID>` as a fallback for crashed-mid-write sessions). Curation and review behave identically across all three harnesses.
+Codex does not emit `SessionEnd` or `PreCompact`, so the Codex adapter wires capture and the lint tick to `Stop` only. The Cursor adapter uses native camelCase event names in `.cursor/hooks.json`. OpenCode's idiomatic event surface is a long-lived plugin module subscribed to the runtime event bus; the OpenCode adapter ships a single TS plugin shim under `.opencode/plugins/kb.mjs` that dispatches `session.idle` and `session.created` events to per-event Node scripts under `.opencode/kb-hooks/`. OpenCode's hook payload does not carry a `transcript_path`, so the OpenCode capture script parses the on-disk session storage under `${XDG_DATA_HOME:-$HOME/.local/share}/opencode/storage/` (with `opencode export <sessionID>` as a fallback for crashed-mid-write sessions). Curation and review behave identically across all four harnesses.
 
 ## 2. Curate (mostly automatic)
 

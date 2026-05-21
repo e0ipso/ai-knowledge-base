@@ -11,9 +11,10 @@ nav_order: 3
 - One of the supported AI harnesses:
   - [Claude Code CLI](https://docs.claude.com/en/docs/claude-code/getting-started), or
   - [OpenAI Codex CLI](https://developers.openai.com/codex/cli/), or
+  - [Cursor](https://cursor.com/docs) (agent CLI on PATH), or
   - [OpenCode CLI](https://opencode.ai/)
 
-No API key required for any of these. The tool spawns the harness's own headless driver (`claude -p`, `codex exec`, or `opencode run`) and inherits whatever auth that CLI already uses. A `package.json` is no longer required at the repo root; `init` does not patch your project manifest.
+No API key required for any of these. The tool spawns the harness's own headless driver (`claude -p`, `codex exec`, `agent -p`, or `opencode run`) and inherits whatever auth that CLI already uses. A `package.json` is no longer required at the repo root; `init` does not patch your project manifest.
 
 ## Claude Code
 
@@ -59,7 +60,7 @@ If your `.codex/config.toml` already defines its own `[hooks]` table, `init` ref
 
 ### The `--harness <id>` flag
 
-Every CLI subcommand accepts a global `--harness <id>` flag (`claude`, `codex`, or `opencode`). Inside an active Claude session the detector picks Claude automatically; Codex and OpenCode export no in-session env var, so when running outside an active session or from inside a Codex/OpenCode session you must pass `--harness` explicitly or set `cliDefaultHarness` in `.ai/knowledge-base/config.yaml`. Example:
+Every CLI subcommand accepts a global `--harness <id>` flag (`claude`, `codex`, `cursor`, or `opencode`). Inside an active Claude session the detector picks Claude automatically via `CLAUDECODE=1`; inside Cursor, `CURSOR_VERSION` resolves to `cursor`. Codex and OpenCode export no in-session env var, so when running outside an active session or from inside a Codex/OpenCode session you must pass `--harness` explicitly or set `cliDefaultHarness` in `.ai/knowledge-base/config.yaml`. Example:
 
 ```sh
 npx @e0ipso/ai-knowledge-base --harness codex doctor
@@ -77,6 +78,51 @@ npx @e0ipso/ai-knowledge-base --harness codex doctor
 ```
 
 Checks your Node version, that `codex` is on PATH, that `.codex/hooks.json` is registered with our entries, and that INDEX is fresh.
+
+## Cursor
+
+In the root of your repository:
+
+```sh
+npx @e0ipso/ai-knowledge-base init --harnesses cursor
+npx @e0ipso/ai-knowledge-base --harness cursor doctor
+```
+
+This creates / updates:
+
+- `.ai/knowledge-base/`: your knowledge base scaffold (same layout as other harness installs).
+- `.cursor/hooks.json`: native Cursor hook registration (`"version": 1`, camelCase event keys). Entries we own are tagged by command path (`.cursor/hooks/kb-`) and refreshed on `init --upgrade`; user-authored entries are preserved.
+- `.cursor/hooks/`: the hook scripts (`kb-capture.cjs`, `kb-session-start.cjs`, `kb-proposal-drain.cjs`, `kb-lint-tick.cjs`).
+- `.cursor/skills/`: the `kb-add`, `kb-bootstrap`, and `kb-curate` skills (same bytes as other harnesses).
+- A managed block in `.gitignore` for the runtime state files.
+
+The Cursor adapter wires capture on `stop`, `sessionEnd`, and `preCompact` (full parity with Claude's three capture events). `sessionEnd` also runs the lint tick, matching Claude's SessionEnd cadence.
+
+### Transcript discovery
+
+Cursor hook stdin includes `transcript_path` when transcripts are enabled. The capture hook also honors `CURSOR_TRANSCRIPT_PATH` and falls back to globbing `~/.cursor/projects/*/agent-transcripts/**/*<conversation_id>*.jsonl` (newest match wins).
+
+### Third-party Claude hooks are not sufficient
+
+Cursor can load Claude Code hook entries from `.claude/settings.json` when **Third-party skills** is enabled in Cursor Settings, but that compatibility bridge does not provide KB parity: field names differ (`conversation_id` vs `session_id`), session-start stdout shape differs, transcripts use a different JSONL format, and headless curate requires `agent -p`. Use `init --harnesses cursor` for a dedicated install. If you migrate from a Claude-in-Cursor setup, remove KB hook entries from `.claude/settings.json` or disable third-party hook loading to avoid double capture.
+
+Repos with both `.claude/settings.json` KB hooks and `.cursor/hooks.json` KB hooks may double-fire unless you pick one harness at `init` time.
+
+### Env detection and plain-shell use
+
+Inside a Cursor agent session, `CURSOR_VERSION` resolves the harness to `cursor` even when Cursor aliases `CLAUDE_PROJECT_DIR`. Claude detection requires `CLAUDECODE=1` (not `CLAUDE_PROJECT_DIR` alone). From a plain shell with no harness env, pass `--harness cursor` or set `cliDefaultHarness: cursor` in `.ai/knowledge-base/config.yaml`.
+
+### sessionStart INDEX injection
+
+Cursor documents `sessionStart` hooks as fire-and-forget; `additional_context` from `kb-session-start` may not always block the agent loop. Cursor also reads project `AGENTS.md` as rules — if hook-based INDEX injection proves unreliable, reference INDEX content via `AGENTS.md` as a fallback (same mitigation pattern as OpenCode v1).
+
+### Verify
+
+```sh
+npx @e0ipso/ai-knowledge-base --harness cursor doctor
+```
+
+Checks your Node version, that `agent` (or `cursor agent`) is on PATH, that `.cursor/hooks.json` contains our entries, that hook scripts and skills are present, and that INDEX is fresh.
 
 ## OpenCode CLI
 
@@ -117,7 +163,7 @@ Checks your Node version, that `opencode` is on PATH, that `.opencode/plugins/kb
 
 ## Shared skill source
 
-All three harnesses install the same `kb-add`, `kb-bootstrap`, and `kb-curate` SKILL.md bytes under their respective native skills directories (`.claude/skills/`, `.agents/skills/`, `.opencode/skills/`). The skill body resolves the active `--harness` value at runtime via a tiny `/tmp/kb-detect-harness.mjs` helper that the SKILL.md body materializes from a heredoc on first invocation. The LLM author substitutes its own best-guess id for the `<hint>` placeholder; the script validates the hint against the registered ids and walks the env / `cliDefaultHarness` chain on misses.
+All four harnesses install the same `kb-add`, `kb-bootstrap`, and `kb-curate` SKILL.md bytes under their respective native skills directories (`.claude/skills/`, `.agents/skills/`, `.cursor/skills/`, `.opencode/skills/`). The skill body resolves the active `--harness` value at runtime via a tiny `/tmp/kb-detect-harness.mjs` helper that the SKILL.md body materializes from a heredoc on first invocation. The LLM author substitutes its own best-guess id for the `<hint>` placeholder; the script validates the hint against the registered ids and walks the env / `cliDefaultHarness` chain on misses.
 
 ### Claude permission story
 
