@@ -2,7 +2,7 @@
 id: 1
 group: "adapter-contract"
 dependencies: []
-status: "pending"
+status: "completed"
 created: 2026-05-21
 skills:
   - typescript

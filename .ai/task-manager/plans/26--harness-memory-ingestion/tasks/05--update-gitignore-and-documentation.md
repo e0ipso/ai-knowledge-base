@@ -2,7 +2,7 @@
 id: 5
 group: "docs-and-gitignore"
 dependencies: [3, 4]
-status: "pending"
+status: "completed"
 created: 2026-05-21
 skills:
   - documentation
