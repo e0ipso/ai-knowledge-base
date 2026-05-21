@@ -272,3 +272,22 @@ export const BootstrapStateSchema = z.object({
   docs: z.record(BootstrapDocEntrySchema),
 });
 export type BootstrapState = z.infer<typeof BootstrapStateSchema>;
+
+/**
+ * Per-user ledger for harness auto-memory ingestion. Keyed by `file://` IRI,
+ * value is the last-seen content hash plus the run that recorded it. Lives
+ * under `.ai/knowledge-base/.state/memory-ledger.json` (gitignored). Born at
+ * `schema_version: 1`; malformed files are rebuilt from empty, never migrated.
+ */
+export const MemoryLedgerSchema = z.object({
+  schema_version: z.literal(1),
+  entries: z.record(
+    z.string(),
+    z.object({
+      sha256: z.string(),
+      lastSeenRunId: z.string(),
+      lastSeenAt: z.string(),
+    })
+  ),
+});
+export type MemoryLedger = z.infer<typeof MemoryLedgerSchema>;

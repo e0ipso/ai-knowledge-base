@@ -156,6 +156,18 @@ export interface HarnessAdapter {
   doctorChecks(paths: RepoPaths): Promise<NamedDoctorCheck[]>;
 
   /**
+   * Asks the host harness for its auto-memory files (e.g. Claude Code's
+   * persisted memory files under the user/project memory directory). Returns
+   * an array of absolute `file://` IRIs the active KB pipelines
+   * (`bootstrap-incremental`, `curate`) can read.
+   *
+   * Adapters whose host has no native memory feature return `[]`. A non-JSON
+   * or otherwise unparseable response from the harness yields `[]` plus a
+   * structured warning; it is not an error.
+   */
+  listMemoryFiles(opts?: { timeoutMs?: number }): Promise<string[]>;
+
+  /**
    * Returns true when this harness is the one currently driving the
    * process. The detector inspects the env vars the harness itself sets
    * (e.g. `CLAUDECODE=1` for Claude Code). Used by `resolveActiveHarness`

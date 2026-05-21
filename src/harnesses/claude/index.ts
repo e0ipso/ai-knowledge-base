@@ -1,8 +1,13 @@
 import { join } from 'node:path';
 import type { EffectiveSettings } from '../../lib/settings.js';
+import { log } from '../../lib/log.js';
+import {
+  HARNESS_MEMORY_DISCOVERY_PROMPT,
+  MemoryIriListSchema,
+} from '../../lib/memory-files.js';
 import type { HarnessAdapter, HarnessPaths, ModelChoiceRole } from '../types.js';
 import { claudeDoctorChecks } from './doctor.js';
-import { runHeadlessClaude } from './headless.js';
+import { runHeadlessClaude, runHeadlessClaudeRaw } from './headless.js';
 import { CLAUDE_HOOK_SPECS } from './hook-spec.js';
 import { installClaude } from './install.js';
 import { buildClaudeHarnessOpts } from './opts.js';
@@ -40,6 +45,48 @@ function claudePaths(root: string): HarnessPaths {
   };
 }
 
+async function claudeListMemoryFiles(opts: { timeoutMs?: number } = {}): Promise<string[]> {
+  const runOpts: { timeoutMs?: number } = {};
+  if (opts.timeoutMs !== undefined) runOpts.timeoutMs = opts.timeoutMs;
+  let raw: string;
+  try {
+    raw = await runHeadlessClaudeRaw(HARNESS_MEMORY_DISCOVERY_PROMPT, '', runOpts);
+  } catch (err) {
+    log.warn(
+      `claude listMemoryFiles: headless child failed (${err instanceof Error ? err.message : String(err)}); returning [].`
+    );
+    return [];
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw.trim());
+  } catch (err) {
+    log.warn(
+      `claude listMemoryFiles: child reply was not JSON (${err instanceof Error ? err.message : String(err)}); returning [].`
+    );
+    return [];
+  }
+
+  const validated = MemoryIriListSchema.safeParse(parsed);
+  if (!validated.success) {
+    log.warn(
+      `claude listMemoryFiles: reply did not match string-array schema (${validated.error.message}); returning [].`
+    );
+    return [];
+  }
+
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const entry of validated.data) {
+    if (!/^file:\/\//.test(entry)) continue;
+    if (seen.has(entry)) continue;
+    seen.add(entry);
+    out.push(entry);
+  }
+  return out;
+}
+
 export const claudeAdapter: HarnessAdapter = {
   id: 'claude',
   hooks: CLAUDE_HOOK_SPECS,
@@ -54,4 +101,5 @@ export const claudeAdapter: HarnessAdapter = {
     buildClaudeHarnessOpts(settings, role),
   doctorChecks: paths => claudeDoctorChecks(paths),
   detectFromEnv: detectClaudeFromEnv,
+  listMemoryFiles: claudeListMemoryFiles,
 };

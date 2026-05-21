@@ -62,6 +62,12 @@ export interface RepoPaths {
    */
   conflictsDir: string;
   gitignoreFile: string;
+  /**
+   * Per-user ledger of ingested harness auto-memory files
+   * (`.ai/knowledge-base/.state/memory-ledger.json`). Lives under `.state/`
+   * so the existing gitignore rule keeps it out of commits.
+   */
+  memoryLedgerFile: string;
 }
 
 export function repoPaths(root: string): RepoPaths {
@@ -84,6 +90,7 @@ export function repoPaths(root: string): RepoPaths {
     nodesDir: join(kbDir, 'nodes'),
     conflictsDir: join(kbDir, 'conflicts'),
     gitignoreFile: join(root, '.gitignore'),
+    memoryLedgerFile: join(stateDir, 'memory-ledger.json'),
   };
 }
 

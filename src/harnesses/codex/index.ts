@@ -39,4 +39,7 @@ export const codexAdapter: HarnessAdapter = {
   buildHarnessOpts: (settings: EffectiveSettings, role: ModelChoiceRole) =>
     buildCodexHarnessOpts(settings, role),
   doctorChecks: paths => codexDoctorChecks(paths),
+  // Codex CLI has no native auto-memory feature today; return [] without
+  // spawning a child. The interface stays uniform across adapters.
+  listMemoryFiles: async () => [],
 };

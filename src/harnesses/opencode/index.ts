@@ -42,4 +42,7 @@ export const openCodeAdapter: HarnessAdapter = {
   buildHarnessOpts: (settings: EffectiveSettings, role: ModelChoiceRole) =>
     buildOpenCodeHarnessOpts(settings, role),
   doctorChecks: paths => openCodeDoctorChecks(paths),
+  // OpenCode has no native auto-memory feature today; return [] without
+  // spawning a child. The interface stays uniform across adapters.
+  listMemoryFiles: async () => [],
 };

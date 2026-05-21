@@ -10,25 +10,21 @@ import { ClaudeHarnessOptsSchema } from './opts.js';
 export const DEFAULT_TIMEOUT_MS = 60_000;
 
 /**
- * Invokes `claude -p` with stream-json verbose output. Each line of stdout is
- * a JSON event; we mirror them into `logFile` (if given) as they arrive and
- * search for the final `type: result` event. Its `result` text is parsed as
- * JSON and validated against `schema`.
+ * Spawns `claude -p` with stream-json verbose output, mirrors each line into
+ * `logFile` (if given), and returns the trimmed string from the final
+ * `type: result` event. Throws on subprocess failure / timeout / missing
+ * result event. Callers that need typed JSON validate the returned string
+ * themselves (e.g. `runHeadlessClaude` adds a `JSON.parse` + Zod schema pass
+ * on top).
  *
  * The recursion guard env var (`KB_BUILDER_INTERNAL=1`) is always set on the
- * child so that capture/drain hooks fired from the spawned process exit
- * silently.
- *
- * Claude-specific knobs (`model`, `effort`, `allowedTools`) live inside the
- * adapter-opaque `harnessOpts` blob and are validated by
- * `ClaudeHarnessOptsSchema` at the top of the call.
+ * child so capture/drain hooks fired from the spawned process exit silently.
  */
-export async function runHeadlessClaude<T>(
+export async function runHeadlessClaudeRaw(
   promptBody: string,
   stdin: string,
-  schema: ZodSchema<T>,
   opts: HeadlessRunOptions = {}
-): Promise<T> {
+): Promise<string> {
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const harnessOpts = ClaudeHarnessOptsSchema.parse(opts.harnessOpts ?? {});
   const allowedTools = harnessOpts.allowedTools ?? [];
@@ -112,6 +108,24 @@ export async function runHeadlessClaude<T>(
   if (finalResult === null) {
     throw new Error('claude subprocess produced no final result message');
   }
+  return finalResult;
+}
+
+/**
+ * Invokes `claude -p` and validates the final `result` string as JSON against
+ * `schema`. See `runHeadlessClaudeRaw` for the underlying spawn contract.
+ *
+ * Claude-specific knobs (`model`, `effort`, `allowedTools`) live inside the
+ * adapter-opaque `harnessOpts` blob and are validated by
+ * `ClaudeHarnessOptsSchema` inside the raw runner.
+ */
+export async function runHeadlessClaude<T>(
+  promptBody: string,
+  stdin: string,
+  schema: ZodSchema<T>,
+  opts: HeadlessRunOptions = {}
+): Promise<T> {
+  const finalResult = await runHeadlessClaudeRaw(promptBody, stdin, opts);
 
   let parsedJson: unknown;
   try {
