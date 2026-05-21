@@ -1,3 +1,10 @@
+## [0.13.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.12.0...v0.13.0) (2026-05-21)
+
+### Features
+
+* **harness:** add memory-file ingestion plumbing ([bceeb3c](https://github.com/e0ipso/ai-knowledge-base/commit/bceeb3c7317d70eaaa78efeb4b0ac4ad04a8133a))
+* **pipelines:** wire memory ingestion paths ([183f11c](https://github.com/e0ipso/ai-knowledge-base/commit/183f11c20bac268f7ed1ddfa005f6f58fe0439b9)), closes [#37](https://github.com/e0ipso/ai-knowledge-base/issues/37)
+
 ## [0.12.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.11.1...v0.12.0) (2026-05-21)
 
 ### Features
