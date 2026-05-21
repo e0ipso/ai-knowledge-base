@@ -1,3 +1,11 @@
+## [0.14.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.13.0...v0.14.0) (2026-05-21)
+
+### Features
+
+* **hooks:** add diagnostic utility + doc note ([368ff61](https://github.com/e0ipso/ai-knowledge-base/commit/368ff61502bfe05c76fdac49d527ff78f235a84e))
+* **hooks:** record swallowed errors in 12 hooks ([2f9b216](https://github.com/e0ipso/ai-knowledge-base/commit/2f9b216cbe87f2679f20c3df64bf6095608e0c97))
+* **session-start:** inject KB nav directive ([c431102](https://github.com/e0ipso/ai-knowledge-base/commit/c43110216f82e09e2917f38b03b865eee5bca708))
+
 ## [0.13.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.12.0...v0.13.0) (2026-05-21)
 
 ### Features
