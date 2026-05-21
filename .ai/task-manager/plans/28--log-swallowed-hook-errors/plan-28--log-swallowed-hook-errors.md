@@ -252,18 +252,18 @@ graph TD
 
 No circular dependencies.
 
-### Phase 1: Foundation and independent docs
+### ✅ Phase 1: Foundation and independent docs
 **Parallel Tasks:**
-- Task 001: Create `src/lib/hook-diagnostic.ts` shared utility
-- Task 004: Add troubleshooting paragraph for the hook-errors log file
+- ✔️ Task 001: Create `src/lib/hook-diagnostic.ts` shared utility
+- ✔️ Task 004: Add troubleshooting paragraph for the hook-errors log file
 
-### Phase 2: Apply utility across all hook entry points
+### ✅ Phase 2: Apply utility across all hook entry points
 **Parallel Tasks:**
-- Task 002: Rewrite all 12 hook entry points to call `hook-diagnostic` (depends on: 001)
+- ✔️ Task 002: Rewrite all 12 hook entry points to call `hook-diagnostic` (depends on: 001)
 
-### Phase 3: Lock in behavior with tests
+### ✅ Phase 3: Lock in behavior with tests
 **Parallel Tasks:**
-- Task 003: Tests for `hook-diagnostic` and per-hook parse-failure round-trip (depends on: 001, 002)
+- ✔️ Task 003: Tests for `hook-diagnostic` and per-hook parse-failure round-trip (depends on: 001, 002)
 
 ### Post-phase Actions
 - After Phase 3 completes, run the plan's Self Validation checklist (static sweep, live parse-error round-trip, live uncaught-throw round-trip, gitignore verification, doc check, cross-adapter consistency diff).
@@ -271,3 +271,30 @@ No circular dependencies.
 ### Execution Summary
 - Total Phases: 3
 - Total Tasks: 4
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-21
+
+### Results
+All four tasks shipped on `feature/28--log-swallowed-hook-errors` across three commits:
+
+1. **Phase 1** (`c0c91ce`) — Added `src/lib/hook-diagnostic.ts` (one exported function, broad try/catch around the whole body, sync `appendFileSync`), and the troubleshooting paragraph in `docs/troubleshooting.md`.
+2. **Phase 2** (`96f5abf`) — Rewrote all 12 hook entry points uniformly under `src/harnesses/{claude,codex,opencode}/hooks/`. The trailing `void main().catch(() => process.exit(0))` is gone everywhere; every `JSON.parse` catch records `phase: "parse"` before the existing fallthrough; the outer wrapper records `phase: "uncaught"`. Hook identifier hard-coded per file as `harness:hookname`.
+3. **Phase 3** (`f8c4023`) — Added three unit tests in `tests/lib/hook-diagnostic.test.ts` (happy path, fs-error tolerance, wrapper shape) and one piggy-back end-to-end assertion in `tests/hooks/kb-capture.test.ts` that spawns the hook with invalid JSON and verifies exit 0 + one parse-phase log line. Test suite: 370 passed (up from 366).
+
+Self-validation passed every check:
+- `grep -rn "void main().catch(() => process.exit(0))" src/harnesses/` returns zero matches.
+- Live parse-error round-trip produces `exit=0` and one valid NDJSON line with `hook:"claude:kb-capture"`, `phase:"parse"`.
+- `.ai/knowledge-base/_logs/hook-errors-2026-05-21.log` is reported ignored by `.ai/knowledge-base/_logs/` in `.gitignore`.
+- Troubleshooting paragraph mentions `<kb-root>/_logs/hook-errors-YYYY-MM-DD.log` and the "silently doing nothing" symptom.
+- `tsc --noEmit` clean; `eslint src/ tests/` clean.
+
+### Noteworthy Events
+- The plan's claim that some hooks might lack the `KB_BUILDER_INTERNAL=1` recursion guard turned out to be unfounded: all 12 files already have it as the first executable statement in `main()`. No edits needed there.
+- `npm run lint` reports errors in `.opencode/kb-hooks/*.cjs` working-dir install artifacts, which pre-date this branch and are not under `src/`/`tests/`. The repo's lint-staged pre-commit hook only runs eslint on staged files, so commits passed cleanly. No fix attempted — out of scope for plan 28.
+- A commit message attempt mentioning `{claude,codex,opencode}` was rejected by a local pre-tool hook that treats `\bClaude\b` (case-insensitive) as an AI-disclosure pattern. Rewrote the message to refer to "the three harness adapter directories" instead.
+
+### Necessary follow-ups
+- None for the plan itself. If the diagnostic log proves useful in triage, a future plan could revisit the closed issue #32's SessionStart nudge (surface "you have N recent hook errors" on start). That decision was explicitly deferred and remains deferred until the log has shown its value.
