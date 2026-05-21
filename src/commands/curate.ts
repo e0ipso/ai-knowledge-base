@@ -10,6 +10,7 @@ import {
 import { resolveActiveHarness } from '../harnesses/detect.js';
 import type { HeadlessRunOptions } from '../harnesses/types.js';
 import { log } from '../lib/log.js';
+import { discoverHarnessMemoryFiles } from '../lib/memory-files.js';
 import { findRepoRoot, packageTemplatesDir, repoPaths } from '../lib/paths.js';
 import { resolveSettings } from '../lib/settings.js';
 
@@ -45,6 +46,13 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
 
   log.info(`Curating pending session logs with the ${harness.id} harness…`);
 
+  const memory = await discoverHarnessMemoryFiles({ adapter: harness, paths });
+  if (memory.curateCandidates.length > 0) {
+    log.info(
+      `Including ${memory.curateCandidates.length} harness memory file(s) in the curator input set.`
+    );
+  }
+
   const now = new Date();
   const logFile = curatorLogFile(paths.logsDir, randomUUID(), now);
   log.plain(`  curator log: ${logFile}`);
@@ -57,6 +65,7 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
     runner,
     logFile,
     harnessOpts,
+    memoryCandidates: memory.curateCandidates,
     onBatchStart: ({
       index,
       total,
@@ -78,10 +87,21 @@ export async function runCurateCommand(opts: CurateCommandOptions = {}): Promise
       log.success(`Batch ${index + 1} finished in ${Math.round(durationMs / 1000)}s`);
     },
   };
-  const result = await runCurate({
-    ...baseOpts,
-    ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
-  });
+  const commitRunId = randomUUID();
+  let result;
+  try {
+    result = await runCurate({
+      ...baseOpts,
+      ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
+    });
+  } catch (err) {
+    await memory.commit(commitRunId, false);
+    throw err;
+  }
+  // `no-pending` and `locked` runs intentionally do not persist anything;
+  // the ledger is only updated on a completed run so unprocessed memory
+  // files are retried on the next invocation.
+  await memory.commit(commitRunId, result.status === 'completed');
 
   switch (result.status) {
     case 'locked':

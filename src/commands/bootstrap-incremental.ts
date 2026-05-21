@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import {
@@ -8,6 +9,7 @@ import {
 import { resolveActiveHarness } from '../harnesses/detect.js';
 import type { HeadlessRunOptions } from '../harnesses/types.js';
 import { log } from '../lib/log.js';
+import { discoverHarnessMemoryFiles } from '../lib/memory-files.js';
 import { findRepoRoot, packageTemplatesDir, repoPaths } from '../lib/paths.js';
 import { resolveSettings } from '../lib/settings.js';
 
@@ -53,12 +55,20 @@ export async function runBootstrapIncrementalCommand(
   const runner: BootstrapRunner = (prompt, stdin, schema, runnerOpts) =>
     harness.runHeadless(prompt, stdin, schema, runnerOpts as HeadlessRunOptions);
 
+  const memory = await discoverHarnessMemoryFiles({ adapter: harness, paths });
+  if (memory.bootstrapCandidates.length > 0) {
+    log.info(
+      `Including ${memory.bootstrapCandidates.length} harness memory file(s) in the bootstrap input set.`
+    );
+  }
+
   const ctx: BootstrapContext = {
     sourceDir,
     paths,
     promptTemplate,
     runner,
     harnessOpts: harness.buildHarnessOpts(settings, 'bootstrap'),
+    memoryCandidates: memory.bootstrapCandidates,
     ...(opts.include !== undefined ? { include: opts.include } : {}),
     ...(opts.exclude !== undefined ? { exclude: opts.exclude } : {}),
     ...(opts.dryRun ? { dryRun: true } : {}),
@@ -71,7 +81,22 @@ export async function runBootstrapIncrementalCommand(
       : `Bootstrap incremental processing ${sourceDir}…`
   );
 
-  const result = await runBootstrapIncremental(ctx);
+  const commitRunId = randomUUID();
+  let memoryCommitted = false;
+  let result;
+  try {
+    result = await runBootstrapIncremental(ctx);
+  } catch (err) {
+    await memory.commit(commitRunId, false);
+    memoryCommitted = true;
+    throw err;
+  }
+  if (!memoryCommitted) {
+    // Dry-runs and locked runs do not durably persist anything; only commit
+    // the ledger when the pipeline actually wrote nodes.
+    const succeeded = !opts.dryRun && result.status === 'completed';
+    await memory.commit(commitRunId, succeeded);
+  }
 
   switch (result.status) {
     case 'locked':

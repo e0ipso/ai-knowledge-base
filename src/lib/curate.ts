@@ -24,9 +24,17 @@ import {
 import { randomUUID } from 'node:crypto';
 import lockfile from 'proper-lockfile';
 import { chunk } from './chunk-batch.js';
+import type { CurateMemoryCandidate } from './memory-files.js';
 import type { RepoPaths } from './paths.js';
 import { STATE_LOCK_OPTIONS } from './state.js';
 import { compactStamp } from './time.js';
+
+/**
+ * Prefix used to encode `candidate_origin` for harness-memory candidates.
+ * The wrapper recognises this prefix in `derivedFromForOrigin` to attribute
+ * `derived_from` to the source IRI rather than a session filename.
+ */
+export const MEMORY_ORIGIN_PREFIX = 'harness-memory:';
 
 export const CURATE_BATCH_SIZE = 10;
 export const DEFAULT_TIMEOUT_MS = 120_000;
@@ -58,6 +66,13 @@ export interface CurateContext {
   logFile?: string;
   /** Adapter-specific knobs (model, effort, allowedTools, ...). */
   harnessOpts?: Record<string, unknown>;
+  /**
+   * Harness auto-memory files discovered by `discoverHarnessMemoryFiles`,
+   * appended to the curator's input set alongside pending session candidates.
+   * Each entry carries `source: 'harness-memory'` and the original `file://`
+   * IRI so the curator prompt can attribute origin in `proposed_node` output.
+   */
+  memoryCandidates?: CurateMemoryCandidate[];
 }
 
 export interface CurateResult {
@@ -136,6 +151,12 @@ export const BATCH_PLACEHOLDER = '[BATCH PLACEHOLDER, substituted at runtime]';
  * Builds the JSON payload that the curator subprocess receives on stdin.
  * Includes the existing nodes the batch references plus the candidates.
  */
+export interface CuratorMemoryFile {
+  source: 'harness-memory';
+  iri: string;
+  content: string;
+}
+
 export interface CuratorBatchPayload {
   existing_nodes: Array<{
     id: string;
@@ -152,10 +173,15 @@ export interface CuratorBatchPayload {
     practice_candidates: ProposalCandidate[];
     map_candidates: ProposalCandidate[];
   }>;
+  /** Harness auto-memory files. Omitted when none were discovered. */
+  memory_files?: CuratorMemoryFile[];
 }
 
-export function buildBatchPayload(batch: PendingSession[]): CuratorBatchPayload {
-  return {
+export function buildBatchPayload(
+  batch: PendingSession[],
+  memoryFiles: CurateMemoryCandidate[] = []
+): CuratorBatchPayload {
+  const payload: CuratorBatchPayload = {
     existing_nodes: [],
     batch: batch.map(s => ({
       session_id: s.sessionId,
@@ -165,6 +191,14 @@ export function buildBatchPayload(batch: PendingSession[]): CuratorBatchPayload 
       map_candidates: s.mapCandidates,
     })),
   };
+  if (memoryFiles.length > 0) {
+    payload.memory_files = memoryFiles.map(m => ({
+      source: m.source,
+      iri: m.iri,
+      content: m.content,
+    }));
+  }
+  return payload;
 }
 
 export function buildBatchPrompt(template: string, payload: CuratorBatchPayload): string {
@@ -189,7 +223,8 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
   const stateFile = join(ctx.paths.stateDir, 'state.json');
 
   const pending = listPendingSessions(ctx.paths.sessionsDir);
-  if (pending.length === 0) {
+  const memoryCandidates = ctx.memoryCandidates ?? [];
+  if (pending.length === 0 && memoryCandidates.length === 0) {
     // Always regenerate INDEX/GRAPH so a manual `node add` followed by an
     // empty curate run still refreshes the index.
     regenerateIndexAndGraph(ctx);
@@ -232,15 +267,26 @@ export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
     ctx.logFile ?? join(ctx.paths.logsDir, 'curator', `${runId}__${startStamp}.jsonl`);
   mkdirSync(join(ctx.paths.logsDir, 'curator'), { recursive: true });
 
-  const batches = chunk(pending, CURATE_BATCH_SIZE);
+  const sessionBatches = chunk(pending, CURATE_BATCH_SIZE);
+  // Attach memory candidates to the first batch only; the curator sees them
+  // once per run regardless of how many session batches exist. An empty
+  // session list with memory present still produces exactly one batch.
+  const batches: Array<{ sessions: PendingSession[]; memory: CurateMemoryCandidate[] }> =
+    sessionBatches.length === 0
+      ? [{ sessions: [], memory: memoryCandidates }]
+      : sessionBatches.map((sessions, i) => ({
+          sessions,
+          memory: i === 0 ? memoryCandidates : [],
+        }));
   const allActions: CuratorAction[] = [];
 
   try {
     for (let i = 0; i < batches.length; i += 1) {
-      const batch = batches[i]!;
-      const payload = buildBatchPayload(batch);
+      const { sessions, memory } = batches[i]!;
+      const payload = buildBatchPayload(sessions, memory);
       const prompt = buildBatchPrompt(ctx.promptTemplate, payload);
-      if (ctx.onBatchStart) ctx.onBatchStart({ index: i, total: batches.length, batch });
+      if (ctx.onBatchStart)
+        ctx.onBatchStart({ index: i, total: batches.length, batch: sessions });
       const batchStartMs = Date.now();
       const runnerOpts: Parameters<CuratorRunner>[3] = {
         timeoutMs,
@@ -446,16 +492,21 @@ export function dedupActions(actions: CuratorAction[]): CuratorAction[] {
 }
 
 /**
- * Parses `<session_id>:<practice|map>:<index>` and returns the session
- * filename (the on-disk source) so the wrapper can write `derived_from`
- * deterministically. Returns an empty array when the prefix cannot be matched
- * (e.g. legacy `_sessions/<filename>:practice:0` format) — callers preserve
+ * Parses `<session_id>:<practice|map>:<index>` or
+ * `harness-memory:<file://iri>` and returns the source identifier the wrapper
+ * stamps into `derived_from`. For sessions this is the filename under
+ * `_sessions/`; for harness-memory candidates it is the source IRI verbatim.
+ * Returns an empty array when the prefix cannot be matched — callers preserve
  * the existing node's `derived_from` in that case.
  */
 function derivedFromForOrigin(
   candidateOrigin: string,
   sessionIdToFilename: Map<string, string>
 ): string[] {
+  if (candidateOrigin.startsWith(MEMORY_ORIGIN_PREFIX)) {
+    const iri = candidateOrigin.slice(MEMORY_ORIGIN_PREFIX.length);
+    return iri.length > 0 ? [iri] : [];
+  }
   const firstColon = candidateOrigin.indexOf(':');
   if (firstColon <= 0) return [];
   const prefix = candidateOrigin.slice(0, firstColon);

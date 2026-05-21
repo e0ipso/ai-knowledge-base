@@ -84,6 +84,14 @@ export interface BootstrapContext {
   timeoutMs?: number;
   /** Adapter-specific knobs (model, effort, allowedTools, ...). */
   harnessOpts?: Record<string, unknown>;
+  /**
+   * Harness auto-memory candidates discovered by
+   * `discoverHarnessMemoryFiles`. Interleaved with markdown candidates from
+   * `discoverMarkdownFiles`. Each entry's `relPath` is a synthetic
+   * `memory://<basename>` so existing collision logic treats memory and
+   * markdown sources symmetrically.
+   */
+  memoryCandidates?: DocCandidateFile[];
 }
 
 export interface DocCandidateFile {
@@ -264,8 +272,9 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
   if (ctx.include !== undefined) discoverOpts.include = ctx.include;
   if (ctx.exclude !== undefined) discoverOpts.exclude = ctx.exclude;
   const relPaths = discoverMarkdownFiles(discoverOpts);
+  const memoryCount = ctx.memoryCandidates?.length ?? 0;
 
-  if (relPaths.length === 0) {
+  if (relPaths.length === 0 && memoryCount === 0) {
     return {
       status: 'no-docs',
       runId,
@@ -302,12 +311,13 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
     }
     candidates.push({ relPath: rel, absPath: abs, sha256: sha, content });
   }
+  if (ctx.memoryCandidates !== undefined) candidates.push(...ctx.memoryCandidates);
 
   if (candidates.length === 0) {
     return {
       status: 'completed',
       runId,
-      discovered: relPaths.length,
+      discovered: relPaths.length + memoryCount,
       unchanged: unchanged.length,
       processed: unchanged,
       nodesWritten: 0,
@@ -326,7 +336,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
     return {
       status: 'completed',
       runId,
-      discovered: relPaths.length,
+      discovered: relPaths.length + memoryCount,
       unchanged: unchanged.length,
       processed: [...dryResults, ...unchanged],
       nodesWritten: 0,
@@ -347,7 +357,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
       return {
         status: 'locked',
         runId,
-        discovered: relPaths.length,
+        discovered: relPaths.length + memoryCount,
         unchanged: unchanged.length,
         processed: unchanged,
         nodesWritten: 0,
@@ -430,10 +440,13 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
       }
     }
 
-    // Update state for every processed (successful) doc.
+    // Update state for every processed (successful) doc. Memory candidates
+    // are tracked in their own ledger (`memory-ledger.json`) and must not
+    // pollute `bootstrap-state.json`, which only records markdown sources.
     const nextDocs: BootstrapState['docs'] = { ...state.docs };
     for (const r of processed) {
       if (r.status !== 'processed') continue;
+      if (r.relPath.startsWith('memory://')) continue;
       nextDocs[r.relPath] = {
         content_sha256: r.sha256,
         last_processed_at: new Date().toISOString(),
@@ -454,7 +467,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
   return {
     status: 'completed',
     runId,
-    discovered: relPaths.length,
+    discovered: relPaths.length + memoryCount,
     unchanged: unchanged.length,
     processed: [...processed, ...unchanged],
     nodesWritten,
