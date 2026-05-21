@@ -203,13 +203,13 @@ graph TD
     001[Task 001: Inject directive into session-start.ts + pin with unit test] --> 002[Task 002: Author docs/internals/kb-navigation.md + update internals index]
 ```
 
-### Phase 1: Implementation
+### ✅ Phase 1: Implementation
 **Parallel Tasks:**
-- Task 001: Inject the navigation directive into the SessionStart additional-context payload in `src/lib/session-start.ts` and add a unit test in `tests/lib/session-start.test.ts` that pins the directive via the `grep -C 2` + `nodes/` anchor.
+- ✔️ Task 001: Inject the navigation directive into the SessionStart additional-context payload in `src/lib/session-start.ts` and add a unit test in `tests/lib/session-start.test.ts` that pins the directive via the `grep -C 2` + `nodes/` anchor.
 
-### Phase 2: Documentation
+### ✅ Phase 2: Documentation
 **Parallel Tasks:**
-- Task 002: Author `docs/internals/kb-navigation.md` (project-internal rationale page) and add it to `docs/internals/index.md` (depends on: 001 — the doc cross-references the now-committed enforcement surface).
+- ✔️ Task 002: Author `docs/internals/kb-navigation.md` (project-internal rationale page) and add it to `docs/internals/index.md` (depends on: 001 — the doc cross-references the now-committed enforcement surface).
 
 ### Post-phase Actions
 
@@ -220,3 +220,24 @@ After Phase 2: run `git diff main -- src/harnesses src/templates-source template
 ### Execution Summary
 - Total Phases: 2
 - Total Tasks: 2
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-21
+
+### Results
+
+- Phase 1 (Task 001): Added the unconditional KB-navigation directive to the additional-context payload in `src/lib/session-start.ts` immediately after the snapshots-in-time caveat. Directive names `grep -C 2` explicitly and points at `nodes/`. Pinned with a new vitest case in `tests/lib/session-start.test.ts` that asserts both anchor substrings appear in `result.additionalContext`. Full suite: 366/366 passing.
+- Phase 2 (Task 002): Authored `docs/internals/kb-navigation.md` — a project-internal rationale page with a prominent "does not ship to consumers, no runtime effect" callout, an explanation of the 3-layer model, the surface-reachability argument, the `-C 2` reasoning, and explicit cross-references to `src/lib/session-start.ts` and `tests/lib/session-start.test.ts` as the sources of truth. Added the page to `docs/internals/index.md` adjacent to `prompts.md`. `nav_order: 6` chosen to avoid colliding with siblings (1–5).
+- Scope discipline: `git diff main -- src/harnesses src/templates-source templates docs/daily-use.md docs/how-it-works.md README.md` is empty (Success Criteria #5).
+
+### Noteworthy Events
+
+- `npm run lint` reports four pre-existing errors and sixteen warnings in tracked, generated bundle files (`.claude/hooks/*.cjs`, `.opencode/kb-hooks/*.cjs`) and one `.codex` counterpart. These exist on `main` at the same SHA before any work on this branch — they are unrelated to the changes in this plan. The POST_PHASE hook calls for the codebase to be passing linting; the literal state did not change between `main` and the feature branch on those files. The two files actually touched (`src/lib/session-start.ts`, `tests/lib/session-start.test.ts`) plus the two doc files pass secretlint (verified via `lint-staged` on each commit) and TypeScript (`tsc --noEmit` ran clean via pretest) and the full vitest suite (366/366). Per the project's stated convention of not making tests/lints pass by editing unrelated generated files, the pre-existing lint state was left untouched.
+- `nav_order` selection for `docs/internals/kb-navigation.md`: existing sibling pages use 1, 2, 3, 4, 5. To avoid renumbering siblings (which would expand scope), the new page uses `nav_order: 6` placing it last in the sidebar. The bullet in `docs/internals/index.md` is still placed adjacent to `prompts.md` per the task guidance, since the bullet-list order in `index.md` is independent of the sidebar `nav_order`.
+
+### Necessary follow-ups
+
+- None for this plan. If the existing generated-bundle lint errors are deemed worth fixing, that is a separate cleanup (root cause is upstream rule definitions, not this work).
+- Field observation: the directive's effectiveness is observable only through normal use. The unit test guarantees it ships; whether consumer agents follow it is not telemetered (intentional, per Plan Notes).
