@@ -476,6 +476,92 @@ describe('runBootstrapIncremental', () => {
     expect(byTitle['From C']).toEqual(['docs/c.md']);
   });
 
+  it('interleaves memory candidates with markdown candidates and produces nodes for both', async () => {
+    writeFileSync(join(harness.sourceDir, 'a.md'), '# A');
+    const memoryCandidate = {
+      relPath: 'memory://user_role.md',
+      absPath: '/synthetic/user_role.md',
+      sha256: 'a'.repeat(64),
+      content: '# user role\nbackend engineer',
+    };
+    let call = 0;
+    const titles = ['From Markdown', 'From Memory'];
+    const seenPaths: string[] = [];
+    const runner: BootstrapRunner = (async (prompt: string) => {
+      const m = prompt.match(/=== FILE: ([^=]+?) ===/);
+      if (m) seenPaths.push(m[1]!.trim());
+      const title = titles[call++]!;
+      return { practice: [makeCandidate('practice', title)], map: [] };
+    }) as BootstrapRunner;
+    const result = await runBootstrapIncremental({
+      ...ctxFor(harness, runner),
+      memoryCandidates: [memoryCandidate],
+    });
+    expect(result.status).toBe('completed');
+    expect(result.batches).toBe(2);
+    expect(result.nodesWritten).toBe(2);
+    expect(result.discovered).toBe(2);
+    expect(seenPaths).toEqual(['docs/a.md', 'memory://user_role.md']);
+    // The synthetic memory:// path must not leak into bootstrap-state.json,
+    // which exists to track changes to markdown sources only.
+    const state = readBootstrapState(harness.bootstrapStateFile);
+    expect(Object.keys(state.docs)).toEqual(['docs/a.md']);
+  });
+
+  it('treats memory candidates as candidates when no markdown files exist', async () => {
+    const memoryCandidate = {
+      relPath: 'memory://only_memory.md',
+      absPath: '/synthetic/only_memory.md',
+      sha256: 'b'.repeat(64),
+      content: 'just memory content',
+    };
+    const runner: BootstrapRunner = (async () => ({
+      practice: [makeCandidate('practice', 'Memory Only')],
+      map: [],
+    })) as BootstrapRunner;
+    const result = await runBootstrapIncremental({
+      ...ctxFor(harness, runner),
+      memoryCandidates: [memoryCandidate],
+    });
+    expect(result.status).toBe('completed');
+    expect(result.nodesWritten).toBe(1);
+  });
+
+  it('honours collision-skip for memory candidates whose synthetic relPath maps onto an existing node', async () => {
+    // Pre-create the node the LLM is about to ask us to write.
+    mkdirSync(join(harness.nodesDir, 'practice'), { recursive: true });
+    writeFileSync(
+      join(harness.nodesDir, 'practice', 'practice-pre-existing.md'),
+      matter.stringify('# already here\n', {
+        schema_version: 1,
+        id: 'practice-pre-existing',
+        title: 'Pre Existing',
+        kind: 'practice',
+        tags: [],
+        derived_from: [],
+        relates_to: [],
+        confidence: 'medium',
+        summary: 's',
+      })
+    );
+    const memoryCandidate = {
+      relPath: 'memory://m.md',
+      absPath: '/x/m.md',
+      sha256: 'c'.repeat(64),
+      content: 'memory body',
+    };
+    const runner = runnerOf({
+      practice: [makeCandidate('practice', 'Pre Existing')],
+      map: [],
+    });
+    const result = await runBootstrapIncremental({
+      ...ctxFor(harness, runner),
+      memoryCandidates: [memoryCandidate],
+    });
+    expect(result.skippedCollisions).toBe(1);
+    expect(result.nodesWritten).toBe(0);
+  });
+
   it('forwards harnessOpts to the runner when set, omits them otherwise', async () => {
     writeFileSync(join(harness.sourceDir, 'a.md'), '# A');
     let captured: Record<string, unknown> | undefined;

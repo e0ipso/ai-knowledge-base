@@ -506,6 +506,103 @@ describe('runCurate', () => {
     expect(payload.existing_nodes).toEqual([]);
     expect(payload.batch[0]?.session_id).toBe('s');
   });
+
+  describe('memory ingestion', () => {
+    const memoryCandidate = {
+      source: 'harness-memory' as const,
+      iri: 'file:///home/x/memory_a.md',
+      sha256: 'a'.repeat(64),
+      content: '# user role\nbackend engineer',
+    };
+
+    it('threads memory candidates into the curator payload with harness-memory provenance', async () => {
+      let capturedPayload: CuratorBatchPayload | null = null;
+      const runner: CuratorRunner = async (prompt: string) => {
+        const m = prompt.match(/\{[\s\S]*\}/);
+        if (m) capturedPayload = JSON.parse(m[0]) as CuratorBatchPayload;
+        return [];
+      };
+      const result = await runCurate({
+        ...ctx(runner),
+        memoryCandidates: [memoryCandidate],
+      });
+      expect(result.status).toBe('completed');
+      expect(capturedPayload).not.toBeNull();
+      expect(capturedPayload!.memory_files).toHaveLength(1);
+      expect(capturedPayload!.memory_files![0]!.source).toBe('harness-memory');
+      expect(capturedPayload!.memory_files![0]!.iri).toBe(memoryCandidate.iri);
+    });
+
+    it('stamps derived_from with the memory IRI when the curator emits a harness-memory: action', async () => {
+      const runner: CuratorRunner = async () => [
+        makeAction('add', {
+          candidate_origin: `harness-memory:${memoryCandidate.iri}`,
+          proposed_node: {
+            title: 'User Role',
+            kind: 'practice',
+            tags: ['user'],
+            summary: 'Backend role',
+            body: '# Role\nBody.\n',
+            confidence: 'high',
+            relates_to: [],
+          },
+        }),
+      ];
+      const result = await runCurate({
+        ...ctx(runner),
+        memoryCandidates: [memoryCandidate],
+      });
+      expect(result.nodesWritten).toBe(1);
+      const fm = matter(
+        readFileSync(join(harness.nodesDir, 'practice', 'practice-user-role.md'), 'utf8')
+      ).data as NodeFrontmatter;
+      expect(fm.derived_from).toEqual([memoryCandidate.iri]);
+    });
+
+    it('only sends memory candidates to the first batch even when sessions span multiple batches', async () => {
+      // Seed enough sessions to force two batches at CURATE_BATCH_SIZE=10.
+      for (let i = 0; i < 12; i += 1) {
+        seedSession(harness, `s${i}`, [makeCandidate('practice', `Cand${i}`)], []);
+      }
+      const seenMemoryCounts: number[] = [];
+      const runner: CuratorRunner = async (prompt: string) => {
+        const m = prompt.match(/\{[\s\S]*\}/);
+        const payload = m ? (JSON.parse(m[0]) as CuratorBatchPayload) : null;
+        seenMemoryCounts.push(payload?.memory_files?.length ?? 0);
+        return [];
+      };
+      await runCurate({
+        ...ctx(runner),
+        memoryCandidates: [memoryCandidate],
+      });
+      expect(seenMemoryCounts).toEqual([1, 0]);
+    });
+
+    it('runs a single batch when there are no pending sessions but memory candidates exist', async () => {
+      let batches = 0;
+      const runner: CuratorRunner = async () => {
+        batches += 1;
+        return [];
+      };
+      const result = await runCurate({
+        ...ctx(runner),
+        memoryCandidates: [memoryCandidate],
+      });
+      expect(result.status).toBe('completed');
+      expect(batches).toBe(1);
+    });
+
+    it('returns no-pending when both pending sessions and memory candidates are empty', async () => {
+      let called = 0;
+      const runner: CuratorRunner = async () => {
+        called += 1;
+        return [];
+      };
+      const result = await runCurate(ctx(runner));
+      expect(result.status).toBe('no-pending');
+      expect(called).toBe(0);
+    });
+  });
 });
 
 describe('ProposalCandidateSchema (strict, hint fields removed)', () => {

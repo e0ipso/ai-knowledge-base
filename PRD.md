@@ -110,6 +110,8 @@ The `kb-bootstrap` Claude Code skill runs an agent-driven first-time bootstrap i
 
 `npx @e0ipso/ai-knowledge-base bootstrap-incremental --from <path>` is a CLI tool for re-bootstrap. It reads a state file recording the SHA-256 of each previously-processed source doc, skips unchanged docs, and runs chunked extraction only on new or modified ones. Cheap, deterministic, scriptable. Re-runnable safely.
 
+Both `bootstrap-incremental` and `curate` also consume the active harness's auto-memory files (Claude Code's persisted memories; other adapters return `[]` until their hosts ship the feature). Memory files reach the LLM only after passing through the same secretlint redaction gate as session capture, and a per-user ledger at `.ai/knowledge-base/.state/memory-ledger.json` (gitignored) keeps the second pass cheap by skipping unchanged files.
+
 ### As a consumer
 
 > "I clone the repo and start an AI session. I want the AI to already know what my teammates have learned."
