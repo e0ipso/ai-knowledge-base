@@ -15,6 +15,10 @@ Start with `npx @e0ipso/ai-knowledge-base doctor --verbose`.
 - **secretlint isn't installed.** Capture refuses to write when the secret scanner can't load. Run `npm install` (the project's devDeps include `secretlint` and the recommended preset after `init`).
 - **A wrapper script around `claude` leaked the internal flag** (`KB_BUILDER_INTERNAL=1`) into a normal session.
 
+## A hook seems to be silently doing nothing
+
+Check `<kb-root>/_logs/hook-errors-YYYY-MM-DD.log` for the most recent day. Each line is a JSON object recording one swallowed hook failure — either a parse error (the harness sent malformed JSON) or an uncaught throw inside the hook — with the hook name, phase, and error message. The file is dated; rotation is implicit. Hooks always exit 0 by design, so this log is the primary breadcrumb when a hook appears to do nothing.
+
 ## Captured sessions never get extracted
 
 Session logs are stuck pending.
