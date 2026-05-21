@@ -42,7 +42,7 @@ When captured candidates accumulate, the system nudges you in the next session. 
 
 - **Additions**: write a new node file.
 - **Modifications**: overwrite an existing node file.
-- **Contradictions**: record the conflict in `.ai/knowledge-base/.state/pending-conflicts.json` and write nothing. The `/kb-curate` skill reads that file after the curator exits and walks each conflict with you in-session. You pick Replace (delete the existing node file and write the proposed one) or Reject (do nothing).
+- **Contradictions**: record each conflict as `.ai/knowledge-base/conflicts/<id>.md` with `status: pending` and write nothing to `nodes/`. The `/kb-curate` skill reads those files after the curator exits and walks each one with you in-session, grouping by `target_node_id`. You reply with a single character: `y` to accept the proposal, `n` to reject it, `s` to defer to the next pass, or `k` to keep the conflict file as a historical record.
 
 As part of the same run, the curator regenerates `INDEX.md` and `GRAPH.md` deterministically (no LLM) so the index reflects the current `nodes/` tree.
 
@@ -71,7 +71,7 @@ Everything is plain text, diffable, reviewable, version-controlled like any code
 | Capture session | session end (hook) | automatic |
 | Extract candidates | capture completes | automatic (background) |
 | Curate → write to `nodes/` | system nudge or `/kb-curate` | autonomous AI (asks only when contradicting) |
-| Resolve contradictions | curator records one in `pending-conflicts.json` | `/kb-curate` skill walks each one with **you** |
+| Resolve contradictions | curator writes a file under `.ai/knowledge-base/conflicts/` | `/kb-curate` skill walks each one with **you** (`y`/`n`/`s`/`k`) |
 | Regenerate `INDEX.md` / `GRAPH.md` | end of curate run + every commit (lint-staged) | automatic (deterministic) |
 | Review changes to `nodes/` | whenever the curator wrote something | **you** (`git diff`, `git restore`, `git commit`) |
 | Inject `INDEX.md` into new sessions | session start | automatic |

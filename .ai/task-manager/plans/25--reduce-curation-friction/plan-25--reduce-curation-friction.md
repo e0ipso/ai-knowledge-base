@@ -250,14 +250,14 @@ One discrepancy with the issue text worth flagging on landing: the issue mention
 **Validation Gates:**
 - Reference: `/config/hooks/POST_PHASE.md`
 
-### Phase 1: Independent surfaces
+### ✅ Phase 1: Independent surfaces
 **Parallel Tasks:**
-- Task 001: Implement richer SessionStart nudge (soft + loud forms)
-- Task 002: Rewrite kb-curate SKILL.md (fast path + grouped y/n/s/k conflict resolution); extend conflict frontmatter with `proposed_confidence`
+- ✔️ Task 001: Implement richer SessionStart nudge (soft + loud forms)
+- ✔️ Task 002: Rewrite kb-curate SKILL.md (fast path + grouped y/n/s/k conflict resolution); extend conflict frontmatter with `proposed_confidence`
 
-### Phase 2: Documentation
+### ✅ Phase 2: Documentation
 **Parallel Tasks:**
-- Task 003: Update daily-use docs for new nudge, fast path, and y/n/s/k conflict UX (depends on: 001, 002)
+- ✔️ Task 003: Update daily-use docs for new nudge, fast path, and y/n/s/k conflict UX (depends on: 001, 002)
 
 ### Dependency Diagram
 

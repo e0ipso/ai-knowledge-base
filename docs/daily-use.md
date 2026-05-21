@@ -17,6 +17,17 @@ After install, the only thing you do by hand is **curate**, **review**, and **co
 
 The pre-commit hook regenerates `INDEX.md` and `GRAPH.md` and stages them into the same commit, so the injected index never drifts from the committed nodes.
 
+## The SessionStart nudge
+
+When a new session starts, the SessionStart hook counts pending session logs (proposal extracted, not yet curated) and surfaces a nudge once the queue is worth your attention. It has two forms:
+
+- **Soft nudge.** Fires when `pending >= 5` (the default threshold). Shows the pending count, the total candidate proposals waiting (practice + map), the age of the oldest pending log, and the copy/paste command to start curating.
+- **Loud nudge.** Fires when `(pending >= 5 && oldestAgeDays >= 7) || pending >= 10` — i.e., the queue is both large and stale, or simply very large. Same body as the soft form, but introduced by a visible heading line:
+
+  > 🔔 KB curation queue is overdue
+
+Both forms share the same one-hour throttle: even if the trigger condition is met, the nudge only re-fires once per hour. Defaults are `threshold = 5` and `staleDays = 7`; both are knobs in `SessionStartContext` if you need to tune them.
+
 ## Curate
 
 In a Claude Code session:
@@ -35,10 +46,39 @@ The curator reads every captured session that's been processed but not yet curat
 
 - **add** → writes `nodes/<kind>/<id>.md`. Fails loud if the file already exists.
 - **modify** → overwrites the target node. Fails loud if `target_node_id` is missing on disk.
-- **contradict** → records the conflict in `.ai/knowledge-base/.state/pending-conflicts.json` and writes nothing.
+- **contradict** → records the conflict as a markdown file under `.ai/knowledge-base/conflicts/<id>.md` with `status: pending` and writes nothing to `nodes/`.
 - **drop** → no change.
 
-The curator never auto-resolves a contradiction. The `/kb-curate` skill walks each entry in `pending-conflicts.json` with you in-session. You pick Replace (delete the existing node file and write the proposed one) or Reject (do nothing). The skill applies your choice and removes the resolved entry.
+### Fast path: zero conflicts
+
+After the curator returns, the skill checks two things: `result.conflicts` and `result.failures`. If `result.conflicts === 0 && result.failures.length === 0`, the skill prints exactly one summary line and exits — no walkthrough, no further prompts:
+
+```
+Curated <nodes_written> nodes; <drops> dropped; no conflicts. Review with: git diff .ai/knowledge-base/
+```
+
+This is the common case once a project stabilizes; the goal is for clean curate runs to finish in seconds.
+
+### Conflict walkthrough: `y` / `n` / `s` / `k`
+
+When there are pending conflicts, the skill groups them (by `target_node_id`, then `proposed_kind`), shows you the existing node once per group, walks each proposed contradiction, and asks for a single-character reply with a highlighted default:
+
+```
+Accept this proposal? [Y/n/s/k] (default: Y)
+```
+
+The defaults are heuristics — small high-confidence diffs default to `y`, fundamental rewrites default to `n`, everything else defaults to `s`. You always see both sides before being asked.
+
+The four replies are:
+
+- **`y` (Yes / Accept)** — rewrite `nodes/<proposed_kind>/<target_node_id>.md` with the proposed body, then `git restore` the conflict file. Review the node change with `git diff` and commit.
+- **`n` (No / Reject)** — `git restore` the conflict file. The existing node is unchanged.
+- **`s` (Skip / Defer)** — leave the conflict file alone. It re-surfaces on the next curate pass with `status: pending` intact.
+- **`k` (Keep as record)** — `git commit` the conflict file so the disagreement is preserved in history for later review. The existing node is unchanged. Use sparingly.
+
+Empty reply takes the highlighted default. Long forms (`yes`, `no`, `skip`, `keep`) and uppercase variants are accepted. Any other reply (free-form prose like "looks good" or "skip this one") is rejected and the same conflict is re-prompted — the contract is strict on purpose.
+
+> **Breaking change.** The previous Accept / Reject / Keep three-way free-form prompt has been replaced. There is no longer a Replace-vs-Reject choice for each contradiction; the prompt is the single-character `y`/`n`/`s`/`k` contract above. Muscle memory from older releases will need updating.
 
 ## Review changes
 
@@ -48,7 +88,7 @@ To accept: `git add` and `git commit`. The lint-staged pre-commit hook regenerat
 
 To reject: `git restore nodes/<kind>/<file>.md` (or delete the file if it's a new addition).
 
-For curator-detected contradictions, let the `/kb-curate` skill walk you through them; that's the authoritative resolution path.
+For curator-detected contradictions, let the `/kb-curate` skill walk you through them with the `y`/`n`/`s`/`k` prompt; that's the authoritative resolution path.
 
 ## Add knowledge manually
 

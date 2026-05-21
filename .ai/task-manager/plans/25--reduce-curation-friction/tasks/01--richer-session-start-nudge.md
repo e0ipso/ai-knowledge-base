@@ -2,7 +2,7 @@
 id: 1
 group: "session-start-nudge"
 dependencies: []
-status: "pending"
+status: "completed"
 created: 2026-05-21
 skills:
   - typescript

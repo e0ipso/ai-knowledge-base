@@ -2,7 +2,7 @@
 id: 2
 group: "kb-curate-skill"
 dependencies: []
-status: "pending"
+status: "completed"
 created: 2026-05-21
 skills:
   - prompt-engineering
