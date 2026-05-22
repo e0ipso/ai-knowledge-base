@@ -1,3 +1,10 @@
+## [0.16.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.15.0...v0.16.0) (2026-05-22)
+
+### Features
+
+* **bootstrap:** skip harness instruction dirs ([fa04732](https://github.com/e0ipso/ai-knowledge-base/commit/fa0473267723d1ab999b1991e204152c3f223d57))
+* **headless:** tolerate wrapped curator JSON ([deb33b3](https://github.com/e0ipso/ai-knowledge-base/commit/deb33b395fcbd83af7b8a089ad88e6dfff49ed49))
+
 ## [0.15.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.14.0...v0.15.0) (2026-05-22)
 
 ### Features
