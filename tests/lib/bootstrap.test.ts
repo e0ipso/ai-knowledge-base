@@ -230,6 +230,65 @@ describe('discoverMarkdownFiles', () => {
       'docs/licensing-policy.md',
     ]);
   });
+
+  it('skips harness skill and command directories via extraStaticSkips', () => {
+    writeFileSync(join(harness.root, 'intro.md'), 'i');
+    for (const rel of [
+      '.claude/skills/foo/SKILL.md',
+      '.claude/commands/bar.md',
+      '.agents/skills/baz/SKILL.md',
+      '.cursor/skills/qux/SKILL.md',
+      '.opencode/skills/quux/SKILL.md',
+    ]) {
+      mkdirSync(join(harness.root, rel, '..'), { recursive: true });
+      writeFileSync(join(harness.root, rel), 'x');
+    }
+    const got = discoverMarkdownFiles({
+      sourceDir: harness.root,
+      repoRoot: harness.root,
+      extraStaticSkips: [
+        '.claude/skills/**',
+        '.claude/commands/**',
+        '.agents/skills/**',
+        '.cursor/skills/**',
+        '.opencode/skills/**',
+      ],
+    });
+    expect(got).toEqual(['intro.md']);
+  });
+
+  it('admits a harness-skill path when --include matches it explicitly', () => {
+    writeFileSync(join(harness.root, 'intro.md'), 'i');
+    mkdirSync(join(harness.root, '.claude', 'skills', 'foo'), { recursive: true });
+    writeFileSync(join(harness.root, '.claude', 'skills', 'foo', 'SKILL.md'), 's');
+    const got = discoverMarkdownFiles({
+      sourceDir: harness.root,
+      repoRoot: harness.root,
+      extraStaticSkips: ['.claude/skills/**', '.claude/commands/**'],
+      include: ['.claude/skills/foo/SKILL.md', 'intro.md'],
+    });
+    expect(got).toEqual(['.claude/skills/foo/SKILL.md', 'intro.md']);
+  });
+
+  it('keeps non-skill, non-command markdown inside harness folders', () => {
+    writeFileSync(join(harness.root, 'intro.md'), 'i');
+    mkdirSync(join(harness.root, '.claude'), { recursive: true });
+    writeFileSync(join(harness.root, '.claude', 'AGENTS.md'), 'a');
+    mkdirSync(join(harness.root, '.opencode'), { recursive: true });
+    writeFileSync(join(harness.root, '.opencode', 'notes.md'), 'n');
+    const got = discoverMarkdownFiles({
+      sourceDir: harness.root,
+      repoRoot: harness.root,
+      extraStaticSkips: [
+        '.claude/skills/**',
+        '.claude/commands/**',
+        '.agents/skills/**',
+        '.cursor/skills/**',
+        '.opencode/skills/**',
+      ],
+    });
+    expect(got).toEqual(['.claude/AGENTS.md', '.opencode/notes.md', 'intro.md']);
+  });
 });
 
 describe('buildChunkString', () => {

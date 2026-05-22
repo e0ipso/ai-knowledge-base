@@ -18,6 +18,7 @@ import { atomicWriteJson, readJsonValidated } from './fs-atomic.js';
 import { deriveNodeId, ensureUniqueId, nodeFileExists, writeNodeFile } from './nodes.js';
 import type { RepoPaths } from './paths.js';
 import { compactStamp } from './time.js';
+import { harnessInstructionSkipPatterns } from '../harnesses/registry.js';
 
 export const DEFAULT_TIMEOUT_MS = 120_000;
 export const CHUNK_PLACEHOLDER = '[CHUNK PLACEHOLDER, substituted at runtime]';
@@ -160,6 +161,13 @@ export interface DiscoverOptions {
   include?: string[];
   exclude?: string[];
   gitignore?: Ignore;
+  /**
+   * Extra glob patterns appended to `STATIC_SKIPS` for this call. Shares the
+   * same opt-in semantics: a path matching an `extraStaticSkips` pattern is
+   * skipped by default but can be admitted by an explicit `--include` match.
+   * Bootstrap uses this to inject the harness instruction directories.
+   */
+  extraStaticSkips?: string[];
 }
 
 /**
@@ -174,7 +182,8 @@ export function discoverMarkdownFiles(opts: DiscoverOptions): string[] {
   walk(opts.sourceDir, opts.sourceDir, out);
   const includeMatchers = (opts.include ?? []).map(p => picomatch(p));
   const excludeMatchers = (opts.exclude ?? []).map(p => picomatch(p));
-  const staticSkipMatchers = STATIC_SKIPS.map(p => picomatch(p, { dot: true }));
+  const staticSkipPatterns = [...STATIC_SKIPS, ...(opts.extraStaticSkips ?? [])];
+  const staticSkipMatchers = staticSkipPatterns.map(p => picomatch(p, { dot: true }));
   const ig = opts.gitignore;
   return out
     .map(abs => relativePosix(opts.repoRoot, abs))
@@ -267,6 +276,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
   const discoverOpts: DiscoverOptions = {
     sourceDir: ctx.sourceDir,
     repoRoot: ctx.paths.root,
+    extraStaticSkips: harnessInstructionSkipPatterns(ctx.paths.root),
   };
   if (gitignoreInstance) discoverOpts.gitignore = gitignoreInstance;
   if (ctx.include !== undefined) discoverOpts.include = ctx.include;

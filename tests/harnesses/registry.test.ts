@@ -3,7 +3,12 @@ import { claudeAdapter } from '../../src/harnesses/claude/index.js';
 import { codexAdapter } from '../../src/harnesses/codex/index.js';
 import { cursorAdapter } from '../../src/harnesses/cursor/index.js';
 import { openCodeAdapter } from '../../src/harnesses/opencode/index.js';
-import { getHarness, hasHarness, listHarnessIds } from '../../src/harnesses/registry.js';
+import {
+  getHarness,
+  harnessInstructionSkipPatterns,
+  hasHarness,
+  listHarnessIds,
+} from '../../src/harnesses/registry.js';
 
 describe('harness registry', () => {
   it('returns the codex adapter from getHarness("codex")', () => {
@@ -36,6 +41,20 @@ describe('harness registry', () => {
 
   it('throws a helpful error for unregistered harnesses', () => {
     expect(() => getHarness('not-a-real-harness')).toThrow(/Unsupported harness 'not-a-real-harness'/);
+  });
+
+  it('harnessInstructionSkipPatterns covers skills, commands, hooks, plugins', () => {
+    expect(harnessInstructionSkipPatterns('/repo')).toEqual([
+      '.agents/skills/**',
+      '.claude/commands/**',
+      '.claude/hooks/**',
+      '.claude/skills/**',
+      '.codex/hooks/**',
+      '.cursor/hooks/**',
+      '.cursor/skills/**',
+      '.opencode/plugins/**',
+      '.opencode/skills/**',
+    ]);
   });
 });
 
