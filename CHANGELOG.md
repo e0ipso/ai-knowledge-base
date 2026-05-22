@@ -1,3 +1,13 @@
+## [0.15.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.14.0...v0.15.0) (2026-05-22)
+
+### Features
+
+* add Cursor harness adapter with native hooks integration ([057592a](https://github.com/e0ipso/ai-knowledge-base/commit/057592ab16fdb7a1c4ed89687e4f642b8b4920a9))
+
+### Bug Fixes
+
+* tighten Claude env detection and add Cursor to detect-harness ([79b4f45](https://github.com/e0ipso/ai-knowledge-base/commit/79b4f459f510e594d038786a0e2246574c026f27))
+
 ## [0.14.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.13.0...v0.14.0) (2026-05-21)
 
 ### Features
