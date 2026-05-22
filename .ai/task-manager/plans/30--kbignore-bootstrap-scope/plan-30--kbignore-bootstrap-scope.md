@@ -306,9 +306,9 @@ No circular dependencies.
 **Parallel Tasks:**
 - ✔️ Task 003: CLI/command refactor + confirmation gate + diagnostic (completed)
 
-### Phase 3: Documentation
+### ✅ Phase 3: Documentation
 **Parallel Tasks:**
-- Task 005: README + AGENTS.md + CHANGELOG (depends on: 001, 002, 003, 004)
+- ✔️ Task 005: README + AGENTS.md + CHANGELOG (completed)
 
 ### Post-phase Actions
 None beyond the standard validation gate referenced above.

@@ -248,11 +248,28 @@ removed.
 
 ### Removed
 
+* **BREAKING** `--from`, `--include`, and `--exclude` flags on `bootstrap-incremental`. The scan now always walks the repo root and is scoped exclusively by `.kbignore` at the repo root. Rewrite old invocations using the migration table in the [README](README.md#migrating-from---from----include----exclude).
+* **BREAKING** automatic injection of `harnessInstructionSkipPatterns` into the bootstrap walk. The same surface (every registered adapter's `skillsDir`, `commandsDir`, `hooksDir`, `pluginsDir`) is now expressed as uncommented entries in the default `.kbignore` stub written by `init`. The `harnessInstructionSkipPatterns` symbol is removed from `src/`; embedders that imported it must read `.kbignore` instead.
 * **BREAKING** `--dry-run` flag on `init --upgrade`. The upgrade path applies changes directly; review with `git diff` before committing.
 * **BREAKING** `.ai/knowledge-base/.state/pending-conflicts.json`. Curator `contradict` outcomes are written as one markdown file per conflict under `.ai/knowledge-base/conflicts/<runId>-<n>.md`. The reviewer accepts with `git commit` and rejects with `git restore`. `ai-knowledge-base conflict list` / `conflict resolve` subcommands are gone with the file. `PendingConflictsFileSchema`, `ConflictReportSchema`, and `countPendingConflicts` are removed from the public schema surface.
 * **BREAKING** husky, lint-staged, and secretlint scaffolding from `init`. `init` no longer adds `husky`, `lint-staged`, or `secretlint` packages or scripts to the consumer `package.json`, and no longer writes `.husky/`, `.secretlintrc.json`, or `.lintstagedrc.cjs`. Consumers wanting commit-time secret scanning install their own husky hook; see the README for the recommended CI pattern.
 * **BREAKING** `init` no longer requires `package.json` at the repo root; non-Node repositories install cleanly.
 * `doctor` checks for husky / lint-staged / `.secretlintrc.json` wiring (`checkCommitTimeSecretScan`, `checkSecretlint`).
+
+### Added
+
+* `.kbignore` — per-repo, repo-root-relative scope file using gitignore-style syntax. Replaces the old `--from` / `--include` / `--exclude` flags on `bootstrap-incremental`. Patterns are matched against repo-root-relative paths with forward slashes; `!` re-includes, trailing `/` matches directories, `**` matches any number of path segments. See the [README migration section](README.md#migrating-from---from----include----exclude) for the rewrite table.
+* `init` (and `init --upgrade` when the file is missing) writes a `.kbignore` stub at the repo root. The stub is generated deterministically from the registered harness adapters and ships with uncommented denies for every adapter's instruction directories (skills, commands, hooks, plugins) so they don't pollute the KB scan. The stub is never overwritten — once present, the file is user-owned.
+* `-y, --yes` flag on `bootstrap-incremental`. The command prompts for confirmation by default on a TTY; `--yes` skips the prompt. Running non-interactively (no TTY) without `--yes` aborts with exit 2 and the message `Refusing to run non-interactively without --yes. Re-run with --yes to confirm.` CI invocations must pass `--yes` explicitly.
+* `doctor` warns when `.kbignore` is missing or contains only comments/whitespace: `\`.kbignore missing or empty. Run \`init --upgrade\` to regenerate the default stub, or add your own patterns.\``
+
+### Unchanged
+
+* Harness memory ingestion (Claude Code `CLAUDE.md`, Codex memory files, etc., delivered via each adapter's `listMemoryFiles()`) is unaffected by `.kbignore`. Memory files continue to feed `bootstrap-incremental` and `curate` through the same secretlint-redaction gate as before.
+
+### Migration
+
+* If you upgraded an existing install, run `npx @e0ipso/ai-knowledge-base init --upgrade` to generate the default `.kbignore` stub, then rewrite any old `--from` / `--include` / `--exclude` invocations using the table in the [README](README.md#migrating-from---from----include----exclude).
 
 ### Changed
 
