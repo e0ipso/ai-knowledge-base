@@ -83,7 +83,7 @@ describe('runHeadlessClaude', () => {
     expect(out).toEqual({ ok: true, n: 42 });
   });
 
-  it('throws when the result is wrapped in a fenced code block (fences no longer stripped)', async () => {
+  it('unwraps a fenced code block around the result JSON', async () => {
     mockExecaOnce([
       JSON.stringify({
         type: 'result',
@@ -91,9 +91,20 @@ describe('runHeadlessClaude', () => {
         result: '```json\n{"ok": true, "n": 7}\n```',
       }),
     ]);
-    await expect(runHeadlessClaude('prompt', '', Schema)).rejects.toThrow(
-      /^curator output was not valid JSON:/
-    );
+    const out = await runHeadlessClaude('prompt', '', Schema);
+    expect(out).toEqual({ ok: true, n: 7 });
+  });
+
+  it('extracts the trailing JSON object when the result is prose-prefixed', async () => {
+    mockExecaOnce([
+      JSON.stringify({
+        type: 'result',
+        is_error: false,
+        result: 'Here is the answer:\n{"ok": true, "n": 9}',
+      }),
+    ]);
+    const out = await runHeadlessClaude('prompt', '', Schema);
+    expect(out).toEqual({ ok: true, n: 9 });
   });
 
   it('writes the raw stream to logFile when provided', async () => {

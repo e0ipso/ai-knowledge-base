@@ -5,6 +5,7 @@ import type { Readable } from 'node:stream';
 import split2 from 'split2';
 import type { ZodSchema } from 'zod';
 import type { HeadlessRunOptions, HeadlessStreamMessage } from '../types.js';
+import { extractJsonPayload } from '../../lib/json-extract.js';
 import { ClaudeHarnessOptsSchema } from './opts.js';
 
 export const DEFAULT_TIMEOUT_MS = 60_000;
@@ -129,7 +130,7 @@ export async function runHeadlessClaude<T>(
 
   let parsedJson: unknown;
   try {
-    parsedJson = JSON.parse(finalResult.trim());
+    parsedJson = JSON.parse(extractJsonPayload(finalResult));
   } catch (parseError) {
     throw new Error(
       `curator output was not valid JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}. See ${opts.logFile ?? 'log'} for the full transcript.`

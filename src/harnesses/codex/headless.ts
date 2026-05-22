@@ -5,6 +5,7 @@ import type { Readable } from 'node:stream';
 import split2 from 'split2';
 import type { ZodSchema } from 'zod';
 import type { HeadlessRunOptions, HeadlessStreamMessage } from '../types.js';
+import { extractJsonPayload } from '../../lib/json-extract.js';
 import { CodexHarnessOptsSchema } from './opts.js';
 
 export const DEFAULT_TIMEOUT_MS = 60_000;
@@ -165,7 +166,7 @@ export async function runHeadlessCodex<T>(
 
   let parsedJson: unknown;
   try {
-    parsedJson = JSON.parse(lastAgentMessage.trim());
+    parsedJson = JSON.parse(extractJsonPayload(lastAgentMessage));
   } catch (parseError) {
     throw new Error(
       `curator output was not valid JSON: ${parseError instanceof Error ? parseError.message : String(parseError)}. See ${opts.logFile ?? 'log'} for the full transcript.`
