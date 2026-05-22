@@ -302,9 +302,9 @@ No circular dependencies.
 - ✔️ Task 002: Discovery refactor + delete `harnessInstructionSkipPatterns` (completed)
 - ✔️ Task 004: `doctor` `.kbignore` check (completed)
 
-### Phase 2: CLI/command surface
+### ✅ Phase 2: CLI/command surface
 **Parallel Tasks:**
-- Task 003: CLI/command refactor + confirmation gate + diagnostic (depends on: 002)
+- ✔️ Task 003: CLI/command refactor + confirmation gate + diagnostic (completed)
 
 ### Phase 3: Documentation
 **Parallel Tasks:**

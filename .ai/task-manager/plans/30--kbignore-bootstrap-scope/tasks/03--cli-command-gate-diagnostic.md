@@ -2,7 +2,7 @@
 id: 3
 group: "cli-command"
 dependencies: [2]
-status: "pending"
+status: "completed"
 created: "2026-05-22"
 skills:
   - typescript

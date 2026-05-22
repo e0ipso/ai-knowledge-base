@@ -87,6 +87,33 @@ export interface BootstrapContext {
    * markdown sources symmetrically.
    */
   memoryCandidates?: DocCandidateFile[];
+  /**
+   * Pre-resolved candidate set produced by `previewBootstrapIncremental`.
+   * When set, the runner skips its own discovery + state-diff and uses
+   * these values directly. Lets the command layer present a confirmation
+   * gate before lock acquisition without doing discovery work twice.
+   */
+  preview?: BootstrapPreview;
+}
+
+/**
+ * Result of `previewBootstrapIncremental`. The candidate list is what the
+ * runner will process when this preview is fed back via `BootstrapContext.preview`.
+ * The unchanged list mirrors what the runner would have skipped on its own.
+ *
+ * `scannedBeforeFilter` is forwarded from `discoverMarkdownFiles` so the
+ * command layer can emit the "walked N candidates, ignore rules dropped them all"
+ * diagnostic without re-running discovery.
+ */
+export interface BootstrapPreview {
+  /** Resolved candidate set (markdown with-changed-hash + memory). */
+  candidates: DocCandidateFile[];
+  /** Files whose hash matched state and would be skipped. */
+  unchanged: BootstrapDocResult[];
+  /** Number of markdown files surviving the discovery filter chain. */
+  discoveredMarkdown: number;
+  /** Raw walker count before the per-file filter chain ran. */
+  scannedBeforeFilter: number;
 }
 
 export interface DocCandidateFile {
@@ -294,18 +321,17 @@ export function buildPrompt(template: string, chunk: string): string {
 }
 
 /**
- * Runs one bootstrap-incremental invocation. Acquires the shared
- * `state.json` lock (`name: bootstrap-incremental`), reads
- * `bootstrap-state.json`, skips unchanged docs, chunks the remainder, and
- * for each chunk calls `runner` against `BootstrapOutputSchema`. Per
- * candidate, writes an `addition` proposal under `_proposed/additions/` and
- * updates the state file. `dryRun: true` short-circuits the runner and
- * proposal writes; state is not mutated.
+ * Resolves the candidate set without acquiring the state lock or invoking
+ * the runner. Performs discovery (`.gitignore` + `.kbignore` filter chain),
+ * a state-file diff to drop unchanged files, and merges any
+ * `memoryCandidates` from the context. The command layer uses this to
+ * present a confirmation gate before any side effects.
+ *
+ * The returned `BootstrapPreview` can be passed back via
+ * `BootstrapContext.preview` so `runBootstrapIncremental` does not redo the
+ * work. The walk is not free for large monorepos.
  */
-export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<BootstrapResult> {
-  const timeoutMs = ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const runId = randomUUID();
-  const stateFile = join(ctx.paths.stateDir, 'state.json');
+export function previewBootstrapIncremental(ctx: BootstrapContext): BootstrapPreview {
   const bootstrapStateFile = join(ctx.paths.stateDir, 'bootstrap-state.json');
 
   const gitignoreInstance = loadIgnoreFile(join(ctx.paths.root, '.gitignore'));
@@ -316,21 +342,6 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
   if (kbignoreInstance) discoverOpts.kbignore = kbignoreInstance;
   const discovery = discoverMarkdownFiles(discoverOpts);
   const relPaths = discovery.files;
-  const memoryCount = ctx.memoryCandidates?.length ?? 0;
-
-  if (relPaths.length === 0 && memoryCount === 0) {
-    return {
-      status: 'no-docs',
-      runId,
-      discovered: 0,
-      unchanged: 0,
-      processed: [],
-      nodesWritten: 0,
-      skippedCollisions: 0,
-      batches: 0,
-      scannedBeforeFilter: discovery.scannedBeforeFilter,
-    };
-  }
 
   const state = readBootstrapState(bootstrapStateFile);
   const candidates: DocCandidateFile[] = [];
@@ -358,11 +369,58 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
   }
   if (ctx.memoryCandidates !== undefined) candidates.push(...ctx.memoryCandidates);
 
+  return {
+    candidates,
+    unchanged,
+    discoveredMarkdown: relPaths.length,
+    scannedBeforeFilter: discovery.scannedBeforeFilter,
+  };
+}
+
+/**
+ * Runs one bootstrap-incremental invocation. Acquires the shared
+ * `state.json` lock (`name: bootstrap-incremental`), reads
+ * `bootstrap-state.json`, skips unchanged docs, chunks the remainder, and
+ * for each chunk calls `runner` against `BootstrapOutputSchema`. Per
+ * candidate, writes an `addition` proposal under `_proposed/additions/` and
+ * updates the state file. `dryRun: true` short-circuits the runner and
+ * proposal writes; state is not mutated.
+ *
+ * When `ctx.preview` is supplied, the runner skips its own discovery +
+ * state-diff and uses those values directly. The command layer relies on
+ * this to gate execution behind an interactive confirmation prompt.
+ */
+export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<BootstrapResult> {
+  const timeoutMs = ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+  const runId = randomUUID();
+  const stateFile = join(ctx.paths.stateDir, 'state.json');
+  const bootstrapStateFile = join(ctx.paths.stateDir, 'bootstrap-state.json');
+
+  const preview = ctx.preview ?? previewBootstrapIncremental(ctx);
+  const memoryCount = ctx.memoryCandidates?.length ?? 0;
+  const candidates = preview.candidates;
+  const unchanged = preview.unchanged;
+  const discoveredMarkdown = preview.discoveredMarkdown;
+
+  if (discoveredMarkdown === 0 && memoryCount === 0) {
+    return {
+      status: 'no-docs',
+      runId,
+      discovered: 0,
+      unchanged: 0,
+      processed: [],
+      nodesWritten: 0,
+      skippedCollisions: 0,
+      batches: 0,
+      scannedBeforeFilter: preview.scannedBeforeFilter,
+    };
+  }
+
   if (candidates.length === 0) {
     return {
       status: 'completed',
       runId,
-      discovered: relPaths.length + memoryCount,
+      discovered: discoveredMarkdown + memoryCount,
       unchanged: unchanged.length,
       processed: unchanged,
       nodesWritten: 0,
@@ -381,7 +439,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
     return {
       status: 'completed',
       runId,
-      discovered: relPaths.length + memoryCount,
+      discovered: discoveredMarkdown + memoryCount,
       unchanged: unchanged.length,
       processed: [...dryResults, ...unchanged],
       nodesWritten: 0,
@@ -402,7 +460,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
       return {
         status: 'locked',
         runId,
-        discovered: relPaths.length + memoryCount,
+        discovered: discoveredMarkdown + memoryCount,
         unchanged: unchanged.length,
         processed: unchanged,
         nodesWritten: 0,
@@ -488,6 +546,9 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
     // Update state for every processed (successful) doc. Memory candidates
     // are tracked in their own ledger (`memory-ledger.json`) and must not
     // pollute `bootstrap-state.json`, which only records markdown sources.
+    // Re-read inside the lock so concurrent runs (which would have been
+    // rejected with ELOCKED) do not race here even when the preview is stale.
+    const state = readBootstrapState(bootstrapStateFile);
     const nextDocs: BootstrapState['docs'] = { ...state.docs };
     for (const r of processed) {
       if (r.status !== 'processed') continue;
@@ -512,7 +573,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
   return {
     status: 'completed',
     runId,
-    discovered: relPaths.length + memoryCount,
+    discovered: discoveredMarkdown + memoryCount,
     unchanged: unchanged.length,
     processed: [...processed, ...unchanged],
     nodesWritten,

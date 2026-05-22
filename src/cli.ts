@@ -92,36 +92,20 @@ async function main(): Promise<void> {
   program
     .command('bootstrap-incremental')
     .description(
-      'Incrementally bootstrap the KB from markdown docs under --from; processes only files whose content hash changed since last run.'
-    )
-    .requiredOption('--from <path>', 'directory (or file) to scan for markdown documentation')
-    .option(
-      '--include <glob>',
-      'glob to whitelist files (relative to repo root, repeatable)',
-      (value: string, prev: string[] = []) => [...prev, value],
-      [] as string[]
-    )
-    .option(
-      '--exclude <glob>',
-      'glob to skip files (relative to repo root, repeatable)',
-      (value: string, prev: string[] = []) => [...prev, value],
-      [] as string[]
+      'Incrementally bootstrap the KB from markdown docs in this repo; scope is controlled by .kbignore.'
     )
     .option('--dry-run', 'report what would be processed without invoking the LLM', false)
+    .option('-y, --yes', 'skip the pre-run confirmation prompt', false)
     .option('--timeout <ms>', 'per-batch subprocess timeout (default 120000)', intArg('--timeout'))
     .action(
       async (opts: {
-        from: string;
-        include: string[];
-        exclude: string[];
         dryRun: boolean;
+        yes: boolean;
         timeout?: number;
       }) => {
         const code = await runBootstrapIncrementalCommand({
-          from: opts.from,
-          include: opts.include,
-          exclude: opts.exclude,
           dryRun: opts.dryRun,
+          yes: opts.yes,
           ...(opts.timeout !== undefined ? { timeoutMs: opts.timeout } : {}),
           ...(getHarnessFlag() !== undefined ? { harness: getHarnessFlag() } : {}),
         });
