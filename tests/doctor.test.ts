@@ -79,6 +79,43 @@ describe('doctor', () => {
     expect(combined).toContain('kb-lint-tick.cjs');
   });
 
+  it('warns when .kbignore is missing', async () => {
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    rmSync(join(sandbox, '.kbignore'), { force: true });
+    const result = await runCli(sandbox, ['doctor']);
+    const combined = result.stdout + result.stderr;
+    expect(combined).toContain('.kbignore present and non-empty');
+    expect(combined).toContain('.kbignore missing or empty');
+    expect(combined).toContain('`init --upgrade`');
+  });
+
+  it('warns when .kbignore contains only comments and blank lines', async () => {
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    writeFileSync(join(sandbox, '.kbignore'), '# just a comment\n\n   \n# another\n');
+    const result = await runCli(sandbox, ['doctor']);
+    const combined = result.stdout + result.stderr;
+    expect(combined).toContain('.kbignore present and non-empty');
+    expect(combined).toContain('.kbignore missing or empty');
+  });
+
+  it('passes when .kbignore has at least one pattern line', async () => {
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    writeFileSync(join(sandbox, '.kbignore'), '# header\nnode_modules/\n');
+    const result = await runCli(sandbox, ['doctor']);
+    const combined = result.stdout + result.stderr;
+    expect(combined).toContain('.kbignore present and non-empty');
+    expect(combined).not.toContain('.kbignore missing or empty');
+  });
+
+  it('treats a leading-whitespace comment as a comment (warns)', async () => {
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    writeFileSync(join(sandbox, '.kbignore'), '   # indented comment only\n');
+    const result = await runCli(sandbox, ['doctor']);
+    const combined = result.stdout + result.stderr;
+    expect(combined).toContain('.kbignore present and non-empty');
+    expect(combined).toContain('.kbignore missing or empty');
+  });
+
   it('flags an invalid config.yaml as an error', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
     writeFileSync(

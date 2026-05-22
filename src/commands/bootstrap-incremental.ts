@@ -63,14 +63,11 @@ export async function runBootstrapIncrementalCommand(
   }
 
   const ctx: BootstrapContext = {
-    sourceDir,
     paths,
     promptTemplate,
     runner,
     harnessOpts: harness.buildHarnessOpts(settings, 'bootstrap'),
     memoryCandidates: memory.bootstrapCandidates,
-    ...(opts.include !== undefined ? { include: opts.include } : {}),
-    ...(opts.exclude !== undefined ? { exclude: opts.exclude } : {}),
     ...(opts.dryRun ? { dryRun: true } : {}),
     ...(opts.timeoutMs !== undefined ? { timeoutMs: opts.timeoutMs } : {}),
   };

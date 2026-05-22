@@ -4,6 +4,7 @@ import { refreshClaudeTemplates } from '../harnesses/claude/install.js';
 import { getHarness, hasHarness, listHarnessIds } from '../harnesses/registry.js';
 import { log } from '../lib/log.js';
 import { findRepoRoot, packageTemplatesDir, repoPaths } from '../lib/paths.js';
+import { ensureKbignore } from '../lib/kbignore-stub.js';
 import { defaultProjectConfigBody } from '../lib/settings.js';
 import { packageVersion } from '../lib/version.js';
 
@@ -79,6 +80,12 @@ export async function runInit(opts: InitOptions): Promise<void> {
   // 4. Update .gitignore.
   updateGitignore(paths.gitignoreFile);
 
+  // 4b. Emit `.kbignore` stub. Never overwrites: user-edited scope is sacred.
+  const kbignore = ensureKbignore(root);
+  if (kbignore.written) {
+    log.info(`Wrote default .kbignore at ${kbignore.path}`);
+  }
+
   // 5. Write default settings file unless one is already present. Users edit
   // config.yaml; init never overwrites it.
   if (!existsSync(paths.projectConfigFile)) {
@@ -149,6 +156,11 @@ async function runUpgrade(
   copyPromptsPreservingLocal(join(templatesDir, 'prompts'), paths.promptsDir);
 
   updateGitignore(paths.gitignoreFile);
+
+  const kbignore = ensureKbignore(root);
+  if (kbignore.written) {
+    log.info(`Wrote default .kbignore at ${kbignore.path}`);
+  }
 
   if (!existsSync(paths.projectConfigFile)) {
     mkdirSync(paths.kbDir, { recursive: true });

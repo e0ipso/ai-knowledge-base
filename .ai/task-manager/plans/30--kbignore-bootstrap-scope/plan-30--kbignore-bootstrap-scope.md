@@ -296,11 +296,11 @@ graph TD
 
 No circular dependencies.
 
-### Phase 1: Foundations (parallel)
+### ✅ Phase 1: Foundations (parallel)
 **Parallel Tasks:**
-- Task 001: `.kbignore` stub generator + `init` emit (no deps)
-- Task 002: Discovery refactor + delete `harnessInstructionSkipPatterns` (no deps)
-- Task 004: `doctor` `.kbignore` check (no deps)
+- ✔️ Task 001: `.kbignore` stub generator + `init` emit (completed)
+- ✔️ Task 002: Discovery refactor + delete `harnessInstructionSkipPatterns` (completed)
+- ✔️ Task 004: `doctor` `.kbignore` check (completed)
 
 ### Phase 2: CLI/command surface
 **Parallel Tasks:**

@@ -1,5 +1,5 @@
 import { execFile, spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
 import yaml from 'js-yaml';
@@ -309,5 +309,91 @@ describe('init', () => {
     const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
     expect(result.exitCode).toBe(0);
     expect(readFileSync(configFile, 'utf8')).toBe(customized);
+  });
+
+  it('writes a default .kbignore on fresh init when absent', async () => {
+    const kbignore = join(sandbox, '.kbignore');
+    expect(existsSync(kbignore)).toBe(false);
+
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    expect(result.exitCode).toBe(0);
+    expect(existsSync(kbignore)).toBe(true);
+
+    const body = readFileSync(kbignore, 'utf8');
+    // Header / always-on documentation.
+    expect(body).toContain('.kbignore');
+    expect(body).toContain('STATIC_SKIPS');
+    // Worked example covers directory deny, `!` re-include, and the
+    // parent-directory caveat.
+    expect(body).toContain('!docs/internal/');
+    expect(body).toContain('!docs/internal/AGENTS.md');
+    expect(body).toMatch(/parent-directory|every ancestor/i);
+    // Glob deny example.
+    expect(body).toContain('**/*.generated.md');
+    // Commented-out common-noise block.
+    expect(body).toContain('# build/');
+    expect(body).toContain('# dist/');
+    expect(body).toContain('# coverage/');
+    // Uncommented harness instruction deny block — at least the Claude
+    // directories that were installed for this init.
+    expect(body).toContain('.claude/skills/');
+    expect(body).toContain('.claude/commands/');
+    expect(body).toContain('.claude/hooks/');
+  });
+
+  it('leaves an existing .kbignore untouched on fresh init', async () => {
+    // Pre-existing .kbignore counts as initialization-prereq state; an
+    // un-initialized repo with a user-authored .kbignore must keep it
+    // verbatim after `init` runs.
+    const kbignore = join(sandbox, '.kbignore');
+    const customBody = '# user-authored\nfoo/bar/**\n';
+    writeFileSync(kbignore, customBody);
+
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    expect(result.exitCode).toBe(0);
+    expect(readFileSync(kbignore, 'utf8')).toBe(customBody);
+  });
+
+  it('writes .kbignore on init --upgrade when absent', async () => {
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    const kbignore = join(sandbox, '.kbignore');
+    // Simulate a pre-existing install that predates `.kbignore` emission.
+    rmSync(kbignore);
+    expect(existsSync(kbignore)).toBe(false);
+
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
+    expect(result.exitCode).toBe(0);
+    expect(existsSync(kbignore)).toBe(true);
+    expect(readFileSync(kbignore, 'utf8')).toContain('.claude/skills/');
+  });
+
+  it('does not overwrite an existing .kbignore on --upgrade', async () => {
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    const kbignore = join(sandbox, '.kbignore');
+    const customized = '# customized by user\nfoo/\n';
+    writeFileSync(kbignore, customized);
+
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
+    expect(result.exitCode).toBe(0);
+    expect(readFileSync(kbignore, 'utf8')).toBe(customized);
+  });
+
+  it('.kbignore deny block enumerates every registered harness adapter when installed together', async () => {
+    const result = await runCli(sandbox, ['init', '--harnesses', 'claude,codex,cursor,opencode']);
+    expect(result.exitCode).toBe(0);
+    const body = readFileSync(join(sandbox, '.kbignore'), 'utf8');
+    // Claude.
+    expect(body).toContain('.claude/skills/');
+    expect(body).toContain('.claude/commands/');
+    expect(body).toContain('.claude/hooks/');
+    // Codex.
+    expect(body).toContain('.agents/skills/');
+    expect(body).toContain('.codex/hooks/');
+    // Cursor.
+    expect(body).toContain('.cursor/skills/');
+    expect(body).toContain('.cursor/hooks/');
+    // OpenCode.
+    expect(body).toContain('.opencode/skills/');
+    expect(body).toContain('.opencode/plugins/');
   });
 });

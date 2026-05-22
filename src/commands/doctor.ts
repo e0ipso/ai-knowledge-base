@@ -81,6 +81,7 @@ export async function runDoctor(opts: DoctorOptions): Promise<number> {
       name: '.gitignore lists ai-knowledge-base paths',
       result: checkGitignore(paths.gitignoreFile),
     },
+    { name: '.kbignore present and non-empty', result: checkKbignore(join(root, '.kbignore')) },
     ...harnessChecks,
     { name: 'shipped prompts present', result: checkPrompts(paths.promptsDir) },
     { name: 'settings file is valid', result: checkSettings(paths.projectConfigFile) },
@@ -288,4 +289,31 @@ function checkGitignore(file: string): CheckResult {
   return body.includes('.ai/knowledge-base/_sessions') && body.includes('.ai/knowledge-base/_logs')
     ? ok('ai-knowledge-base block present')
     : warn('missing entries for `.ai/knowledge-base/_sessions/` and/or `_logs/`');
+}
+
+const KBIGNORE_WARNING =
+  '.kbignore missing or empty. Run `init --upgrade` to regenerate the default stub, or add your own patterns.';
+
+/**
+ * Verifies that `.kbignore` exists at the repo root and contains at least one
+ * non-comment, non-blank line. The file scopes bootstrap discovery away from
+ * vendored or generated trees, so an absent/empty file is load-bearing enough
+ * to surface as an advisory warning. ENOENT is treated as the "missing"
+ * branch; any other read failure (e.g. EACCES) is surfaced as an error so the
+ * user is not silently told the file is missing when it actually exists.
+ */
+function checkKbignore(file: string): CheckResult {
+  let body: string;
+  try {
+    body = readFileSync(file, 'utf8');
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    if (code === 'ENOENT') return warn(KBIGNORE_WARNING);
+    return err(`unreadable: ${(e as Error).message}`);
+  }
+  const hasPattern = body.split(/\r?\n/).some(line => {
+    const trimmed = line.trimStart();
+    return trimmed.length > 0 && !trimmed.startsWith('#');
+  });
+  return hasPattern ? ok('present with pattern(s)') : warn(KBIGNORE_WARNING);
 }

@@ -18,17 +18,15 @@ import { atomicWriteJson, readJsonValidated } from './fs-atomic.js';
 import { deriveNodeId, ensureUniqueId, nodeFileExists, writeNodeFile } from './nodes.js';
 import type { RepoPaths } from './paths.js';
 import { compactStamp } from './time.js';
-import { harnessInstructionSkipPatterns } from '../harnesses/registry.js';
 
 export const DEFAULT_TIMEOUT_MS = 120_000;
 export const CHUNK_PLACEHOLDER = '[CHUNK PLACEHOLDER, substituted at runtime]';
 
 /**
- * Filenames that are categorically not project knowledge. Applied by
- * `discoverMarkdownFiles` before `--include` / `--exclude` / `.gitignore`,
- * with one inversion: an explicit `--include` pattern that matches a
- * statically-skipped path admits the file (so callers can opt a specific
- * file back in without rewriting the deny list).
+ * Filenames that are categorically not project knowledge. Applied
+ * unconditionally by `discoverMarkdownFiles` before `.gitignore` /
+ * `.kbignore`. Use `.kbignore` to opt a specific path back in (or out)
+ * — there is no flag-driven inversion.
  */
 export const STATIC_SKIPS: readonly string[] = [
   '**/LICENSE',
@@ -71,16 +69,12 @@ export type BootstrapRunner = <T>(
 ) => Promise<T>;
 
 export interface BootstrapContext {
-  /** Root directory whose docs we scan (e.g. resolved `--from`). */
-  sourceDir: string;
   /** Repo + KB paths resolved from the repo root. */
   paths: RepoPaths;
   /** Bootstrap-incremental prompt body. */
   promptTemplate: string;
   /** Subprocess runner (per-adapter headless driver). Unused when `dryRun: true`. */
   runner?: BootstrapRunner;
-  include?: string[];
-  exclude?: string[];
   dryRun?: boolean;
   timeoutMs?: number;
   /** Adapter-specific knobs (model, effort, allowedTools, ...). */
@@ -117,7 +111,7 @@ export interface BootstrapDocResult {
 export interface BootstrapResult {
   status: 'completed' | 'locked' | 'no-docs';
   runId: string;
-  /** Total markdown files discovered after applying glob/.gitignore filters. */
+  /** Total markdown files discovered after applying glob/.gitignore/.kbignore filters. */
   discovered: number;
   /** Files whose hash matched the state file and were skipped. */
   unchanged: number;
@@ -130,6 +124,17 @@ export interface BootstrapResult {
   /** Batches sent to the runner (0 in dry-run). */
   batches: number;
   reason?: string;
+  /**
+   * Only set on the `no-docs` branch. Count of `.md` files the walker
+   * encountered after `STATIC_SKIPS` directory short-circuits (`.git`,
+   * `node_modules`) and after `.gitignore` / `.kbignore` directory-level
+   * descent short-circuits, but **before** the per-file
+   * `STATIC_SKIPS` / `.gitignore` / `.kbignore` filter chain runs. The
+   * delta between this and `discovered === 0` lets the command layer
+   * tell users "we walked N candidates and your ignore rules dropped
+   * all of them" vs "the tree is genuinely empty".
+   */
+  scannedBeforeFilter?: number;
 }
 
 /**
@@ -156,50 +161,66 @@ export function writeBootstrapState(file: string, state: BootstrapState): void {
 }
 
 export interface DiscoverOptions {
-  sourceDir: string;
+  /** Repo root. The walk is rooted here unconditionally. */
   repoRoot: string;
-  include?: string[];
-  exclude?: string[];
+  /** `.gitignore` Ignore instance, applied at descent and filter stages. */
   gitignore?: Ignore;
-  /**
-   * Extra glob patterns appended to `STATIC_SKIPS` for this call. Shares the
-   * same opt-in semantics: a path matching an `extraStaticSkips` pattern is
-   * skipped by default but can be admitted by an explicit `--include` match.
-   * Bootstrap uses this to inject the harness instruction directories.
-   */
-  extraStaticSkips?: string[];
+  /** `.kbignore` Ignore instance, applied at descent and filter stages. */
+  kbignore?: Ignore;
 }
 
 /**
- * Walks `sourceDir` recursively returning every `.md` file (paths relative
- * to `repoRoot`, posix). Applies `--include` (every pattern must allow the
- * path — or the include list is empty), `--exclude` (any pattern blocks),
- * and the provided `.gitignore` Ignore instance (any match blocks).
+ * Result of `discoverMarkdownFiles`.
+ *
+ * `files`: repo-root-relative posix paths surviving the full filter chain.
+ *
+ * `scannedBeforeFilter`: count of `.md` files the walker visited after
+ * `.git` / `node_modules` short-circuits and after `.gitignore` /
+ * `.kbignore` directory-level descent short-circuits, but **before** the
+ * per-file `STATIC_SKIPS` / `.gitignore` / `.kbignore` filter chain. The
+ * gap between this and `files.length` is what the `no-docs` diagnostic
+ * surfaces to the user: "walked N candidates, ignore rules dropped them all".
  */
-export function discoverMarkdownFiles(opts: DiscoverOptions): string[] {
+export interface DiscoverResult {
+  files: string[];
+  scannedBeforeFilter: number;
+}
+
+/**
+ * Walks `repoRoot` recursively returning every `.md` file (paths relative
+ * to `repoRoot`, posix). Filter chain: posix-relativize →
+ * `STATIC_SKIPS` → `.gitignore` → `.kbignore` → sort. Directory descent
+ * also short-circuits on `.git`, `node_modules`, and on any directory
+ * matched by `.gitignore` or `.kbignore` (perf mitigation for large
+ * monorepos with broadly-excluded subtrees).
+ */
+export function discoverMarkdownFiles(opts: DiscoverOptions): DiscoverResult {
+  const empty: DiscoverResult = { files: [], scannedBeforeFilter: 0 };
+  if (!existsSync(opts.repoRoot)) return empty;
   const out: string[] = [];
-  if (!existsSync(opts.sourceDir)) return out;
-  walk(opts.sourceDir, opts.sourceDir, out);
-  const includeMatchers = (opts.include ?? []).map(p => picomatch(p));
-  const excludeMatchers = (opts.exclude ?? []).map(p => picomatch(p));
-  const staticSkipPatterns = [...STATIC_SKIPS, ...(opts.extraStaticSkips ?? [])];
-  const staticSkipMatchers = staticSkipPatterns.map(p => picomatch(p, { dot: true }));
+  walk(opts.repoRoot, opts.repoRoot, out, opts.gitignore, opts.kbignore);
+  const staticSkipMatchers = STATIC_SKIPS.map(p => picomatch(p, { dot: true }));
   const ig = opts.gitignore;
-  return out
-    .map(abs => relativePosix(opts.repoRoot, abs))
+  const kb = opts.kbignore;
+  const rels = out.map(abs => relativePosix(opts.repoRoot, abs));
+  const files = rels
     .filter(rel => {
-      const staticallySkipped = staticSkipMatchers.some(m => m(rel));
-      const explicitlyIncluded = includeMatchers.length > 0 && includeMatchers.some(m => m(rel));
-      if (staticallySkipped && !explicitlyIncluded) return false;
-      if (excludeMatchers.some(m => m(rel))) return false;
+      if (staticSkipMatchers.some(m => m(rel))) return false;
       if (ig && ig.ignores(rel)) return false;
-      if (includeMatchers.length > 0 && !includeMatchers.some(m => m(rel))) return false;
+      if (kb && kb.ignores(rel)) return false;
       return true;
     })
     .sort();
+  return { files, scannedBeforeFilter: rels.length };
 }
 
-function walk(rootDir: string, currentDir: string, out: string[]): void {
+function walk(
+  rootDir: string,
+  currentDir: string,
+  out: string[],
+  gitignore: Ignore | undefined,
+  kbignore: Ignore | undefined
+): void {
   let entries: import('node:fs').Dirent[];
   try {
     entries = readdirSync(currentDir, { withFileTypes: true });
@@ -210,7 +231,16 @@ function walk(rootDir: string, currentDir: string, out: string[]): void {
     const full = join(currentDir, ent.name);
     if (ent.isDirectory()) {
       if (ent.name === '.git' || ent.name === 'node_modules') continue;
-      walk(rootDir, full, out);
+      // Push `.gitignore` / `.kbignore` into directory-descent decisions.
+      // The `ignore` package treats a trailing-slash path as a directory
+      // query, which is the semantics we want for short-circuiting.
+      const relDir = relativePosix(rootDir, full);
+      if (relDir !== '') {
+        const dirKey = `${relDir}/`;
+        if (gitignore && gitignore.ignores(dirKey)) continue;
+        if (kbignore && kbignore.ignores(dirKey)) continue;
+      }
+      walk(rootDir, full, out, gitignore, kbignore);
       continue;
     }
     if (!ent.isFile()) continue;
@@ -221,6 +251,16 @@ function walk(rootDir: string, currentDir: string, out: string[]): void {
 
 function relativePosix(from: string, to: string): string {
   return relative(from, to).split(sep).join(posix.sep);
+}
+
+/**
+ * Reads an ignore-format file (`.gitignore`, `.kbignore`) and returns an
+ * `Ignore` instance. Missing file → `undefined` (no filter). Read errors
+ * (e.g. permission) bubble up — only ENOENT is silent.
+ */
+function loadIgnoreFile(file: string): Ignore | undefined {
+  if (!existsSync(file)) return undefined;
+  return ignore().add(readFileSync(file, 'utf8'));
 }
 
 /**
@@ -268,20 +308,14 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
   const stateFile = join(ctx.paths.stateDir, 'state.json');
   const bootstrapStateFile = join(ctx.paths.stateDir, 'bootstrap-state.json');
 
-  const gitignorePath = join(ctx.paths.root, '.gitignore');
-  const gitignoreInstance = existsSync(gitignorePath)
-    ? ignore().add(readFileSync(gitignorePath, 'utf8'))
-    : undefined;
+  const gitignoreInstance = loadIgnoreFile(join(ctx.paths.root, '.gitignore'));
+  const kbignoreInstance = loadIgnoreFile(join(ctx.paths.root, '.kbignore'));
 
-  const discoverOpts: DiscoverOptions = {
-    sourceDir: ctx.sourceDir,
-    repoRoot: ctx.paths.root,
-    extraStaticSkips: harnessInstructionSkipPatterns(ctx.paths.root),
-  };
+  const discoverOpts: DiscoverOptions = { repoRoot: ctx.paths.root };
   if (gitignoreInstance) discoverOpts.gitignore = gitignoreInstance;
-  if (ctx.include !== undefined) discoverOpts.include = ctx.include;
-  if (ctx.exclude !== undefined) discoverOpts.exclude = ctx.exclude;
-  const relPaths = discoverMarkdownFiles(discoverOpts);
+  if (kbignoreInstance) discoverOpts.kbignore = kbignoreInstance;
+  const discovery = discoverMarkdownFiles(discoverOpts);
+  const relPaths = discovery.files;
   const memoryCount = ctx.memoryCandidates?.length ?? 0;
 
   if (relPaths.length === 0 && memoryCount === 0) {
@@ -294,6 +328,7 @@ export async function runBootstrapIncremental(ctx: BootstrapContext): Promise<Bo
       nodesWritten: 0,
       skippedCollisions: 0,
       batches: 0,
+      scannedBeforeFilter: discovery.scannedBeforeFilter,
     };
   }
 

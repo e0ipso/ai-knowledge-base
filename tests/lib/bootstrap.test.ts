@@ -51,6 +51,10 @@ function makeHarness(): Harness {
   mkdirSync(paths.nodesDir, { recursive: true });
   mkdirSync(paths.logsDir, { recursive: true });
   mkdirSync(paths.stateDir, { recursive: true });
+  // The real `init` command writes a `.kbignore` excluding `.ai/` so the
+  // bootstrap walk does not re-ingest its own node files. Mirror that
+  // setup here so `runBootstrapIncremental` tests reflect realistic use.
+  writeFileSync(join(root, '.kbignore'), '.ai/\n');
   return {
     root,
     sourceDir,
@@ -86,7 +90,6 @@ function runnerOf(output: BootstrapOutput | BootstrapOutput[]): BootstrapRunner 
 
 function ctxFor(harness: Harness, runner: BootstrapRunner) {
   return {
-    sourceDir: harness.sourceDir,
     paths: harness.paths,
     promptTemplate: PROMPT_TEMPLATE,
     runner,
@@ -106,188 +109,169 @@ describe('discoverMarkdownFiles', () => {
   beforeEach(() => (harness = makeHarness()));
   afterEach(() => rmSync(harness.root, { recursive: true, force: true }));
 
-  it('returns repo-relative posix paths sorted, recursing through directories', () => {
+  it('walks repo root and returns repo-relative posix paths sorted', () => {
     writeFileSync(join(harness.sourceDir, 'README.md'), '# r');
     mkdirSync(join(harness.sourceDir, 'sub'), { recursive: true });
     writeFileSync(join(harness.sourceDir, 'sub', 'a.md'), 'a');
     writeFileSync(join(harness.sourceDir, 'sub', 'b.txt'), 'ignored'); // non-md
-    const got = discoverMarkdownFiles({ sourceDir: harness.sourceDir, repoRoot: harness.root });
-    expect(got).toEqual(['docs/README.md', 'docs/sub/a.md']);
+    writeFileSync(join(harness.root, 'top.md'), 't');
+    const got = discoverMarkdownFiles({ repoRoot: harness.root });
+    expect(got.files).toEqual(['docs/README.md', 'docs/sub/a.md', 'top.md']);
+    expect(got.scannedBeforeFilter).toBe(3);
   });
 
-  it('applies --include and --exclude globs', () => {
-    writeFileSync(join(harness.sourceDir, 'keep.md'), 'k');
-    mkdirSync(join(harness.sourceDir, 'legacy'), { recursive: true });
-    writeFileSync(join(harness.sourceDir, 'legacy', 'skip.md'), 's');
-    const got = discoverMarkdownFiles({
-      sourceDir: harness.sourceDir,
-      repoRoot: harness.root,
-      include: ['**/*.md'],
-      exclude: ['docs/legacy/**'],
-    });
-    expect(got).toEqual(['docs/keep.md']);
+  it('reports scannedBeforeFilter as the post-descent, pre-filter walker count', () => {
+    // STATIC_SKIPS / .gitignore / .kbignore *file* filtering is post-walk;
+    // the pre-filter count should include LICENSE.md (a static skip) but
+    // exclude .git/ and node_modules/ which never get descended.
+    writeFileSync(join(harness.root, 'intro.md'), 'i');
+    writeFileSync(join(harness.root, 'LICENSE.md'), 'l');
+    mkdirSync(join(harness.root, 'node_modules'), { recursive: true });
+    writeFileSync(join(harness.root, 'node_modules', 'noisy.md'), 'n');
+    mkdirSync(join(harness.root, '.git'), { recursive: true });
+    writeFileSync(join(harness.root, '.git', 'config.md'), 'g');
+    const got = discoverMarkdownFiles({ repoRoot: harness.root });
+    expect(got.files).toEqual(['intro.md']);
+    // intro.md + LICENSE.md (LICENSE.md gets filtered by STATIC_SKIPS,
+    // but it was scanned). node_modules/.git are not descended.
+    // docs/ exists but is empty so contributes nothing.
+    expect(got.scannedBeforeFilter).toBe(2);
+  });
+
+  it('applies STATIC_SKIPS unconditionally (no opt-in inversion)', () => {
+    writeFileSync(join(harness.root, 'intro.md'), 'i');
+    writeFileSync(join(harness.root, 'LICENSE.md'), 'l');
+    writeFileSync(join(harness.root, 'LICENSE'), 'l');
+    writeFileSync(join(harness.root, 'COPYING'), 'c');
+    writeFileSync(join(harness.root, 'NOTICE.md'), 'n');
+    writeFileSync(join(harness.root, 'CODE_OF_CONDUCT.md'), 'c');
+    writeFileSync(join(harness.root, 'CONTRIBUTORS.md'), 'c');
+    writeFileSync(join(harness.root, 'AUTHORS.md'), 'a');
+    writeFileSync(join(harness.root, 'MAINTAINERS.md'), 'm');
+    writeFileSync(join(harness.root, 'CHANGELOG.md'), 'c');
+    writeFileSync(join(harness.root, 'CHANGES.md'), 'c');
+    writeFileSync(join(harness.root, 'HISTORY.md'), 'h');
+    writeFileSync(join(harness.root, 'RELEASE_NOTES.md'), 'r');
+    writeFileSync(join(harness.root, 'INDEX.md'), 'i');
+    writeFileSync(join(harness.root, 'GRAPH.md'), 'g');
+    mkdirSync(join(harness.root, 'releases'), { recursive: true });
+    writeFileSync(join(harness.root, 'releases', 'v1.md'), 'v1');
+    const got = discoverMarkdownFiles({ repoRoot: harness.root });
+    expect(got.files).toEqual(['intro.md']);
   });
 
   it('respects gitignore patterns', () => {
     writeFileSync(join(harness.sourceDir, 'keep.md'), 'k');
-    mkdirSync(join(harness.sourceDir, 'node_modules'), { recursive: true });
-    writeFileSync(join(harness.sourceDir, 'node_modules', 'x.md'), 'x');
+    mkdirSync(join(harness.sourceDir, 'legacy'), { recursive: true });
+    writeFileSync(join(harness.sourceDir, 'legacy', 'skip.md'), 's');
     const got = discoverMarkdownFiles({
-      sourceDir: harness.sourceDir,
       repoRoot: harness.root,
-      gitignore: ignore().add('node_modules'),
+      gitignore: ignore().add('docs/legacy'),
     });
-    expect(got).toEqual(['docs/keep.md']);
+    expect(got.files).toEqual(['docs/keep.md']);
   });
 
   it('honours .gitignore negation patterns', () => {
     writeFileSync(join(harness.sourceDir, 'keep.md'), 'k');
     writeFileSync(join(harness.sourceDir, 'drop.md'), 'd');
     const got = discoverMarkdownFiles({
-      sourceDir: harness.sourceDir,
       repoRoot: harness.root,
       gitignore: ignore().add('docs/*.md\n!docs/keep.md'),
     });
-    expect(got).toEqual(['docs/keep.md']);
+    expect(got.files).toEqual(['docs/keep.md']);
   });
 
-  it('skips static deny patterns by default', () => {
-    writeFileSync(join(harness.sourceDir, 'intro.md'), 'i');
-    writeFileSync(join(harness.sourceDir, 'LICENSE.md'), 'l');
-    writeFileSync(join(harness.sourceDir, 'LICENSE'), 'l');
-    writeFileSync(join(harness.sourceDir, 'COPYING'), 'c');
-    writeFileSync(join(harness.sourceDir, 'NOTICE.md'), 'n');
-    writeFileSync(join(harness.sourceDir, 'CODE_OF_CONDUCT.md'), 'c');
-    writeFileSync(join(harness.sourceDir, 'CONTRIBUTORS.md'), 'c');
-    writeFileSync(join(harness.sourceDir, 'AUTHORS.md'), 'a');
-    writeFileSync(join(harness.sourceDir, 'MAINTAINERS.md'), 'm');
-    writeFileSync(join(harness.sourceDir, 'CHANGELOG.md'), 'c');
-    writeFileSync(join(harness.sourceDir, 'CHANGES.md'), 'c');
-    writeFileSync(join(harness.sourceDir, 'HISTORY.md'), 'h');
-    writeFileSync(join(harness.sourceDir, 'RELEASE_NOTES.md'), 'r');
-    writeFileSync(join(harness.sourceDir, 'INDEX.md'), 'i');
-    writeFileSync(join(harness.sourceDir, 'GRAPH.md'), 'g');
-    mkdirSync(join(harness.sourceDir, 'releases'), { recursive: true });
-    writeFileSync(join(harness.sourceDir, 'releases', 'v1.md'), 'v1');
-    const got = discoverMarkdownFiles({ sourceDir: harness.sourceDir, repoRoot: harness.root });
-    expect(got).toEqual(['docs/intro.md']);
-  });
-
-  it('admits a statically-skipped path when --include matches it explicitly', () => {
-    writeFileSync(join(harness.sourceDir, 'intro.md'), 'i');
-    writeFileSync(join(harness.sourceDir, 'LICENSE.md'), 'l');
-    writeFileSync(join(harness.sourceDir, 'CHANGELOG.md'), 'c');
+  it('respects .kbignore directory excludes', () => {
+    writeFileSync(join(harness.sourceDir, 'keep.md'), 'k');
+    mkdirSync(join(harness.root, 'vendor'), { recursive: true });
+    writeFileSync(join(harness.root, 'vendor', 'lib.md'), 'l');
     const got = discoverMarkdownFiles({
-      sourceDir: harness.sourceDir,
       repoRoot: harness.root,
-      include: ['docs/LICENSE.md', 'docs/intro.md'],
+      kbignore: ignore().add('vendor/'),
     });
-    expect(got).toEqual(['docs/LICENSE.md', 'docs/intro.md']);
+    expect(got.files).toEqual(['docs/keep.md']);
   });
 
-  it('exclude still wins when --include opts a statically-skipped path in', () => {
-    writeFileSync(join(harness.sourceDir, 'intro.md'), 'i');
-    mkdirSync(join(harness.sourceDir, 'legacy'), { recursive: true });
-    writeFileSync(join(harness.sourceDir, 'legacy', 'LICENSE.md'), 'l');
-    const got = discoverMarkdownFiles({
-      sourceDir: harness.sourceDir,
-      repoRoot: harness.root,
-      include: ['docs/legacy/LICENSE.md', 'docs/intro.md'],
-      exclude: ['docs/legacy/**'],
-    });
-    expect(got).toEqual(['docs/intro.md']);
-  });
-
-  it('gitignore still wins when --include opts a statically-skipped path in', () => {
-    writeFileSync(join(harness.sourceDir, 'intro.md'), 'i');
-    writeFileSync(join(harness.sourceDir, 'LICENSE.md'), 'l');
-    const got = discoverMarkdownFiles({
-      sourceDir: harness.sourceDir,
-      repoRoot: harness.root,
-      include: ['docs/LICENSE.md', 'docs/intro.md'],
-      gitignore: ignore().add('docs/LICENSE.md'),
-    });
-    expect(got).toEqual(['docs/intro.md']);
-  });
-
-  it('skips static deny patterns inside dot-prefixed directories', () => {
-    writeFileSync(join(harness.sourceDir, 'intro.md'), 'i');
-    mkdirSync(join(harness.sourceDir, '.ai', 'knowledge-base'), { recursive: true });
-    writeFileSync(join(harness.sourceDir, '.ai', 'knowledge-base', 'INDEX.md'), 'i');
-    writeFileSync(join(harness.sourceDir, '.ai', 'knowledge-base', 'GRAPH.md'), 'g');
-    const got = discoverMarkdownFiles({ sourceDir: harness.sourceDir, repoRoot: harness.root });
-    expect(got).toEqual(['docs/intro.md']);
-  });
-
-  it('does not filter files that only share a prefix with a static skip', () => {
-    writeFileSync(join(harness.sourceDir, 'CHANGELOG_FORMAT.md'), 'cf');
-    writeFileSync(join(harness.sourceDir, 'LICENSE_HEADER.md'), 'lh');
-    writeFileSync(join(harness.sourceDir, 'licensing-policy.md'), 'lp');
-    const got = discoverMarkdownFiles({ sourceDir: harness.sourceDir, repoRoot: harness.root });
-    expect(got).toEqual([
-      'docs/CHANGELOG_FORMAT.md',
-      'docs/LICENSE_HEADER.md',
-      'docs/licensing-policy.md',
-    ]);
-  });
-
-  it('skips harness skill and command directories via extraStaticSkips', () => {
+  it('honours .kbignore un-ignoring a file under a non-excluded parent', () => {
+    // Pattern: ignore everything, then re-admit docs/ and docs/AGENTS.md.
+    writeFileSync(join(harness.sourceDir, 'AGENTS.md'), 'a');
+    writeFileSync(join(harness.sourceDir, 'other.md'), 'o');
     writeFileSync(join(harness.root, 'intro.md'), 'i');
-    for (const rel of [
-      '.claude/skills/foo/SKILL.md',
-      '.claude/commands/bar.md',
-      '.agents/skills/baz/SKILL.md',
-      '.cursor/skills/qux/SKILL.md',
-      '.opencode/skills/quux/SKILL.md',
-    ]) {
-      mkdirSync(join(harness.root, rel, '..'), { recursive: true });
-      writeFileSync(join(harness.root, rel), 'x');
-    }
     const got = discoverMarkdownFiles({
-      sourceDir: harness.root,
       repoRoot: harness.root,
-      extraStaticSkips: [
-        '.claude/skills/**',
-        '.claude/commands/**',
-        '.agents/skills/**',
-        '.cursor/skills/**',
-        '.opencode/skills/**',
-      ],
+      kbignore: ignore().add('*\n!docs/\n!docs/AGENTS.md'),
     });
-    expect(got).toEqual(['intro.md']);
+    expect(got.files).toEqual(['docs/AGENTS.md']);
   });
 
-  it('admits a harness-skill path when --include matches it explicitly', () => {
+  it('composes .gitignore ∪ .kbignore (either blocks)', () => {
+    writeFileSync(join(harness.sourceDir, 'keep.md'), 'k');
+    writeFileSync(join(harness.sourceDir, 'gitignored.md'), 'g');
+    writeFileSync(join(harness.sourceDir, 'kbignored.md'), 'b');
+    const got = discoverMarkdownFiles({
+      repoRoot: harness.root,
+      gitignore: ignore().add('docs/gitignored.md'),
+      kbignore: ignore().add('docs/kbignored.md'),
+    });
+    expect(got.files).toEqual(['docs/keep.md']);
+  });
+
+  it('short-circuits descent for .kbignore-excluded directories (perf)', () => {
+    writeFileSync(join(harness.root, 'intro.md'), 'i');
+    mkdirSync(join(harness.root, 'huge'), { recursive: true });
+    writeFileSync(join(harness.root, 'huge', 'a.md'), 'a');
+    writeFileSync(join(harness.root, 'huge', 'b.md'), 'b');
+    const got = discoverMarkdownFiles({
+      repoRoot: harness.root,
+      kbignore: ignore().add('huge/'),
+    });
+    expect(got.files).toEqual(['intro.md']);
+    // Critically: the walker did NOT descend into huge/, so those .md
+    // files are not counted in scannedBeforeFilter.
+    expect(got.scannedBeforeFilter).toBe(1);
+  });
+
+  it('short-circuits descent for .gitignore-excluded directories (perf)', () => {
+    writeFileSync(join(harness.root, 'intro.md'), 'i');
+    mkdirSync(join(harness.root, 'build'), { recursive: true });
+    writeFileSync(join(harness.root, 'build', 'a.md'), 'a');
+    writeFileSync(join(harness.root, 'build', 'b.md'), 'b');
+    const got = discoverMarkdownFiles({
+      repoRoot: harness.root,
+      gitignore: ignore().add('build/'),
+    });
+    expect(got.files).toEqual(['intro.md']);
+    expect(got.scannedBeforeFilter).toBe(1);
+  });
+
+  it('does not auto-skip harness instruction directories (lib alone, no .kbignore stub)', () => {
+    // Once .kbignore replaces extraStaticSkips, the lib's discovery does
+    // NOT know about harness skills/commands dirs. The default stub
+    // written by `init` is what excludes them; the lib alone is harness-
+    // agnostic.
     writeFileSync(join(harness.root, 'intro.md'), 'i');
     mkdirSync(join(harness.root, '.claude', 'skills', 'foo'), { recursive: true });
     writeFileSync(join(harness.root, '.claude', 'skills', 'foo', 'SKILL.md'), 's');
-    const got = discoverMarkdownFiles({
-      sourceDir: harness.root,
-      repoRoot: harness.root,
-      extraStaticSkips: ['.claude/skills/**', '.claude/commands/**'],
-      include: ['.claude/skills/foo/SKILL.md', 'intro.md'],
-    });
-    expect(got).toEqual(['.claude/skills/foo/SKILL.md', 'intro.md']);
+    mkdirSync(join(harness.root, '.claude', 'commands'), { recursive: true });
+    writeFileSync(join(harness.root, '.claude', 'commands', 'bar.md'), 'b');
+    const got = discoverMarkdownFiles({ repoRoot: harness.root });
+    expect(got.files).toEqual([
+      '.claude/commands/bar.md',
+      '.claude/skills/foo/SKILL.md',
+      'intro.md',
+    ]);
   });
 
-  it('keeps non-skill, non-command markdown inside harness folders', () => {
-    writeFileSync(join(harness.root, 'intro.md'), 'i');
-    mkdirSync(join(harness.root, '.claude'), { recursive: true });
-    writeFileSync(join(harness.root, '.claude', 'AGENTS.md'), 'a');
-    mkdirSync(join(harness.root, '.opencode'), { recursive: true });
-    writeFileSync(join(harness.root, '.opencode', 'notes.md'), 'n');
-    const got = discoverMarkdownFiles({
-      sourceDir: harness.root,
-      repoRoot: harness.root,
-      extraStaticSkips: [
-        '.claude/skills/**',
-        '.claude/commands/**',
-        '.agents/skills/**',
-        '.cursor/skills/**',
-        '.opencode/skills/**',
-      ],
-    });
-    expect(got).toEqual(['.claude/AGENTS.md', '.opencode/notes.md', 'intro.md']);
+  it('does not filter files that only share a prefix with a static skip', () => {
+    writeFileSync(join(harness.root, 'CHANGELOG_FORMAT.md'), 'cf');
+    writeFileSync(join(harness.root, 'LICENSE_HEADER.md'), 'lh');
+    writeFileSync(join(harness.root, 'licensing-policy.md'), 'lp');
+    const got = discoverMarkdownFiles({ repoRoot: harness.root });
+    expect(got.files).toEqual([
+      'CHANGELOG_FORMAT.md',
+      'LICENSE_HEADER.md',
+      'licensing-policy.md',
+    ]);
   });
 });
 

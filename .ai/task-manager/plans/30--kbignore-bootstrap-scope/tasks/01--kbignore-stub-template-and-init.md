@@ -2,7 +2,7 @@
 id: 1
 group: "kbignore-stub"
 dependencies: []
-status: "pending"
+status: "completed"
 created: "2026-05-22"
 skills:
   - typescript
