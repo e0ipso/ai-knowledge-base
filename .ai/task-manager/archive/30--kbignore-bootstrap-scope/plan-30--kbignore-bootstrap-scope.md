@@ -316,3 +316,28 @@ None beyond the standard validation gate referenced above.
 ### Execution Summary
 - Total Phases: 3
 - Total Tasks: 5
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-05-22
+
+### Results
+
+Plan 30 landed as a single feature branch (`feature/30--kbignore-bootstrap-scope`) across three phases:
+
+- **Phase 1 (Foundations)** — Introduced `src/lib/kbignore-stub.ts` (`renderKbignoreStub` + `ensureKbignore`), wired stub emission into `init` and `init --upgrade`, refactored `discoverMarkdownFiles` to walk repo root with `STATIC_SKIPS ∪ .gitignore ∪ .kbignore`, pushed both ignore files into `walk` descent short-circuits for perf on large repos, added `scannedBeforeFilter` to the `no-docs` `BootstrapResult` branch, deleted `harnessInstructionSkipPatterns` from `src/harnesses/registry.ts`, and added a doctor warning when `.kbignore` is missing or comment-only.
+- **Phase 2 (CLI/command surface)** — Removed `--from`, `--include`, `--exclude` from `cli.ts` and the command options/context types. Added `-y/--yes`. Introduced `previewBootstrapIncremental(ctx)` so candidate resolution can run before lock acquisition; `runBootstrapIncremental` consumes `ctx.preview` when supplied. Added the interactive confirmation gate (TTY prompt, `--yes` bypass, non-TTY exit 2 with the verbatim message, `--dry-run` skip) and the empty-set diagnostic (zero-scanned vs zero-surviving variants). New `tests/commands/bootstrap-incremental.test.ts` covers the gate and diagnostic.
+- **Phase 3 (Documentation)** — README quickstart now uses the two-step `init` + `bootstrap-incremental` flow with a CI callout for `--yes` and a three-row migration table. AGENTS.md mirrors the policy and removes all references to the old flags. CHANGELOG carries a `BREAKING` entry covering removed flags, the removed `harnessInstructionSkipPatterns` auto-injection, the new `.kbignore` surface, the init stub, the confirmation gate, the doctor warning, and the unchanged memory-ingestion behaviour, with a pointer back to the README migration section.
+
+Final verification: `npm run build` and `npm test` pass (51 files, 440 tests). All Self-Validation grep checks pass (`harnessInstructionSkipPatterns` is gone from `src/` except for a docstring reference in `kbignore-stub.ts`; `--from/--include/--exclude` are gone from `src/cli.ts` and `src/commands/bootstrap-incremental.ts`; old-flag mentions in user docs are confined to the migration table). `node dist/cli.js bootstrap-incremental --help` shows `--dry-run`, `-y/--yes`, `--timeout` and no removed flags.
+
+### Noteworthy Events
+
+- The plan's self-validation step 2 lists `--harness` among the expected flags on `bootstrap-incremental --help`. Verified that `--harness` is a top-level program flag (visible via `ai-knowledge-base --help`), not a subcommand flag — this is pre-existing behaviour, unchanged by this plan. The spirit of the validation (no `--from/--include/--exclude` on the subcommand; `--yes`/`--dry-run`/`--timeout` present) is satisfied.
+- One residual mention of `harnessInstructionSkipPatterns` survives in `src/lib/kbignore-stub.ts` as a docstring that explains what the stub replaces. The symbol itself is fully removed; the docstring is intentional historical context for maintainers reading the new module.
+- Pre-commit lint-staged stashed and re-staged changes once during phase 2 commit, requiring a re-`git add` retry. The full build + 440-test suite ran twice on that commit. No code impact.
+
+### Necessary follow-ups
+
+- None required by this plan. The "consider a `practice/` KB node for `.kbignore` is the only scope surface`" item was explicitly deferred per the plan's YAGNI guidance and is not blocking.
