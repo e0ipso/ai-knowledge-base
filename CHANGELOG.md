@@ -1,3 +1,9 @@
+## [0.19.1](https://github.com/e0ipso/ai-knowledge-base/compare/v0.19.0...v0.19.1) (2026-05-23)
+
+### Bug Fixes
+
+* update KB ([96378b6](https://github.com/e0ipso/ai-knowledge-base/commit/96378b66da95f242fba4be3348431a218ba6c70f))
+
 ## [0.19.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.18.0...v0.19.0) (2026-05-23)
 
 ### Features
