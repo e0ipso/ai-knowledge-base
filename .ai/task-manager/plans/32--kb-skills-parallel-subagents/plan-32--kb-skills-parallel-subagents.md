@@ -309,16 +309,16 @@ graph TD
 
 No circular dependencies. Tasks 1–4 are independent of each other; Task 5 depends on 2/3/4 for accurate doc wording.
 
-### Phase 1: CLI primitive + canonical SKILL.md prompts (parallel)
+### ✅ Phase 1: CLI primitive + canonical SKILL.md prompts (parallel)
 **Parallel Tasks:**
-- Task 001: Add `proper-lockfile` to `updateBootstrapState` in `node write`; add concurrent-callers vitest
-- Task 002: Rewrite `kb-bootstrap` SKILL.md with probe/orchestrator/collector/fallback + `_logs/bootstrap/` JSONL
-- Task 003: Rewrite `kb-curate` SKILL.md Step 2 with per-batch sub-agent dispatch + `_logs/curator/` JSONL
-- Task 004: Add single-sub-agent delegation block to `kb-add` SKILL.md for context isolation
+- ✔️ Task 001: Add `proper-lockfile` to `updateBootstrapState` in `node write`; add concurrent-callers vitest
+- ✔️ Task 002: Rewrite `kb-bootstrap` SKILL.md with probe/orchestrator/collector/fallback + `_logs/bootstrap/` JSONL
+- ✔️ Task 003: Rewrite `kb-curate` SKILL.md Step 2 with per-batch sub-agent dispatch + `_logs/curator/` JSONL
+- ✔️ Task 004: Add single-sub-agent delegation block to `kb-add` SKILL.md for context isolation
 
-### Phase 2: User-facing docs (sequential after Phase 1)
+### ✅ Phase 2: User-facing docs (sequential after Phase 1)
 **Parallel Tasks:**
-- Task 005: Update `docs/daily-use.md`, `docs/how-it-works.md`, `docs/troubleshooting.md`, `CHANGELOG.md` (depends on: 002, 003, 004)
+- ✔️ Task 005: Update `docs/daily-use.md`, `docs/how-it-works.md`, `docs/troubleshooting.md`, `CHANGELOG.md` (depends on: 002, 003, 004)
 
 ### Post-phase Actions
 
