@@ -1,3 +1,11 @@
+## [0.19.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.18.0...v0.19.0) (2026-05-23)
+
+### Features
+
+* **kb-add:** delegate draft to sub-agent ([3eaca59](https://github.com/e0ipso/ai-knowledge-base/commit/3eaca59c11ab982e066e4f5c104810737f618e09))
+* **kb-bootstrap:** parallel sub-agent draft ([46b09e7](https://github.com/e0ipso/ai-knowledge-base/commit/46b09e7754e28f9d429808b1fae84ef72dd9364a))
+* **node-write:** lock bootstrap RMW (plan 32) ([60843ae](https://github.com/e0ipso/ai-knowledge-base/commit/60843aec517f74f6f37182e9e5cc7d1de01c4bc6))
+
 ## Unreleased
 
 ### Changed
