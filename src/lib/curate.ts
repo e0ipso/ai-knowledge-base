@@ -392,7 +392,7 @@ function persistAction(action: CuratorAction, ctx: PersistContext): PersistOutco
 
   if (action.action === 'contradict') {
     const n = ctx.nextConflictIndex();
-    const conflictId = `${ctx.runId}-${n}`;
+    const conflictId = mintConflictId(ctx.runId, n);
     mkdirSync(ctx.conflictsDir, { recursive: true });
     const frontmatter = {
       id: conflictId,
@@ -520,7 +520,17 @@ function rankConfidence(action: CuratorAction): number {
   return node.confidence === 'high' ? 3 : node.confidence === 'medium' ? 2 : 1;
 }
 
-function markSessionsProcessed(sessions: PendingSession[], runId: string, now: Date): void {
+/**
+ * Stamps `curator_processed_at` / `curator_run_id` into the frontmatter of
+ * each pending session file. Exported so the standalone `curate dedup`
+ * primitive can apply the same mark from the CLI without going through
+ * `runCurate`.
+ */
+export function markSessionsProcessed(
+  sessions: PendingSession[],
+  runId: string,
+  now: Date
+): void {
   for (const s of sessions) {
     const parsed = matter(readFileSync(s.filePath, 'utf8'));
     const data = { ...(parsed.data as Record<string, unknown>) };
@@ -529,6 +539,16 @@ function markSessionsProcessed(sessions: PendingSession[], runId: string, now: D
     const serialized = matter.stringify(parsed.content, data);
     writeFileSync(s.filePath, serialized);
   }
+}
+
+/**
+ * Mints the deterministic conflict-file id used by both `runCurate` and the
+ * standalone `curate dedup` primitive. The shape `${runId}-${n}` is the
+ * authoritative public contract for conflict filenames — keep this helper
+ * in sync with any test that asserts it.
+ */
+export function mintConflictId(runId: string, n: number): string {
+  return `${runId}-${n}`;
 }
 
 function regenerateIndexAndGraph(ctx: CurateContext): void {

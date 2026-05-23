@@ -20,6 +20,16 @@ export default [
     },
   },
   {
-    ignores: ['dist/**', 'node_modules/**', 'templates/**', 'tests/fixtures/**', 'docs/_site/**'],
+    ignores: [
+      'dist/**',
+      'node_modules/**',
+      'templates/**',
+      'tests/fixtures/**',
+      'docs/_site/**',
+      '.claude/**',
+      '.codex/**',
+      '.cursor/**',
+      '.opencode/**',
+    ],
   },
 ];

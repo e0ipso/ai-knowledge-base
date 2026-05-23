@@ -1,0 +1,242 @@
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import matter from 'gray-matter';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { runNodeWriteCommand } from '../../src/commands/node-write.js';
+
+function sandbox(): string {
+  const root = mkdtempSync(join(tmpdir(), 'kb-nodewrite-'));
+  mkdirSync(join(root, '.git'), { recursive: true });
+  mkdirSync(join(root, '.ai/knowledge-base/.state'), { recursive: true });
+  writeFileSync(
+    join(root, '.ai/knowledge-base/.state/installed-version'),
+    JSON.stringify({
+      schema_version: 1,
+      package: '@e0ipso/ai-knowledge-base',
+      version: '0.0.0-test',
+      installed_at: '2026-05-23T10:00:00Z',
+      assistants: ['claude'],
+    })
+  );
+  mkdirSync(join(root, '.ai/knowledge-base/nodes/practice'), { recursive: true });
+  mkdirSync(join(root, '.ai/knowledge-base/nodes/map'), { recursive: true });
+  return root;
+}
+
+function capturingStdout(): { write: (s: string) => void; text: () => string } {
+  let buf = '';
+  return { write: (s: string) => (buf += s), text: () => buf };
+}
+
+describe('node write primitive', () => {
+  let cwd: string;
+  let original: string;
+  beforeEach(() => {
+    original = process.cwd();
+    cwd = sandbox();
+    process.chdir(cwd);
+  });
+  afterEach(() => {
+    process.chdir(original);
+    rmSync(cwd, { recursive: true, force: true });
+  });
+
+  it('happy path: stdin body + flags writes node and prints resolved id', async () => {
+    const out = capturingStdout();
+    const code = await runNodeWriteCommand(
+      {
+        kind: 'practice',
+        slug: 'use-foo',
+        flags: {
+          title: 'Use Foo',
+          summary: 'How to use foo',
+          tags: 'a, b',
+          confidence: 'high',
+        },
+      },
+      {
+        readStdin: async () => '# Use Foo\n\nDetails body.',
+        isTTY: () => false,
+        writeStdout: out.write,
+      }
+    );
+    expect(code).toBe(0);
+    expect(out.text()).toBe('practice-use-foo\n');
+    const file = join(cwd, '.ai/knowledge-base/nodes/practice/practice-use-foo.md');
+    expect(existsSync(file)).toBe(true);
+    const parsed = matter(readFileSync(file, 'utf8'));
+    expect(parsed.data['id']).toBe('practice-use-foo');
+    expect(parsed.data['kind']).toBe('practice');
+    expect(parsed.data['title']).toBe('Use Foo');
+    expect(parsed.data['summary']).toBe('How to use foo');
+    expect(parsed.data['tags']).toEqual(['a', 'b']);
+    expect(parsed.data['confidence']).toBe('high');
+    expect(parsed.content).toContain('Details body.');
+  });
+
+  it('resolves slug collisions via -2 suffix', async () => {
+    // Pre-seed an existing node so readAllNodes surfaces its id.
+    const seedPath = join(cwd, '.ai/knowledge-base/nodes/practice/practice-foo.md');
+    writeFileSync(
+      seedPath,
+      matter.stringify('# Existing\nbody\n', {
+        schema_version: 1,
+        id: 'practice-foo',
+        title: 'Existing foo',
+        kind: 'practice',
+        tags: [],
+        derived_from: [],
+        relates_to: [],
+        confidence: 'high',
+        summary: 'seed',
+      })
+    );
+    const out = capturingStdout();
+    const code = await runNodeWriteCommand(
+      {
+        kind: 'practice',
+        slug: 'foo',
+        flags: { title: 'Foo two', summary: 'collision resolves' },
+      },
+      {
+        readStdin: async () => '# Foo two\n\nNew body.',
+        isTTY: () => false,
+        writeStdout: out.write,
+      }
+    );
+    expect(code).toBe(0);
+    expect(out.text()).toBe('practice-foo-2\n');
+    const collidedFile = join(cwd, '.ai/knowledge-base/nodes/practice/practice-foo-2.md');
+    expect(existsSync(collidedFile)).toBe(true);
+    const data = matter(readFileSync(collidedFile, 'utf8')).data as Record<string, unknown>;
+    expect(data['id']).toBe('practice-foo-2');
+    // Original untouched.
+    expect(readFileSync(seedPath, 'utf8')).toContain('id: practice-foo');
+  });
+
+  it('rejects invalid --confidence with nonzero exit and no partial file', async () => {
+    const out = capturingStdout();
+    const code = await runNodeWriteCommand(
+      {
+        kind: 'practice',
+        slug: 'bad-conf',
+        flags: { title: 'Bad', summary: 'Bad', confidence: 'bogus' },
+      },
+      {
+        readStdin: async () => '# Bad\n\nbody',
+        isTTY: () => false,
+        writeStdout: out.write,
+      }
+    );
+    expect(code).toBe(1);
+    expect(out.text()).toBe('');
+    expect(readdirSync(join(cwd, '.ai/knowledge-base/nodes/practice'))).toEqual([]);
+  });
+
+  it('folds bootstrap-state when both --source-doc and --source-hash are passed', async () => {
+    const stateFile = join(cwd, '.ai/knowledge-base/.state/bootstrap-state.json');
+    expect(existsSync(stateFile)).toBe(false);
+    const out = capturingStdout();
+    const code = await runNodeWriteCommand(
+      {
+        kind: 'map',
+        slug: 'thing',
+        flags: {
+          title: 'Thing',
+          summary: 'A thing',
+          sourceDoc: 'docs/source.md',
+          sourceHash: 'a'.repeat(64),
+        },
+      },
+      {
+        readStdin: async () => '# Thing\n\nbody',
+        isTTY: () => false,
+        writeStdout: out.write,
+      }
+    );
+    expect(code).toBe(0);
+    expect(out.text()).toBe('map-thing\n');
+    expect(existsSync(stateFile)).toBe(true);
+    const state = JSON.parse(readFileSync(stateFile, 'utf8')) as {
+      schema_version: number;
+      docs: Record<
+        string,
+        { content_sha256: string; last_processed_at: string; produced_nodes: string[] }
+      >;
+    };
+    expect(state.schema_version).toBe(1);
+    expect(state.docs['docs/source.md']).toBeDefined();
+    expect(state.docs['docs/source.md']!.content_sha256).toBe('a'.repeat(64));
+    expect(state.docs['docs/source.md']!.produced_nodes).toEqual(['map-thing']);
+  });
+
+  it('skips bootstrap-state update when neither source flag is passed', async () => {
+    const stateFile = join(cwd, '.ai/knowledge-base/.state/bootstrap-state.json');
+    const out = capturingStdout();
+    const code = await runNodeWriteCommand(
+      {
+        kind: 'practice',
+        slug: 'no-source',
+        flags: { title: 'No source', summary: 'no fold' },
+      },
+      {
+        readStdin: async () => '# x\n\nbody',
+        isTTY: () => false,
+        writeStdout: out.write,
+      }
+    );
+    expect(code).toBe(0);
+    expect(existsSync(stateFile)).toBe(false);
+    expect(
+      existsSync(join(cwd, '.ai/knowledge-base/nodes/practice/practice-no-source.md'))
+    ).toBe(true);
+  });
+
+  it('errors when only --source-doc is passed (no --source-hash); no writes', async () => {
+    const stateFile = join(cwd, '.ai/knowledge-base/.state/bootstrap-state.json');
+    const out = capturingStdout();
+    const code = await runNodeWriteCommand(
+      {
+        kind: 'practice',
+        slug: 'half-fold',
+        flags: { title: 'Half', summary: 'half', sourceDoc: 'docs/x.md' },
+      },
+      {
+        readStdin: async () => '# x\n\nbody',
+        isTTY: () => false,
+        writeStdout: out.write,
+      }
+    );
+    expect(code).toBe(1);
+    expect(out.text()).toBe('');
+    expect(existsSync(stateFile)).toBe(false);
+    expect(readdirSync(join(cwd, '.ai/knowledge-base/nodes/practice'))).toEqual([]);
+  });
+
+  it('errors when only --source-hash is passed (no --source-doc); no writes', async () => {
+    const out = capturingStdout();
+    const code = await runNodeWriteCommand(
+      {
+        kind: 'practice',
+        slug: 'half-fold-2',
+        flags: { title: 'Half', summary: 'half', sourceHash: 'b'.repeat(64) },
+      },
+      {
+        readStdin: async () => '# x\n\nbody',
+        isTTY: () => false,
+        writeStdout: out.write,
+      }
+    );
+    expect(code).toBe(1);
+    expect(readdirSync(join(cwd, '.ai/knowledge-base/nodes/practice'))).toEqual([]);
+  });
+});

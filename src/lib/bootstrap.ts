@@ -285,7 +285,7 @@ function relativePosix(from: string, to: string): string {
  * `Ignore` instance. Missing file → `undefined` (no filter). Read errors
  * (e.g. permission) bubble up — only ENOENT is silent.
  */
-function loadIgnoreFile(file: string): Ignore | undefined {
+export function loadIgnoreFile(file: string): Ignore | undefined {
   if (!existsSync(file)) return undefined;
   return ignore().add(readFileSync(file, 'utf8'));
 }
