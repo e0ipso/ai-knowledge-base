@@ -71,7 +71,6 @@
     ]
   },
   "dependencies": {
-    "@inquirer/prompts": "^7.2.1",
     "@secretlint/config-loader": "^13.0.0",
     "@secretlint/core": "^13.0.0",
     "@secretlint/secretlint-rule-preset-recommend": "^13.0.0",

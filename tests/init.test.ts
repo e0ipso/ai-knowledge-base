@@ -42,8 +42,6 @@ describe('init', () => {
       '.claude/hooks/kb-session-start.cjs',
       '.ai/knowledge-base/.state/installed-version',
       '.ai/knowledge-base/.config/prompts/proposal-extract.md',
-      '.ai/knowledge-base/.config/prompts/curator.md',
-      '.ai/knowledge-base/.config/prompts/bootstrap-incremental.md',
       '.ai/knowledge-base/config.yaml',
       '.gitignore',
     ];

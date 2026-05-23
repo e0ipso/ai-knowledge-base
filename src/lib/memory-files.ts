@@ -9,8 +9,24 @@ import { log } from './log.js';
 import { MemoryLedgerSchema, type MemoryLedger } from './schemas.js';
 import type { RepoPaths } from './paths.js';
 import { scanAndRedact } from './secret-scan.js';
-import type { DocCandidateFile } from './bootstrap.js';
 import type { HarnessAdapter } from '../harnesses/types.js';
+
+/**
+ * Bootstrap-shaped representation of a candidate document. Originally
+ * exported from `./bootstrap.ts` for the deleted runner; kept here as the
+ * shape the host-LLM bootstrap workflow still consumes when interleaving
+ * harness memory files with markdown candidates.
+ */
+export interface DocCandidateFile {
+  /** Path relative to the repo root (posix) or `memory://<basename>`. */
+  relPath: string;
+  /** Absolute path on disk. */
+  absPath: string;
+  /** SHA-256 of file contents (hex). */
+  sha256: string;
+  /** UTF-8 contents. */
+  content: string;
+}
 
 /**
  * Verbatim discovery prompt sent to the active harness via a headless child.

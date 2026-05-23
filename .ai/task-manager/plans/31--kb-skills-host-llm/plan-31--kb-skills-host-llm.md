@@ -266,9 +266,9 @@ No circular dependencies.
 **Parallel Tasks:**
 - ✔️ Task 005: Convert `bootstrap` / `curate` / `node add` to launchers and rename `bootstrap-incremental` (depends on: 004)
 
-### Phase 4: Cleanup
+### ✅ Phase 4: Cleanup
 **Parallel Tasks:**
-- Task 006: Delete `BootstrapRunner`, `CuratorRunner`, `proper-lockfile`, and obsolete tests (depends on: 005)
+- ✔️ Task 006: Delete `BootstrapRunner`, `CuratorRunner`, `proper-lockfile`, and obsolete tests (depends on: 005)
 
 ### Phase 5: Documentation
 **Parallel Tasks:**

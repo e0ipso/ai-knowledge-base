@@ -72,8 +72,8 @@ async function readInput(input: string | undefined): Promise<string> {
 
 /**
  * Plans every conflict-file write for the surviving conflict-bearing actions.
- * Mirrors the in-memory shape used by `runCurate.persistAction` so the two
- * paths produce byte-identical conflict files for the same inputs.
+ * Owns the canonical conflict-file shape so the in-host skill curator and
+ * any future consumer produce byte-identical files for the same inputs.
  */
 function planConflictWrites(
   actions: CuratorAction[],

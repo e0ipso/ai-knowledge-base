@@ -14,7 +14,7 @@ import { findRepoRoot, repoPaths } from '../lib/paths.js';
 import { IndexFrontmatterSchema, SettingsSchema } from '../lib/schemas.js';
 import { packageVersion } from '../lib/version.js';
 
-const EXPECTED_PROMPTS = ['proposal-extract.md', 'curator.md', 'bootstrap-incremental.md'];
+const EXPECTED_PROMPTS = ['proposal-extract.md'];
 
 export interface DoctorOptions {
   verbose?: boolean;
@@ -235,7 +235,7 @@ function checkInstalled(file: string): CheckResult {
 function checkPrompts(promptsDir: string): CheckResult {
   const missing = EXPECTED_PROMPTS.filter(p => !existsSync(join(promptsDir, p)));
   return missing.length === 0
-    ? ok('proposal-extract, curator, bootstrap-incremental')
+    ? ok('proposal-extract')
     : warn(
         `missing local override(s): ${missing.join(', ')}. The bundled package fallback is still used; re-run \`init --upgrade\` to restore.`
       );

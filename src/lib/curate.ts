@@ -1,92 +1,21 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import matter from 'gray-matter';
-import type { ZodSchema } from 'zod';
-import { generateGraph, generateIndex, writeGraph, writeIndex } from './index-gen.js';
+import { deriveNodeId } from './nodes.js';
 import {
-  deriveNodeId,
-  ensureUniqueId,
-  nodeFileExists,
-  readAllNodes,
-  writeNodeFile,
-} from './nodes.js';
-import {
-  CuratorOutputSchema,
   type CuratorAction,
-  type CuratorOutput,
-  type FailureReport,
-  type NodeFrontmatter,
-  type NodeKind,
   SessionLogFrontmatterSchema,
   ProposalCandidateSchema,
   type ProposalCandidate,
 } from './schemas.js';
-import { randomUUID } from 'node:crypto';
-import lockfile from 'proper-lockfile';
-import { chunk } from './chunk-batch.js';
-import type { CurateMemoryCandidate } from './memory-files.js';
-import type { RepoPaths } from './paths.js';
-import { STATE_LOCK_OPTIONS } from './state.js';
-import { compactStamp } from './time.js';
 
 /**
  * Prefix used to encode `candidate_origin` for harness-memory candidates.
- * The wrapper recognises this prefix in `derivedFromForOrigin` to attribute
- * `derived_from` to the source IRI rather than a session filename.
+ * In-host curators (skills) stamp this prefix when a candidate comes from a
+ * harness auto-memory IRI rather than a session log; downstream code uses it
+ * to attribute `derived_from` to the source IRI.
  */
 export const MEMORY_ORIGIN_PREFIX = 'harness-memory:';
-
-export const CURATE_BATCH_SIZE = 10;
-export const DEFAULT_TIMEOUT_MS = 120_000;
-
-export type CuratorRunner = <T>(
-  promptBody: string,
-  stdin: string,
-  schema: ZodSchema<T>,
-  opts: {
-    timeoutMs: number;
-    logFile?: string;
-    harnessOpts?: Record<string, unknown>;
-    onMessage?: (msg: unknown) => void;
-  }
-) => Promise<T>;
-
-export interface CurateContext {
-  paths: RepoPaths;
-  promptTemplate: string;
-  runner: CuratorRunner;
-  timeoutMs?: number;
-  /** Called once before each batch is sent to the runner. */
-  onBatchStart?: (info: { index: number; total: number; batch: PendingSession[] }) => void;
-  /** Called once after each batch completes. */
-  onBatchEnd?: (info: { index: number; total: number; durationMs: number }) => void;
-  /** Forwarded to the runner so callers can stream curator events. */
-  onCuratorMessage?: (msg: unknown) => void;
-  /** Pre-computed curator log file path (used by the CLI to show it up front). */
-  logFile?: string;
-  /** Adapter-specific knobs (model, effort, allowedTools, ...). */
-  harnessOpts?: Record<string, unknown>;
-  /**
-   * Harness auto-memory files discovered by `discoverHarnessMemoryFiles`,
-   * appended to the curator's input set alongside pending session candidates.
-   * Each entry carries `source: 'harness-memory'` and the original `file://`
-   * IRI so the curator prompt can attribute origin in `proposed_node` output.
-   */
-  memoryCandidates?: CurateMemoryCandidate[];
-}
-
-export interface CurateResult {
-  status: 'completed' | 'locked' | 'no-pending';
-  runId: string;
-  batches: number;
-  candidates: number;
-  nodesWritten: number;
-  drops: number;
-  pendingSessions: number;
-  failures: FailureReport[];
-  conflicts: number;
-  reason?: string;
-}
 
 export interface PendingSession {
   filename: string;
@@ -104,8 +33,8 @@ interface SessionMatterData {
 
 /**
  * Reads `_sessions/` and returns every log with `proposal_status: done` that
- * has not yet been processed by curate. Used by both the curate command and
- * `ai-knowledge-base status` (eventually) for reporting.
+ * has not yet been processed by curate. Used by the `curate dedup` primitive
+ * and by `ai-knowledge-base status` for reporting.
  */
 export function listPendingSessions(sessionsDir: string): PendingSession[] {
   if (!existsSync(sessionsDir)) return [];
@@ -145,330 +74,6 @@ function parseCandidateArray(value: unknown): ProposalCandidate[] {
   return out;
 }
 
-export const BATCH_PLACEHOLDER = '[BATCH PLACEHOLDER, substituted at runtime]';
-
-/**
- * Builds the JSON payload that the curator subprocess receives on stdin.
- * Includes the existing nodes the batch references plus the candidates.
- */
-export interface CuratorMemoryFile {
-  source: 'harness-memory';
-  iri: string;
-  content: string;
-}
-
-export interface CuratorBatchPayload {
-  existing_nodes: Array<{
-    id: string;
-    title: string;
-    kind: string;
-    tags: string[];
-    summary: string;
-    body: string;
-  }>;
-  batch: Array<{
-    session_id: string;
-    captured_at: string;
-    derived_from: string;
-    practice_candidates: ProposalCandidate[];
-    map_candidates: ProposalCandidate[];
-  }>;
-  /** Harness auto-memory files. Omitted when none were discovered. */
-  memory_files?: CuratorMemoryFile[];
-}
-
-export function buildBatchPayload(
-  batch: PendingSession[],
-  memoryFiles: CurateMemoryCandidate[] = []
-): CuratorBatchPayload {
-  const payload: CuratorBatchPayload = {
-    existing_nodes: [],
-    batch: batch.map(s => ({
-      session_id: s.sessionId,
-      captured_at: s.capturedAt,
-      derived_from: s.filename,
-      practice_candidates: s.practiceCandidates,
-      map_candidates: s.mapCandidates,
-    })),
-  };
-  if (memoryFiles.length > 0) {
-    payload.memory_files = memoryFiles.map(m => ({
-      source: m.source,
-      iri: m.iri,
-      content: m.content,
-    }));
-  }
-  return payload;
-}
-
-export function buildBatchPrompt(template: string, payload: CuratorBatchPayload): string {
-  const json = JSON.stringify(payload, null, 2);
-  if (!template.includes(BATCH_PLACEHOLDER)) {
-    throw new Error(
-      `curator prompt is missing the ${BATCH_PLACEHOLDER} placeholder; the prompt template must contain it verbatim`
-    );
-  }
-  return template.replace(BATCH_PLACEHOLDER, json);
-}
-
-/**
- * Runs one curate invocation across all pending sessions. Acquires the
- * `curator` lock on `state.json`, iterates the batched proposal outputs, asks
- * the runner for actions, materializes proposals on disk, and regenerates
- * INDEX/GRAPH from the (unchanged) nodes/ tree. Returns a summary.
- */
-export async function runCurate(ctx: CurateContext): Promise<CurateResult> {
-  const timeoutMs = ctx.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-  const runId = randomUUID();
-  const stateFile = join(ctx.paths.stateDir, 'state.json');
-
-  const pending = listPendingSessions(ctx.paths.sessionsDir);
-  const memoryCandidates = ctx.memoryCandidates ?? [];
-  if (pending.length === 0 && memoryCandidates.length === 0) {
-    // Always regenerate INDEX/GRAPH so a manual `node add` followed by an
-    // empty curate run still refreshes the index.
-    regenerateIndexAndGraph(ctx);
-    return {
-      status: 'no-pending',
-      runId,
-      batches: 0,
-      candidates: 0,
-      nodesWritten: 0,
-      drops: 0,
-      pendingSessions: 0,
-      failures: [],
-      conflicts: 0,
-    };
-  }
-
-  let release: (() => Promise<void>) | undefined;
-  try {
-    release = await lockfile.lock(stateFile, STATE_LOCK_OPTIONS);
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'ELOCKED') {
-      return {
-        status: 'locked',
-        runId,
-        batches: 0,
-        candidates: 0,
-        nodesWritten: 0,
-        drops: 0,
-        pendingSessions: pending.length,
-        failures: [],
-        conflicts: 0,
-        reason: 'another curate run holds the lock',
-      };
-    }
-    throw err;
-  }
-
-  const startStamp = compactStamp(new Date());
-  const logFile =
-    ctx.logFile ?? join(ctx.paths.logsDir, 'curator', `${runId}__${startStamp}.jsonl`);
-  mkdirSync(join(ctx.paths.logsDir, 'curator'), { recursive: true });
-
-  const sessionBatches = chunk(pending, CURATE_BATCH_SIZE);
-  // Attach memory candidates to the first batch only; the curator sees them
-  // once per run regardless of how many session batches exist. An empty
-  // session list with memory present still produces exactly one batch.
-  const batches: Array<{ sessions: PendingSession[]; memory: CurateMemoryCandidate[] }> =
-    sessionBatches.length === 0
-      ? [{ sessions: [], memory: memoryCandidates }]
-      : sessionBatches.map((sessions, i) => ({
-          sessions,
-          memory: i === 0 ? memoryCandidates : [],
-        }));
-  const allActions: CuratorAction[] = [];
-
-  try {
-    for (let i = 0; i < batches.length; i += 1) {
-      const { sessions, memory } = batches[i]!;
-      const payload = buildBatchPayload(sessions, memory);
-      const prompt = buildBatchPrompt(ctx.promptTemplate, payload);
-      if (ctx.onBatchStart)
-        ctx.onBatchStart({ index: i, total: batches.length, batch: sessions });
-      const batchStartMs = Date.now();
-      const runnerOpts: Parameters<CuratorRunner>[3] = {
-        timeoutMs,
-        logFile,
-      };
-      if (ctx.harnessOpts !== undefined) runnerOpts.harnessOpts = ctx.harnessOpts;
-      if (ctx.onCuratorMessage) runnerOpts.onMessage = ctx.onCuratorMessage;
-      const actions: CuratorOutput = await ctx.runner(prompt, '', CuratorOutputSchema, runnerOpts);
-      if (ctx.onBatchEnd) {
-        ctx.onBatchEnd({
-          index: i,
-          total: batches.length,
-          durationMs: Date.now() - batchStartMs,
-        });
-      }
-      allActions.push(...actions);
-    }
-
-    const merged = dedupActions(allActions);
-    const existingNodes = readAllNodes(ctx.paths.nodesDir);
-    const existingIds = new Set(existingNodes.map(n => n.frontmatter.id));
-    const seenSlugs = new Set<string>();
-    let nodesWritten = 0;
-    let drops = 0;
-    const failures: FailureReport[] = [];
-    let conflicts = 0;
-    let conflictCounter = 0;
-
-    const sessionIdToFilename = new Map<string, string>();
-    for (const s of pending) sessionIdToFilename.set(s.sessionId, s.filename);
-
-    for (const action of merged) {
-      const outcome = persistAction(action, {
-        nodesDir: ctx.paths.nodesDir,
-        conflictsDir: ctx.paths.conflictsDir,
-        existingIds,
-        seenSlugs,
-        runId,
-        now: new Date(),
-        nextConflictIndex: () => ++conflictCounter,
-        derivedFromFor: origin => derivedFromForOrigin(origin, sessionIdToFilename),
-      });
-      switch (outcome.kind) {
-        case 'wrote':
-          nodesWritten += 1;
-          break;
-        case 'dropped':
-          drops += 1;
-          break;
-        case 'failed':
-          failures.push(outcome.failure);
-          break;
-        case 'conflict':
-          conflicts += 1;
-          break;
-      }
-    }
-
-    markSessionsProcessed(pending, runId, new Date());
-    regenerateIndexAndGraph(ctx);
-
-    return {
-      status: 'completed',
-      runId,
-      batches: batches.length,
-      candidates: pending.reduce(
-        (sum, s) => sum + s.practiceCandidates.length + s.mapCandidates.length,
-        0
-      ),
-      nodesWritten,
-      drops,
-      pendingSessions: pending.length,
-      failures,
-      conflicts,
-    };
-  } finally {
-    if (release !== undefined) await release();
-  }
-}
-
-interface PersistContext {
-  nodesDir: string;
-  conflictsDir: string;
-  existingIds: Set<string>;
-  seenSlugs: Set<string>;
-  runId: string;
-  now: Date;
-  nextConflictIndex: () => number;
-  derivedFromFor: (candidateOrigin: string) => string[];
-}
-
-type PersistOutcome =
-  | { kind: 'wrote' }
-  | { kind: 'dropped' }
-  | { kind: 'failed'; failure: FailureReport }
-  | { kind: 'conflict' };
-
-function persistAction(action: CuratorAction, ctx: PersistContext): PersistOutcome {
-  if (action.action === 'drop' || !action.proposed_node) {
-    return { kind: 'dropped' };
-  }
-  const proposedNode = action.proposed_node;
-
-  if (action.action === 'contradict') {
-    const n = ctx.nextConflictIndex();
-    const conflictId = mintConflictId(ctx.runId, n);
-    mkdirSync(ctx.conflictsDir, { recursive: true });
-    const frontmatter = {
-      id: conflictId,
-      status: 'pending',
-      detected_at: ctx.now.toISOString(),
-      run_id: ctx.runId,
-      candidate_origin: action.candidate_origin,
-      target_node_id: action.target_node_id ?? null,
-      proposed_kind: proposedNode.kind,
-      proposed_title: proposedNode.title,
-      proposed_confidence: proposedNode.confidence,
-    };
-    const body = `## Rationale\n\n${action.rationale}\n\n## Proposed node\n\n${proposedNode.body}\n`;
-    writeFileSync(join(ctx.conflictsDir, `${conflictId}.md`), matter.stringify(body, frontmatter));
-    return { kind: 'conflict' };
-  }
-
-  const kind: NodeKind = proposedNode.kind;
-  const derivedFrom = ctx.derivedFromFor(action.candidate_origin);
-
-  if (action.action === 'modify') {
-    const targetId = action.target_node_id;
-    if (!targetId || !ctx.existingIds.has(targetId)) {
-      return {
-        kind: 'failed',
-        failure: {
-          reason: 'modify_missing_target',
-          candidate_origin: action.candidate_origin,
-          node_id: targetId ?? '',
-          detail: `modify target ${targetId ?? '(unset)'} not found in nodes/`,
-        },
-      };
-    }
-    const frontmatter = buildNodeFrontmatter(proposedNode, targetId, derivedFrom);
-    writeNodeFile({ nodesDir: ctx.nodesDir, frontmatter, body: proposedNode.body });
-    return { kind: 'wrote' };
-  }
-
-  // action === 'add'
-  const baseId = deriveNodeId(kind, proposedNode.title);
-  if (ctx.existingIds.has(baseId) || nodeFileExists(ctx.nodesDir, kind, baseId)) {
-    return {
-      kind: 'failed',
-      failure: {
-        reason: 'add_collision',
-        candidate_origin: action.candidate_origin,
-        node_id: baseId,
-        detail: `add target nodes/${kind}/${baseId}.md already exists; rerun curate or escalate to modify`,
-      },
-    };
-  }
-  const id = ensureUniqueId(new Set([...ctx.existingIds, ...ctx.seenSlugs]), baseId);
-  ctx.seenSlugs.add(id);
-  const frontmatter = buildNodeFrontmatter(proposedNode, id, derivedFrom);
-  writeNodeFile({ nodesDir: ctx.nodesDir, frontmatter, body: proposedNode.body });
-  return { kind: 'wrote' };
-}
-
-function buildNodeFrontmatter(
-  proposedNode: NonNullable<CuratorAction['proposed_node']>,
-  id: string,
-  derivedFrom: string[]
-): NodeFrontmatter {
-  return {
-    schema_version: 1,
-    id,
-    title: proposedNode.title,
-    kind: proposedNode.kind,
-    tags: proposedNode.tags,
-    derived_from: derivedFrom,
-    relates_to: proposedNode.relates_to,
-    confidence: proposedNode.confidence,
-    summary: proposedNode.summary,
-  };
-}
-
 /**
  * Cross-batch dedup: two actions producing the same node (same target on
  * modify, or same slug derived from kind+title on add) collapse into one.
@@ -491,29 +96,6 @@ export function dedupActions(actions: CuratorAction[]): CuratorAction[] {
   return [...byKey.values()];
 }
 
-/**
- * Parses `<session_id>:<practice|map>:<index>` or
- * `harness-memory:<file://iri>` and returns the source identifier the wrapper
- * stamps into `derived_from`. For sessions this is the filename under
- * `_sessions/`; for harness-memory candidates it is the source IRI verbatim.
- * Returns an empty array when the prefix cannot be matched — callers preserve
- * the existing node's `derived_from` in that case.
- */
-function derivedFromForOrigin(
-  candidateOrigin: string,
-  sessionIdToFilename: Map<string, string>
-): string[] {
-  if (candidateOrigin.startsWith(MEMORY_ORIGIN_PREFIX)) {
-    const iri = candidateOrigin.slice(MEMORY_ORIGIN_PREFIX.length);
-    return iri.length > 0 ? [iri] : [];
-  }
-  const firstColon = candidateOrigin.indexOf(':');
-  if (firstColon <= 0) return [];
-  const prefix = candidateOrigin.slice(0, firstColon);
-  const filename = sessionIdToFilename.get(prefix);
-  return filename ? [filename] : [];
-}
-
 function rankConfidence(action: CuratorAction): number {
   const node = action.proposed_node;
   if (!node) return 0;
@@ -523,8 +105,7 @@ function rankConfidence(action: CuratorAction): number {
 /**
  * Stamps `curator_processed_at` / `curator_run_id` into the frontmatter of
  * each pending session file. Exported so the standalone `curate dedup`
- * primitive can apply the same mark from the CLI without going through
- * `runCurate`.
+ * primitive can apply the same mark from the CLI.
  */
 export function markSessionsProcessed(
   sessions: PendingSession[],
@@ -542,23 +123,11 @@ export function markSessionsProcessed(
 }
 
 /**
- * Mints the deterministic conflict-file id used by both `runCurate` and the
- * standalone `curate dedup` primitive. The shape `${runId}-${n}` is the
- * authoritative public contract for conflict filenames — keep this helper
- * in sync with any test that asserts it.
+ * Mints the deterministic conflict-file id used by the `curate dedup`
+ * primitive. The shape `${runId}-${n}` is the authoritative public contract
+ * for conflict filenames — keep this helper in sync with any test that
+ * asserts it.
  */
 export function mintConflictId(runId: string, n: number): string {
   return `${runId}-${n}`;
-}
-
-function regenerateIndexAndGraph(ctx: CurateContext): void {
-  mkdirSync(ctx.paths.kbDir, { recursive: true });
-  const index = generateIndex(ctx.paths.nodesDir);
-  writeIndex(join(ctx.paths.kbDir, 'INDEX.md'), index);
-  const graph = generateGraph(ctx.paths.nodesDir);
-  writeGraph(join(ctx.paths.kbDir, 'GRAPH.md'), graph);
-}
-
-export function curatorLogFile(logsDir: string, runId: string, now: Date): string {
-  return join(logsDir, 'curator', `${runId}__${compactStamp(now)}.jsonl`);
 }
