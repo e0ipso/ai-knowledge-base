@@ -1,11 +1,11 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:26c0952a78d500aad8b474a215f7a9915a4b3032abaf3ede417f8f2ccda7171f'
-node_count: 44
+nodes_hash: 'sha256:46b2d21600e391a426b3f21ba426e695d56441d4217c15712d2096b13cee7227'
+node_count: 45
 ---
 # KB Index
 
-_44 nodes • ~16155 estimated tokens_
+_45 nodes • ~16371 estimated tokens_
 
 
 ## Conventions (how we build)
@@ -25,6 +25,7 @@ _44 nodes • ~16155 estimated tokens_
 - **Curator drops non-productive and change-oriented candidates** [`nodes/practice/practice-curator-drops-non-productive-candidates.md`] #curator #prompts #calibration #anti-pattern
 - **Default bootstrap nodes to confidence: medium** [`nodes/practice/practice-confidence-default-medium-bootstrap.md`] #bootstrap #confidence #calibration
 - **init does not install husky/lint-staged/secretlint/commitlint** [`nodes/practice/practice-init-does-not-install-commit-tooling.md`] #init #install #scope
+- **No em dashes anywhere in the project** [`nodes/practice/practice-no-em-dashes.md`] #style #writing #ai-detection
 - **Node naming: id, filename, and kind must agree** [`nodes/practice/practice-lint-naming-rules.md`] #lint #naming #nodes
 - **Review node changes via git** [`nodes/practice/practice-review-nodes-via-git.md`] #review #git #workflow
 - **Strict schema-version bump policy: no migrators** [`nodes/practice/practice-strict-schema-version-bump-policy.md`] #schema #versioning #breaking-change
@@ -90,6 +91,7 @@ _44 nodes • ~16155 estimated tokens_
 - **#workflow (2):** Don't run curate or bootstrap-incremental in CI, Review node changes via git
 - **#action (1):** Curator action (add / modify / contradict / drop)
 - **#agent (1):** /kb-bootstrap skill
+- **#ai-detection (1):** No em dashes anywhere in the project
 - **#anti-pattern (1):** Curator drops non-productive and change-oriented candidates
 - **#async (1):** kb-proposal-drain.mjs (extraction hook)
 - **#audit (1):** Bump the prompt's Version comment on every behavior change
@@ -136,5 +138,7 @@ _44 nodes • ~16155 estimated tokens_
 - **#session (1):** Session log (_sessions/*.md)
 - **#settings (1):** config.yaml (project settings)
 - **#sha256 (1):** nodes_hash algorithm
+- **#style (1):** No em dashes anywhere in the project
 - **#supervision (1):** Bootstrap is supervised and judgmental, not exhaustive
 - **#testing (1):** Determinism contract for INDEX/GRAPH generation
+- **#writing (1):** No em dashes anywhere in the project

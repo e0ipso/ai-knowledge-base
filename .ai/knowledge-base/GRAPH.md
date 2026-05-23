@@ -1,11 +1,11 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:26c0952a78d500aad8b474a215f7a9915a4b3032abaf3ede417f8f2ccda7171f'
-node_count: 44
+nodes_hash: 'sha256:46b2d21600e391a426b3f21ba426e695d56441d4217c15712d2096b13cee7227'
+node_count: 45
 ---
 # KB Graph
 
-Total nodes: 44
+Total nodes: 45
 
 ## map-ai-knowledge-base-package
 
@@ -325,6 +325,12 @@ Total nodes: 44
 - **tags:** prompts, customization, override
 - **relates_to:** map-config-yaml, map-proposal-drain-hook, map-curate-command, map-bootstrap-incremental-command
 - **derived_from:** docs/internals/prompts.md, docs/troubleshooting.md
+
+## practice-no-em-dashes
+
+- **kind:** practice
+- **title:** No em dashes anywhere in the project
+- **tags:** style, writing, ai-detection
 
 ## practice-no-event-translation-across-adapters
 
