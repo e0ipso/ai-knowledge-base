@@ -1,11 +1,13 @@
 ---
 name: kb-curate
-description: Curate pending session logs into knowledge-base nodes by running the `npx @e0ipso/ai-knowledge-base curate` CLI, then resolve any contradictions surfaced by the curator with the user in-session. Use when the user wants to process accumulated session captures, or when the SessionStart nudge reports pending session logs.
+description: Curate pending session logs into knowledge-base nodes by reading sessions in-host, drafting curator actions, then deduping and persisting via the ai-knowledge-base primitives. Resolves any surfaced contradictions interactively with the user. Use when the user wants to process accumulated session captures, or when the SessionStart nudge reports pending session logs.
 ---
+
+<!-- Version: 2 -->
 
 # kb-curate
 
-Run the curator over pending session logs and apply its decisions directly to `nodes/`, then resolve any contradictions interactively with the user.
+You are the curator. Read pending session logs in this session, decide an action per candidate, run a single dedup pass via the CLI primitive, persist surviving actions via `node write`, regenerate indices, and resolve any surfaced contradictions interactively with the user. There is no sub-agent and no runner — **you** are the LLM doing the curation.
 
 ## Resolve the active harness
 
@@ -69,34 +71,223 @@ fi
 HARNESS=$(node /tmp/kb-detect-harness.mjs --hint <hint>)
 ```
 
-## 1. Run the curator
+`$HARNESS` is not consumed by `curate-dedup` or `node write`, but `index rebuild` requires it.
 
-Run `npx --yes @e0ipso/ai-knowledge-base@latest curate --harness "$HARNESS"` in the project root. The command:
+## 1. Enumerate pending session logs
 
-- Acquires the curator lock (`.ai/knowledge-base/.state/state.json`, name=`curator`, PID + 30-min TTL).
-- Batches every session log whose `proposal_status: done` and which has not yet been curated.
-- Spawns the curator subprocess per batch with the curator prompt (no recursion: `KB_BUILDER_INTERNAL=1`).
-- Writes node files directly to `.ai/knowledge-base/nodes/<kind>/` for `add` and `modify` actions.
-- Writes one markdown file per `contradict` action to `.ai/knowledge-base/conflicts/<id>.md` **without writing the conflicting node to disk**.
-- Regenerates `INDEX.md` and `GRAPH.md` from the resulting `nodes/` tree.
+Use `Glob` (or `ls`) to list `.ai/knowledge-base/sessions/*.md`. For each file, `Read` its frontmatter and keep only those whose:
 
-Capture the curator's stdout: it logs the headline numbers (`Curator finished: N node(s) written, M drop(s) over K batch(es).`, the `Run id: <runId>`, any `conflict(s) need resolution` warning, and a `failure(s)` list when `add_collision` or `modify_missing_target` fired). You will read those numbers in step 2.
+- `proposal_status: done`, AND
+- `curator_processed_at` is unset (no key, or empty string).
 
-## 2. Report the summary
+Sort the surviving set by `captured_at` ascending. This is the canonical order — preserve it.
 
-After the curator returns, IF `conflicts == 0` AND `failures.length == 0`, print exactly one line and stop. Skip every step below:
+**Short-circuit.** If the surviving set is empty, print exactly one line and stop (skip every step below):
+
+```
+No pending session logs to curate. Nothing to do.
+```
+
+## 2. Read sessions in batches of ≤10 and draft curator actions
+
+The cost of giving you too much context at once is bad output quality, so batch the work. Process up to **10 sessions per batch**.
+
+For each batch:
+
+1. `Read` every session file in the batch in full.
+2. Each session's frontmatter `proposals:` block contains `practice: [...]` and `map: [...]` arrays. Each entry has `{ kind, tags, title, summary, body, confidence }`.
+3. For each candidate (practice and map, in order), decide an action: **add**, **modify**, **contradict**, or **drop**. Use the rules below. Use `candidate_origin = "<session_id>:<practice|map>:<index>"` where `<index>` is the zero-based position within its array.
+4. Build the action object (schema below) and append to your in-session list of all actions across all batches.
+
+Keep accumulating across batches until every batch is processed.
+
+### Action rules
+
+#### `add` — new knowledge
+
+Use when the candidate is genuinely new and you have no strong signal that an existing KB node already covers the same scope. When a candidate appears to overlap an existing node, prefer `drop` over `add`.
+
+Signs an addition is correct:
+- The topic is new to the KB.
+- The candidate has unique content (rationale, scope, examples) that isn't elsewhere.
+- Existing related nodes are about adjacent things, not this thing.
+
+The wrapper derives the slug from the title and auto-suffixes (`-2`, `-3`, …) if it would collide on disk — but if you sense a real overlap, prefer **drop** (or, when the candidate refines the existing node, **modify**).
+
+#### `modify` — refines an existing node
+
+Use when an existing node already covers this topic, but the candidate extends or refines it without negating it.
+
+Signs a modification is correct:
+- An existing node has the same scope (same convention, same module, same gotcha) but the candidate adds: an updated example, expanded rationale, a newly-supported case, a missing detail, or a clarification.
+- The two are compatible (both can be true at the same time).
+- The candidate's content is genuinely new relative to the existing body, not just a rephrasing.
+
+A modification overwrites `nodes/<kind>/<target_node_id>.md` with the merged content. `target_node_id` is required and must already exist on disk; if it doesn't, the persistence step (`node write`) will create a fresh node instead, which is **not** what `modify` intends — so verify the target exists by reading `INDEX.md` (or `Glob`ing `nodes/<kind>/`) before emitting a `modify` action.
+
+**End-state rewrite rule.** The merged body reads as the current state in present tense. Never append "previously…" or "earlier this used to…" paragraphs, and never narrate "the project moved from X to Y" inside the body. When the new candidate's information is a transition narrative, rewrite the existing node body so that only the new end-state claim remains visible. The KB is the project's current state, not its changelog.
+
+**Important:** if the candidate is essentially the same content as the existing node, just rephrased, **drop it** instead. Modifications must add real new information.
+
+#### `contradict` — negates an existing node
+
+Use when the candidate directly negates an existing valid node (they cannot both be true at the same time, in the same scope). The user later resolves the conflict in-session.
+
+Signs a contradiction is real:
+- The existing node says "always X" or "do X for case Y"; the candidate says "never X" or "don't do X for case Y."
+- The user explicitly reversed a prior decision in the session that produced this candidate.
+- The candidate's scope overlaps the existing node's scope completely, not partially.
+
+**Important:** if the candidate's scope is a *subset* or *exception* to the existing node, this is NOT a contradiction; it's an addition (or modification) with `relates_to`. Example: if the existing node says "use the default cache tags," and the candidate says "for personalized pages, use per-user cache contexts instead," these can both be true — emit **add** with `relates_to: [<existing node id>]`, not `contradict`.
+
+A contradiction does not modify any node file. The dedup primitive writes the conflict to `.ai/knowledge-base/conflicts/<id>.md`; the conflict-resolution flow (step 7 below) walks each file and asks the user. Make your `proposed_node` and `rationale` complete enough that the user can decide without re-running you.
+
+**Choosing `target_node_id`.** Point at the single existing node whose claim the candidate negates. If two existing nodes both overlap, pick the tightest scope match and mention the second in `rationale`; do not emit two `contradict` actions for the same candidate.
+
+**Phrasing `rationale`.** State, in one or two sentences, which existing claim the candidate negates and why both cannot be true simultaneously. The reviewer reads this first.
+
+**End-state body.** The `proposed_node.body` describes only the new end state in present tense. The reviewer who reads only the new node's body should see the current rule as if it had always been the rule.
+
+#### `drop` — no change
+
+Use when the candidate should not result in any change. Reasons to drop:
+
+- It's a near-rephrasing of an existing node with no new information.
+- The confidence is low and the content is vague.
+- The candidate captured general programming knowledge, not project-specific.
+- The candidate is internally inconsistent or refers to things that don't exist elsewhere.
+- **Change-oriented framing** — transition narratives, migration stories, rename or removal logs, "we used to do X, now we do Y" wording. Automatic drop regardless of confidence. The KB describes the project's current end state, not its history.
+- **Non-productive provenance signals** in the candidate body or summary:
+  - hedged/tentative wording ("we might", "we could", "potentially", "the idea is to"). Practice nodes describe rules, not hypotheses.
+  - references to hypothetical or unrealized entities ("the planned X", "once we add Z"). Map nodes describe what is.
+  - plan- or task-scoped framing ("for this plan, we will…", "the success criterion is…").
+  - low confidence + no rationale + no concrete example.
+
+  Weigh these together; drop when the combined signature suggests a non-productive session. Single-signal cases do not auto-drop.
+
+**Salvage rule for change-oriented candidates.** When a candidate narrates a transition but also conveys a clean end-state claim (e.g. "we renamed `foo_service` to `bar_service`" plus "the service that fans out tracking events is `bar_service`"), extract that end-state claim and keep it via `add` or `modify`, rewritten in present tense. When the entire candidate is the journey, drop the whole thing.
+
+### Constraints (apply to every action)
+
+- **Never cross the practice/map boundary.** A practice candidate never becomes a map node, and vice versa.
+- **Never overwrite an unrelated node.** `modify` must target a node whose scope genuinely matches the candidate; otherwise prefer `add` (with `relates_to`) or `contradict`.
+- **Be conservative.** When uncertain between add and modify, prefer modify (less duplication). When uncertain between modify and drop, prefer drop (less noise).
+
+### Action object schema
+
+Each action you emit must conform to `CuratorActionSchema`:
+
+```json
+{
+  "action": "add" | "modify" | "contradict" | "drop",
+  "candidate_origin": "<session_id>:<practice|map>:<index>",
+  "target_node_id": "<id-or-null>",
+  "proposed_node": { /* see below; null for drop */ },
+  "rationale": "why this action, in 1-3 sentences"
+}
+```
+
+Field semantics by action:
+
+| Field | add | modify | contradict | drop |
+|---|---|---|---|---|
+| `target_node_id` | `null` | required (must exist on disk) | required | `null` |
+| `proposed_node` | required | required (merged) | required (new) | `null` |
+| `rationale` | required | required | required | required |
+
+The `proposed_node` object (for add/modify/contradict) has **exactly** these keys (no `id`, no `derived_from` — the wrapper stamps both):
+
+- `title`: from candidate or refined
+- `kind`: `"practice"` or `"map"`
+- `tags`: array of relevant lowercase tags
+- `summary`: ≤140 chars
+- `body`: full markdown body (1–4 short paragraphs)
+- `confidence`: `"low"` | `"medium"` | `"high"`
+- `relates_to`: array of node ids this should link to (especially important for exception-style additions)
+
+Any other key in `proposed_node` will be rejected by the dedup primitive's schema validation.
+
+## 3. Mint a run id and write the proposals tmpfile
+
+Pick a `runId` (use a UUID via `uuidgen`, or a compact timestamp like `curate-$(date -u +%Y%m%dT%H%M%SZ)`):
+
+```bash
+RUN_ID=$(uuidgen 2>/dev/null || date -u +"curate-%Y%m%dT%H%M%SZ")
+PROPOSALS=$(mktemp -t kb-curate-proposals.XXXXXX.json)
+SURVIVORS=$(mktemp -t kb-curate-survivors.XXXXXX.json)
+```
+
+`Write` your accumulated actions array (a JSON array, top-level) to `$PROPOSALS`. The array must validate against `CuratorOutputSchema` (an array of `CuratorAction`).
+
+## 4. Dedup and stamp via the primitive
+
+Invoke `curate-dedup`:
+
+```bash
+npx --yes @e0ipso/ai-knowledge-base@latest curate-dedup \
+  --input "$PROPOSALS" --output "$SURVIVORS" --run-id "$RUN_ID"
+```
+
+This single call atomically:
+
+- Dedups your actions (cross-batch overlaps collapse; higher confidence wins).
+- Mints `${RUN_ID}-N` conflict ids for each surviving `contradict` action and writes `.ai/knowledge-base/conflicts/<id>.md` files.
+- Stamps `curator_processed_at` / `curator_run_id` into every pending session log it consumed.
+- Writes the non-conflict survivors (the actions you still need to persist as nodes) to `$SURVIVORS`.
+
+It prints one line of JSON on stdout:
+
+```
+{"kept":N,"conflicts":M,"stamped":K,"runId":"..."}
+```
+
+Capture and report these numbers to the user.
+
+## 5. Persist surviving actions via `node write`
+
+Read `$SURVIVORS` (a JSON array of actions; each element is either `add`, `modify`, or `drop`). For each action that is **not** `drop`, persist it via `node write`. The `drop` actions are bookkeeping — no file is written, just log the count.
+
+For each `add` or `modify`:
+
+1. Derive the slug. For `add`: lowercase, hyphenated form of the title (e.g. `Use the bravo analytics dispatcher` → `use-the-bravo-analytics-dispatcher`). For `modify`: use the `target_node_id` verbatim as the slug.
+2. Write the body to a tmpfile (so the heredoc handles multi-line content cleanly), or pipe it via `<<'EOF' … EOF` directly. Then:
+
+   ```bash
+   npx --yes @e0ipso/ai-knowledge-base@latest node write <kind> <slug> \
+     --title "<title>" --summary "<summary>" \
+     --tags "<tag1,tag2,...>" --relates-to "<id1,id2,...>" \
+     --confidence <high|medium|low> <<'EOF'
+   <body markdown>
+   EOF
+   ```
+
+   Do **not** pass `--source-doc` / `--source-hash` here — those flags exist for bootstrap's per-file hash map and do not apply to curated content.
+
+3. Capture the printed id. For `modify`, the printed id should match `target_node_id`; if it does not (because the target was missing on disk and `ensureUniqueId` minted a fresh id), surface this as a warning — the modify was effectively an `add`, and the user should know.
+
+On any non-zero exit from `node write`, surface the stderr to the user and continue with the next action. Do not retry blindly.
+
+## 6. Rebuild the indices
+
+After all writes:
+
+```bash
+npx --yes @e0ipso/ai-knowledge-base@latest index rebuild --harness "$HARNESS"
+```
+
+## 7. Report the summary, then handle conflicts
+
+Tell the user the headline numbers (`kept`, `conflicts`, `stamped`, `runId`), the count of nodes written, and the count of drops. **If `conflicts == 0`**, print exactly one line and stop:
 
 ```
 Curated <nodes_written> nodes; <drops> dropped; no conflicts. Review the written files under .ai/knowledge-base/nodes/.
 ```
 
-Otherwise, tell the user the curator's headline numbers (nodes written, drops, batches, run id). If the curator reported any failures (`add_collision` or `modify_missing_target`), surface each one verbatim with its `reason` and `detail` so the user knows what needs manual cleanup. Then proceed to step 3.
+Otherwise, proceed to step 7a.
 
-## 3. Resolve pending conflicts
+### 7a. Sort and group pending conflicts
 
-List every markdown file under `.ai/knowledge-base/conflicts/`. For each file, read its frontmatter; keep only files whose `status` is `pending`. If no pending files remain after filtering, skip this section.
-
-### 3a. Sort and group
+List every markdown file under `.ai/knowledge-base/conflicts/`. For each, `Read` its frontmatter and keep only files whose `status` is `pending`.
 
 Sort the pending conflict files by:
 
@@ -106,15 +297,15 @@ Sort the pending conflict files by:
 
 Iterate in that order. Two consecutive conflicts that share the same non-null `target_node_id` form a group: show the existing node ONCE at the top of the group, then walk each proposed contradiction within the group asking `y`/`n`/`s`/`k` per conflict. Conflicts with `target_node_id: null` are walked individually (no shared existing node to show).
 
-### 3b. Present each conflict
+### 7b. Present each conflict
 
 For every pending conflict:
 
-1. Read the conflict file. The frontmatter exposes `id`, `status`, `target_node_id`, `proposed_kind`, `proposed_title`, `proposed_confidence`, `candidate_origin`, `run_id`, and `detected_at`. The body has two sections: `## Rationale` and `## Proposed node`.
+1. Read the conflict file. Frontmatter exposes `id`, `status`, `target_node_id`, `proposed_kind`, `proposed_title`, `proposed_confidence`, `candidate_origin`, `run_id`, `detected_at`. The body has two sections: `## Rationale` and `## Proposed node`.
 2. If `target_node_id` is set and this is the first conflict in its group, read `nodes/<proposed_kind>/<target_node_id>.md` and show its title, summary, and the relevant body excerpt ONCE.
 3. Show the proposed contradiction concisely: `proposed_title`, `proposed_confidence`, the rationale, and the proposed body.
 
-### 3c. Compute the default
+### 7c. Compute the default
 
 For each conflict, compute the default reply before asking the user:
 
@@ -132,7 +323,7 @@ If the conflict has no `target_node_id` (no existing node to diff against), defa
 
 These defaults are recommendations, not determinations. Always show the user both sides before asking.
 
-### 3d. Ask the user and parse the reply
+### 7d. Ask the user and parse the reply
 
 Ask the user with the default highlighted, e.g.:
 
@@ -150,25 +341,24 @@ Parse the reply with these rules:
 - `k`, `K`, `keep` → take `k`.
 - Anything else → re-prompt the SAME conflict with the same default highlighted. Do not infer intent from prose like "looks good", "yes please", or "skip this one"; require one of the listed tokens. An empty reply takes the default.
 
-### 3e. Apply the outcome
+### 7e. Apply the outcome
 
 Map the chosen reply to actions:
 
-- `y` (Accept proposal): rewrite `nodes/<proposed_kind>/<target_node_id>.md` with the proposed body and frontmatter, then delete `.ai/knowledge-base/conflicts/<id>.md`.
-- `n` (Reject proposal): delete `.ai/knowledge-base/conflicts/<id>.md`. The existing node is unchanged.
+- `y` (Accept proposal): rewrite `nodes/<proposed_kind>/<target_node_id>.md` with the proposed body and frontmatter (use `node write` against the existing `target_node_id` as the slug, or `Write` directly if you have the full frontmatter assembled), then `rm .ai/knowledge-base/conflicts/<id>.md`.
+- `n` (Reject proposal): `rm .ai/knowledge-base/conflicts/<id>.md`. The existing node is unchanged.
 - `s` (Skip): leave the conflict file alone. It re-surfaces on the next curate pass with `status: pending` intact. Do not edit or delete the file.
 - `k` (Keep as record): leave the conflict file on disk as a historical record for later review. The existing node is unchanged. Use this rarely.
 
 After every conflict in a group is decided, move to the next group.
 
-## 4. Hand off
+## 8. Hand off
 
-Tell the user to review the changed nodes and conflict files under `.ai/knowledge-base/`. The curator already regenerated `INDEX.md`/`GRAPH.md` at end-of-run.
+Tell the user to review the changed nodes and conflict files under `.ai/knowledge-base/`. `INDEX.md` and `GRAPH.md` were refreshed in step 6.
 
 ## Constraints
 
-- The curator wrapper writes directly to `nodes/`. Conflict resolution edits `nodes/` only when the user accepts a proposal (`y`); conflict files are deleted on `y` or `n`, left on disk on `s` or `k`.
-- The reply contract is strictly `y`/`n`/`s`/`k` (or their long forms / empty for default). Do not accept paraphrased prose as an answer — re-prompt instead.
-- If the curate command reports `locked`, do not retry; explain that another curate run is in progress.
-- If no session logs are pending, the command still regenerates INDEX/GRAPH; that's expected, not an error.
-- If `.ai/knowledge-base/conflicts/` is empty or every file has `status` other than `pending`, there's nothing to resolve; the fast-path guard in step 2 already short-circuited the run.
+- The reply contract for conflict resolution is strictly `y`/`n`/`s`/`k` (or their long forms / empty for default). Do not accept paraphrased prose as an answer — re-prompt instead.
+- If no session logs are pending, short-circuit at step 1 with the one-line message. Do not invoke any primitive.
+- If `.ai/knowledge-base/conflicts/` is empty or every file has `status` other than `pending`, there's nothing to resolve; the fast-path message in step 7 already covers it.
+- The dedup primitive is non-locking and idempotent on a fresh `runId` — but do not re-run it with the same `$PROPOSALS` and a different `runId`; that double-stamps consumed sessions and double-writes conflict files. One `curate-dedup` call per session.

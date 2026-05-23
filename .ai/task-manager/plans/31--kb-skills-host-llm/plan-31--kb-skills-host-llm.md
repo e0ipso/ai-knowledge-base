@@ -258,9 +258,9 @@ No circular dependencies.
 - ✔️ Task 002: Add `node write` CLI primitive (folds state-mark in)
 - ✔️ Task 003: Add `curate dedup` CLI primitive
 
-### Phase 2: Skills run the LLM in-host
+### ✅ Phase 2: Skills run the LLM in-host
 **Parallel Tasks:**
-- Task 004: Rewrite `kb-bootstrap`, `kb-curate`, `kb-add` skills (depends on: 001, 002, 003)
+- ✔️ Task 004: Rewrite `kb-bootstrap`, `kb-curate`, `kb-add` skills (depends on: 001, 002, 003)
 
 ### Phase 3: CLI becomes launchers
 **Parallel Tasks:**

@@ -3,9 +3,11 @@ name: kb-add
 description: Capture a knowledge-base node manually from the current session. Writes a new node directly under `.ai/knowledge-base/nodes/<kind>/`. The reviewer accepts by leaving the file in place and rejects by deleting it. Use when the user wants to record a project convention, gotcha, rationale, or named-thing into the project knowledge base.
 ---
 
+<!-- Version: 2 -->
+
 # kb-add
 
-Capture one piece of knowledge into the project KB. The CLI writes the file and regenerates the index; the user reviews the written file on disk.
+Capture one piece of knowledge into the project KB. You draft the node body in this session and persist it via the `node write` primitive; the reviewer reviews the file on disk.
 
 Ask the user for seven values (do not invent any): **kind** (`practice` or `map`), **title** (≤ 80 chars), **summary** (≤ 140 chars), **tags** (comma-separated), **body** (full markdown; for practice include the rationale), **relates_to** (comma-separated node ids, may be empty), **confidence** (`high`/`medium`/`low`, default `high`).
 
@@ -73,15 +75,23 @@ fi
 HARNESS=$(node /tmp/kb-detect-harness.mjs --hint <hint>)
 ```
 
+`$HARNESS` is not consumed by `node write`, but other ai-knowledge-base commands invoked downstream still require it.
+
 ## Capture the node
 
+Derive a slug from the title (lowercase, hyphen-separated, ASCII; e.g. `Use the bravo analytics dispatcher` → `use-the-bravo-analytics-dispatcher`). Then invoke `node write` with the body on stdin:
+
 ```bash
-npx @e0ipso/ai-knowledge-base node add --harness "$HARNESS" \
-  --kind <practice|map> --title "<title>" --summary "<summary>" \
+npx --yes @e0ipso/ai-knowledge-base@latest node write <kind> <slug> \
+  --title "<title>" --summary "<summary>" \
   --tags "<tags>" --relates-to "<relates-to>" \
-  --confidence <high|medium|low> --body @- --yes <<'EOF'
+  --confidence <high|medium|low> <<'EOF'
 <body markdown>
 EOF
 ```
 
-`--body @-` reads stdin so multi-line markdown does not need escaping. The CLI fails loud on a slug collision; pick a more specific title if it complains. After it returns, give the user the printed path and remind them to review the file.
+`node write` reads the body from stdin (heredoc form keeps multi-line markdown unescaped). On success it prints exactly the resolved node id and exits 0. On schema-validation failure it exits non-zero with the error on stderr.
+
+**Slug-collision behavior.** If a node with the proposed slug already exists on disk, `ensureUniqueId` auto-suffixes with `-2`, `-3`, etc., so the printed id may differ from your input slug. This is non-fatal — surface the printed id to the user verbatim so they review the right file. Only hard schema failures (missing `--title`, malformed `--confidence`, etc.) make the command exit non-zero.
+
+After it returns, give the user the printed id and its file path (`nodes/<kind>/<id>.md`), and remind them to review and accept (leave) or reject (`rm`) the file.

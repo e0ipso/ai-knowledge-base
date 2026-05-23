@@ -3,21 +3,23 @@ name: kb-bootstrap
 description: First-time bootstrap of the project knowledge base from existing markdown documentation. Surveys docs, follows cross-references, and writes new node files directly under `.ai/knowledge-base/nodes/`. Supervised by the user, who reviews each node on disk before accepting or deleting it. Use when the user wants to seed an empty knowledge base from the project's existing docs.
 ---
 
+<!-- Version: 2 -->
+
 # kb-bootstrap
 
 You are doing a one-time bootstrap of this project's knowledge base from its existing documentation. The user invoked this skill in their normal session, so they are watching and can correct you in-flight if you go off track.
 
 ## Your task
 
-Survey the project's existing markdown documentation, extract candidate knowledge nodes, and write them as new node files directly under `nodes/`. The user reviews each written file and accepts by leaving it in place or rejects by deleting it. You will work judgmentally, exploring, sampling, following cross-references, not exhaustively. This is a one-pass operation, supervised.
+Survey the project's existing markdown documentation, extract candidate knowledge nodes, and write them as new node files directly under `nodes/`. The user reviews each written file and accepts by leaving it in place or rejects by deleting it. You will work judgmentally, exploring, sampling, following cross-references, not exhaustively. This is a one-pass operation, supervised, and **you** are the LLM doing the extraction — there is no sub-agent and no runner.
 
 ## Inputs
 
-- An optional path argument from the user. If provided, treat that as the root of the docs scope. If absent, default to scanning: `docs/`, top-level `README.md`, top-level `CONTRIBUTING.md`, top-level `ARCHITECTURE.md`, and any `*.md` files at the repo root.
+- An optional path argument from the user. If provided, treat that as the root of the docs scope. If absent, default to the repo root (the `finddocs` primitive already filters out non-knowledge content via `.gitignore`, `.kbignore`, and a static skip list — see step 1).
 
 ## Configuration
 
-Before you start, read `.ai/knowledge-base/config.yaml` (falling back to `~/.config/ai-knowledge-base/config.yaml`) and look for a `bootstrapModel:` block. If `bootstrapModel.name` is set (one of `haiku`, `sonnet`, `opus`) and you decide to delegate any portion of this work to a sub-agent, pass that value as the sub-agent's model parameter. If the config or the key is absent, omit the model so the sub-agent inherits its default.
+Before you start, read `.ai/knowledge-base/config.yaml` (falling back to `~/.config/ai-knowledge-base/config.yaml`) for any user preferences (tags vocabulary, scope hints, etc.). Apply what is relevant.
 
 ## Resolve the active harness
 
@@ -81,91 +83,114 @@ fi
 HARNESS=$(node /tmp/kb-detect-harness.mjs --hint <hint>)
 ```
 
-Pass `--harness "$HARNESS"` to every subsequent CLI call in this skill.
+`$HARNESS` is not consumed by `finddocs` or `node write`, but downstream commands in this skill (`index rebuild`) require it.
 
 ## Steps
 
-### 1. Survey the structure
+### 1. Discover candidate docs
 
-Run `npx @e0ipso/ai-knowledge-base bootstrap-incremental --harness "$HARNESS" --dry-run --from <scope>` once, where `<scope>` is the user's path argument (or `docs` as the default). Parse the `  + <relpath>` lines from the output: each prefixed line names one candidate markdown file the CLI would process. The CLI has already applied `.gitignore`, the project's include/exclude rules, and a static skip list (filenames like `LICENSE`, `CHANGELOG`, `CODE_OF_CONDUCT`, `CONTRIBUTORS`, `INDEX.md`, `GRAPH.md`, `releases/**/*.md`); you will not see those in the list.
+Invoke the `finddocs` primitive with hashes so you can dedupe against the prior bootstrap state:
 
-Count the lines and report briefly to the user before reading anything in depth, e.g. "The CLI lists 30 markdown files across docs/, three module READMEs, two top-level overviews. I'll prioritize the overviews first, then sample modules." Use judgement to spot entry points, suspected-stale docs, and a sampling order from the deterministic list, but do not rebuild it.
+```bash
+npx --yes @e0ipso/ai-knowledge-base@latest finddocs --from <scope> --with-hashes
+```
 
-### 2. Read entry points first
+`<scope>` is the user's path argument (e.g. `docs`) or omit `--from` to scan from the repo root. The output is one line per file:
 
-Read the top-level entry points completely. They usually frame project vocabulary, name the major components, and establish the conventions vocabulary you'll need to recognize.
+```
++ <relpath>\t<sha256>
+```
 
-### 3. Sample and follow cross-references
+The primitive has already applied `.gitignore`, `.kbignore`, and the static skip list (filenames like `LICENSE`, `CHANGELOG`, `CODE_OF_CONDUCT`, `CONTRIBUTORS`, `INDEX.md`, `GRAPH.md`, `releases/**/*.md`); you will not see those.
+
+Count the lines and **report briefly to the user before reading anything in depth**, e.g. "The CLI lists 30 markdown files across docs/, three module READMEs, two top-level overviews. I'll prioritize the overviews first, then sample modules." Use judgement to spot entry points, suspected-stale docs, and a sampling order from the deterministic list, but do not rebuild it.
+
+**Stop and ask the user** if the list exceeds ~100 markdown files. That likely needs explicit scoping before proceeding.
+
+### 2. Skip docs that are already in the state file
+
+Read `.ai/knowledge-base/.state/bootstrap-state.json` (it may not exist on a first run; that's fine — treat as empty). For each `+ <relpath>\t<sha>` line, check whether `docs[<relpath>].content_sha256 === <sha>`. If so, the file was already processed at this content hash by a prior run; skip it. Otherwise, the file is new or changed — include it in your working set.
+
+### 3. Read entry points first
+
+Read the top-level entry points completely (README.md, ARCHITECTURE.md, CONTRIBUTING.md, top-level docs hubs). They usually frame project vocabulary, name the major components, and establish the conventions vocabulary you'll need to recognize.
+
+### 4. Sample and follow cross-references
 
 Don't read every file end-to-end. Sample representative content and follow links between docs. If a top-level README mentions "see docs/architecture/auth.md for the authentication design," that's a high-signal pointer to follow.
 
 For large reference docs (e.g. method-by-method API listings), skim section headers and only read prose sections, skipping auto-generated tables.
 
-### 4. Identify candidates as you read
+### 5. Decide which content warrants a node
 
 For each piece of content that looks like project knowledge, decide which kind:
 
-**Practice candidates**, imperative project guidance:
+**Practice candidates** — imperative project guidance:
 - Conventions ("always use X for Y").
 - Prohibitions ("don't do X").
 - Gotchas (warnings, "be careful with…").
 - Rationale ("we chose X because Y").
 - Tooling/workflow ("tests run with X").
 
-**Map candidates**, what exists:
+Triggers in docs: imperative verbs ("use," "do," "avoid," "always," "never," "must"); rationale markers ("because," "since," "to avoid"); admonition blocks (`> Note:`, `> Warning:`); explicit do/don't sections.
+
+**Map candidates** — what exists:
 - Named features, modules, services and what they do.
 - Vocabulary specific to this project.
 - File-tree locations of major systems.
 
+Triggers in docs: section headers naming components ("## Bravo Cards Module"); definition patterns ("X is our service for Y"); explicit file-path references ("`modules/custom/x/`").
+
 When a piece of content has both aspects (e.g. "Use bravo_analytics.dispatcher, our service for tracking events"), split it: practice owns "use the dispatcher"; map owns "what the dispatcher is."
 
-Skip (content judgement only; filename-pattern skips are already handled by the CLI before you see the list):
-- Auto-generated API reference.
+**Skip** (content judgement only; filename-pattern skips are already handled by `finddocs`):
+- Auto-generated API reference (method tables, parameter dumps).
 - Boilerplate paragraphs inside otherwise-useful docs (standard license preamble, generic CI badges).
 - General programming knowledge that's not project-specific (Drupal/React/Django basics).
 - Aspirational TODOs and "we should eventually" content.
 
-### 5. Write nodes
+### 6. Draft each node body inline, then persist via `node write`
 
-For each candidate, write a node file at `.ai/knowledge-base/nodes/<kind>/<kind>-<slug>.md`. **Before writing, check whether the file already exists.** Bootstrap is conservative and never overwrites an existing node. If you hit a collision, refine the title or skip the candidate and call it out in your final report.
+For each candidate, draft the node body in this session. Choose a kind (`practice` | `map`), a short slug derived from the title (lowercase, hyphenated, ASCII), 1–5 short lowercase tags, an imperative-or-noun title ≤80 chars, a summary ≤140 chars, and a body of 1–4 short paragraphs.
 
-Use the standard node frontmatter:
+**Confidence calibration.** Default `confidence: medium` for bootstrap content. Existing docs may be stale or aspirational; the reviewer needs to assess each file before accepting it. Use `confidence: high` only when the doc explicitly states the rule with rationale and the doc looks actively maintained. Use `confidence: low` when the rule is implicit, the doc is marked draft/deprecated/legacy, or the content is ambiguous.
 
-```yaml
----
-schema_version: 1
-id: <kind>-<slug>
-title: "..."
-kind: practice | map
-tags: [tag1, tag2, ...]
-derived_from:
-  - <source-doc-path-relative-to-repo>
-relates_to: []
-confidence: medium
-summary: "≤140 char summary"
----
+Persist via `node write`, piping the body on stdin and folding the per-file hash-map update into the same invocation:
 
-# <Title>
-
-<Body in markdown, 1 to 4 short paragraphs.>
+```bash
+npx --yes @e0ipso/ai-knowledge-base@latest node write <kind> <slug> \
+  --title "<title>" --summary "<summary>" \
+  --tags "<tag1,tag2,...>" \
+  --confidence <high|medium|low> \
+  --source-doc "<relpath>" --source-hash "<sha256>" <<'EOF'
+<body markdown>
+EOF
 ```
 
-Default `confidence: medium` for bootstrap content. Existing docs may be stale or aspirational; the reviewer needs to assess each file before accepting it. Use `confidence: high` only when the doc explicitly states the rule with rationale and the doc looks actively maintained.
+`--source-doc` and `--source-hash` MUST be provided together (the primitive errors out if only one is given). When both are present, the same invocation atomically updates `bootstrap-state.json` so a re-run of step 2 will skip this file. `--source-doc` is the relpath you saw in the `finddocs` output; `--source-hash` is the SHA-256 from the same line.
 
-If a candidate is sourced from multiple docs (you found the same convention discussed in two places), list all of them in `derived_from` and produce a single node, not duplicates.
+On success the primitive prints the resolved node id and exits 0. Capture it. If the slug collides with an existing node, the primitive auto-suffixes (`-2`, `-3`, …) so the printed id may differ from `<slug>`. On any non-zero exit, surface the stderr to the user and continue with the next candidate; do not retry blindly.
 
-### 6. Refresh INDEX.md and GRAPH.md
+**Never overwrite an existing node.** `node write` will not overwrite — `ensureUniqueId` always produces a fresh id. If the candidate is genuinely the same scope as an existing node, **skip it** and call it out in your final report rather than letting it land as a `-2` sibling.
 
-After writing nodes, run `npx @e0ipso/ai-knowledge-base index rebuild --harness "$HARNESS"` so the indices reflect the new nodes before the user reviews them.
+**Multi-source nodes.** If a candidate is sourced from multiple docs (you found the same convention discussed in two places), pick the most authoritative doc as the `--source-doc` / `--source-hash` pair and mention the other sources in the body (e.g. "Also documented in `docs/auth.md`."). Do not write duplicate nodes.
 
-### 7. Report back
+### 7. Refresh INDEX.md and GRAPH.md
+
+After all writes, rebuild the indices so the reviewer sees them in sync with the new nodes:
+
+```bash
+npx --yes @e0ipso/ai-knowledge-base@latest index rebuild --harness "$HARNESS"
+```
+
+### 8. Report back
 
 When you're done, summarize for the user:
 
 - How many docs you read; which ones you skipped and why.
 - How many practice nodes you wrote.
 - How many map nodes you wrote.
-- Any collisions you skipped (file already existed); the user may want to merge content manually.
+- Any candidates you skipped because they overlapped an existing node; the user may want to merge content manually.
 - Any cross-references you noticed but didn't follow (the user might want to direct you to those).
 - Any docs that looked stale or contradictory that the user should double-check.
 - Confirmation that `INDEX.md` and `GRAPH.md` were refreshed.
@@ -174,16 +199,17 @@ Then tell the user to review the written files, accept by leaving them in place,
 
 ## Constraints
 
-- **Never overwrite an existing node in `nodes/`.** Bootstrap only writes files that don't already exist. If you'd collide, skip and report.
+- **Never overwrite an existing node in `nodes/`.** Bootstrap is conservative: if a candidate's scope is genuinely covered by an existing node, skip and report. Do not let `ensureUniqueId` paper over the overlap with a `-2` suffix.
 - **Never auto-resolve perceived contradictions during bootstrap.** If you notice two docs that disagree, write only one as a node and surface the conflict in your final report so the user can decide. Do not write a second contradictory node.
-- **Don't hallucinate rationale.** Only include "because…" content that's actually present in the source. If the doc just says "use X," your node says "use X", not "use X because of [made-up reason]."
+- **Don't hallucinate rationale.** Only include "because…" content that's actually present in the source. If the doc just says "use X," your node says "use X," not "use X because of [made-up reason]." Quote or close-paraphrase from the source.
 - **Don't try to read code files.** Stick to markdown documentation. The point of bootstrap is to extract what's already been written down.
-- **Stay within reading and writing markdown nodes.** The CLI owns file discovery, hashing, and state; defer to it for those concerns rather than reimplementing them.
+- **Practice/map boundary is hard.** A practice candidate never becomes a map node, and vice versa. Split combined content into two nodes.
+- **Defer to `finddocs` and `node write` for discovery, hashing, slug collision resolution, and state.** Do not reimplement them.
 
 ## When to stop
 
 Stop and ask the user if:
-- The docs directory contains more than ~100 markdown files (likely needs scoping).
+- The `finddocs` list contains more than ~100 markdown files (likely needs scoping).
 - You encounter a doc that's clearly contentious or version-specific and you can't tell which version is current.
 - You realize you've been over-extracting (nodes piling up faster than the user can plausibly review).
 - The user has not corrected you in a while but your confidence is dropping.

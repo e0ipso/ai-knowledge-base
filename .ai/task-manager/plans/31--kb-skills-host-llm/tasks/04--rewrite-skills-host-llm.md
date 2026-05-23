@@ -2,7 +2,7 @@
 id: 4
 group: "skills"
 dependencies: [1, 2, 3]
-status: "pending"
+status: "completed"
 created: 2026-05-23
 skills:
   - prompt-engineering
