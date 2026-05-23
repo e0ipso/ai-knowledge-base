@@ -140,11 +140,11 @@ After every sub-agent returns, the **collector turn** runs entirely in the orche
 1. For each batch `N`, read its draft file and parse it as JSON.
 2. If parsing fails OR the result is not an array OR any element has unknown keys in `proposed_node` (the schema requires exactly `title|kind|tags|summary|body|confidence|relates_to`), surface to the user: `batch N produced invalid output, skipped`, append a `{"event":"invalid", ...}` line to that batch's `.jsonl`, and continue. **Never abort the run** — partial progress across surviving batches is more valuable than re-running everything.
 3. For each valid batch, append a `{"event":"validated","count":<n>}` line to its `.jsonl`, then concatenate its actions into a single in-memory array.
-4. Write the concatenated array to `$PROPOSALS` (the mktemp variable created at the top of Step 3) so the rest of the skill is unchanged. A concise idiom:
+4. Mint `$PROPOSALS` now (Step 3's `mktemp` is shared between paths — on the parallel path, do it here, then skip the re-mint in Step 3) and write the concatenated array to it so the rest of the skill is unchanged. A concise idiom:
 
    ```bash
    PROPOSALS=$(mktemp -t kb-curate-proposals.XXXXXX.json)
-   node -e "
+   PROPOSALS="$PROPOSALS" RUN_ID="$RUN_ID" node -e "
      const fs = require('fs'), path = require('path');
      const dir = '.ai/knowledge-base/_logs/curator';
      const prefix = process.env.RUN_ID + '__';
@@ -158,10 +158,10 @@ After every sub-agent returns, the **collector turn** runs entirely in the orche
        } catch (e) { process.stderr.write('batch ' + f + ' invalid: ' + e.message + '\n'); }
      }
      fs.writeFileSync(process.env.PROPOSALS, JSON.stringify(all));
-   " 
+   "
    ```
 
-   Any equivalent concatenation idiom is fine; the contract is `$PROPOSALS` contains the JSON array of all surviving batches' actions, ready for Step 4. Skip the `mktemp` line here if Step 3 below already mints `$PROPOSALS`; the two paths must agree on a single `$PROPOSALS`.
+   Any equivalent concatenation idiom is fine; the contract is `$PROPOSALS` contains the JSON array of all surviving batches' actions, ready for Step 4.
 
 The single `curate-dedup` call in Step 4 then runs once across every surviving batch's actions — identical to today.
 
@@ -284,14 +284,16 @@ Any other key in `proposed_node` will be rejected by the dedup primitive's schem
 
 ## 3. Write the proposals tmpfile
 
-`$RUN_ID` was minted at the top of Step 2 and is reused here. Mint the two tmpfile paths:
+`$RUN_ID` was minted at the top of Step 2 and is reused here. Mint `$SURVIVORS`, and `$PROPOSALS` if Step 2's collector did not already mint and populate it:
 
 ```bash
-PROPOSALS=$(mktemp -t kb-curate-proposals.XXXXXX.json)
 SURVIVORS=$(mktemp -t kb-curate-survivors.XXXXXX.json)
+# Only run the next two lines if you came through the inline path:
+PROPOSALS=$(mktemp -t kb-curate-proposals.XXXXXX.json)
+# Then Write your accumulated actions array (JSON array, top-level) to $PROPOSALS.
 ```
 
-If you came through the **parallel path**, the collector turn in Step 2 already wrote the concatenated actions array to `$PROPOSALS` — skip ahead to Step 4. If you came through the **inline path**, `Write` your accumulated actions array (a JSON array, top-level) to `$PROPOSALS` now. Either way, the array must validate against `CuratorOutputSchema` (an array of `CuratorAction`).
+If you came through the **parallel path**, `$PROPOSALS` already contains the concatenated actions array — skip ahead to Step 4. If you came through the **inline path**, `Write` your accumulated actions array (a JSON array, top-level) to `$PROPOSALS` now. Either way, the array must validate against `CuratorOutputSchema` (an array of `CuratorAction`).
 
 ## 4. Dedup and stamp via the primitive
 
