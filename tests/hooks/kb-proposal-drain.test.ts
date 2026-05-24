@@ -1,6 +1,6 @@
 import matter from 'gray-matter';
 import { execFile } from 'node:child_process';
-import { chmodSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -56,25 +56,6 @@ function seedSession(sandbox: string, sessionId: string): string {
   return filename;
 }
 
-function writeFakeClaude(sandbox: string, resultJson: string): string {
-  const binDir = join(sandbox, 'fake-bin');
-  mkdirSync(binDir, { recursive: true });
-  const fakeClaude = join(binDir, 'claude');
-  const stream = [
-    JSON.stringify({ type: 'system', subtype: 'init' }),
-    JSON.stringify({
-      type: 'result',
-      subtype: 'success',
-      is_error: false,
-      result: resultJson,
-    }),
-  ].join('\n');
-  // POSIX shell shim: print canned stream-json and exit 0 regardless of args.
-  writeFileSync(fakeClaude, `#!/bin/sh\ncat <<'EOF'\n${stream}\nEOF\n`);
-  chmodSync(fakeClaude, 0o755);
-  return binDir;
-}
-
 describe('kb-proposal-drain hook (spawned)', () => {
   let sandbox: string;
   beforeEach(async () => {
@@ -99,38 +80,51 @@ describe('kb-proposal-drain hook (spawned)', () => {
     expect(after.data['proposal_status']).toBe('pending');
   });
 
-  it('drains a pending session log using a stubbed claude binary on PATH', async () => {
-    if (process.platform === 'win32') return;
-    const file = seedSession(sandbox, 'drained');
-    const result = JSON.stringify({
-      practice: [
-        {
-          kind: 'practice',
-          tags: ['pii'],
-          title: 'Use bravo_pii.cache',
-          summary: 'Use the project PII cache backend',
-          body: 'Encrypts at rest.',
-          confidence: 'high',
-        },
-      ],
-      map: [],
-    });
-    const fakeBin = writeFakeClaude(sandbox, result);
-
-    const hookResult = await runHook(
-      sandbox,
-      { cwd: sandbox },
-      { PATH: `${fakeBin}:${process.env['PATH'] ?? ''}` }
-    );
+  it('returns early for Claude sessions and defers extraction to /kb-curate', async () => {
+    const file = seedSession(sandbox, 'deferred');
+    const hookResult = await runHook(sandbox, { cwd: sandbox });
     expect(hookResult.exitCode).toBe(0);
+    expect(hookResult.stderr).toContain(
+      'skipping proposal drain — Claude sessions defer extraction to /kb-curate'
+    );
 
     const after = matter(readFileSync(join(sandbox, '.ai/knowledge-base/_sessions', file), 'utf8'));
-    expect(after.data['proposal_status']).toBe('done');
-    const proposals = after.data['proposals'] as { practice: unknown[]; map: unknown[] };
-    expect(proposals.practice).toHaveLength(1);
+    expect(after.data['proposal_status']).toBe('pending');
+  });
 
-    const logFile = after.data['proposal_log'] as string;
-    expect(existsSync(join(sandbox, '.ai/knowledge-base', logFile))).toBe(true);
+  it('returns early when cursor agent binary is not on PATH', async () => {
+    if (process.platform === 'win32') return;
+    const cursorHookPath = join(repoRoot, 'dist/hooks/cursor/kb-proposal-drain.cjs');
+    expect(existsSync(cursorHookPath)).toBe(true);
+
+    const file = seedSession(sandbox, 'cursor-deferred');
+    // Keep node and `which` on PATH but exclude harness CLIs like `agent`.
+    const nodeBin = dirname(process.execPath);
+    const pathForHook = `${nodeBin}:/usr/bin`;
+
+    const hookResult = await new Promise<SpawnResult>(resolveFn => {
+      const proc = execFile(
+        process.execPath,
+        [cursorHookPath],
+        { cwd: sandbox, env: { ...process.env, NO_COLOR: '1', PATH: pathForHook } },
+        (err, stdout, stderr) => {
+          const code =
+            err && typeof (err as { code?: unknown }).code === 'number'
+              ? ((err as { code: number }).code as number)
+              : err
+                ? 1
+                : 0;
+          resolveFn({ stdout: stdout.toString(), stderr: stderr.toString(), exitCode: code });
+        }
+      );
+      proc.stdin?.write(JSON.stringify({ workspace_roots: [sandbox] }));
+      proc.stdin?.end();
+    });
+
+    expect(hookResult.exitCode).toBe(0);
+    expect(hookResult.stderr).toContain('agent not found on PATH');
+    const after = matter(readFileSync(join(sandbox, '.ai/knowledge-base/_sessions', file), 'utf8'));
+    expect(after.data['proposal_status']).toBe('pending');
   });
 
   it('exits 0 when the repo has no installed-version marker', async () => {

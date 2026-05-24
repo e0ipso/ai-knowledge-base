@@ -3,7 +3,7 @@ name: kb-curate
 description: Curate pending session logs into knowledge-base nodes by reading sessions in-host, drafting curator actions, then deduping and persisting via the ai-knowledge-base primitives. Resolves any surfaced contradictions interactively with the user. Use when the user wants to process accumulated session captures, or when the SessionStart nudge reports pending session logs.
 ---
 
-<!-- Version: 3 -->
+<!-- Version: 4 -->
 
 # kb-curate
 
@@ -72,6 +72,40 @@ HARNESS=$(node /tmp/kb-detect-harness.mjs --hint <hint>)
 ```
 
 `$HARNESS` is not consumed by `curate-dedup` or `node write`, but `index rebuild` requires it.
+
+## 0. Drain remaining pending session logs (inline extraction)
+
+Before curation, drain any session logs whose `proposal_status` is still `pending`. Tier 1 async hooks may have skipped these (Claude sessions, missing headless CLI, or harnesses without their binary on PATH). **You** perform extraction inline in this session — no headless CLI spawn.
+
+1. **List pending session logs.** Use `Glob` (or `ls`) to list `.ai/knowledge-base/_sessions/*.md`. For each file, `Read` its frontmatter and filter for `proposal_status: pending`. Sort by `captured_at` ascending.
+
+2. **Short-circuit.** If none are pending, print exactly one line and fall through to Step 1:
+
+   ```
+   No pending session logs need extraction. Proceeding to curation.
+   ```
+
+3. **Load the extraction prompt.** Read `.ai/knowledge-base/.config/prompts/proposal-extract.md` first (per-repo override). If that file does not exist, read the bundled package template at `templates/prompts/proposal-extract.md` (relative to the installed npm package). Follow the prompt's extraction rules — do not embed a copy here.
+
+4. **Process each pending log sequentially** (in `captured_at` order). Failure on one log does not abort the rest:
+   a. Read the file in full.
+   b. Extract the transcript section (content between `## Transcript` and `## Proposal`).
+   c. Apply the extraction rules from the prompt to produce a JSON object matching `ProposalOutputSchema`: `{ "practice": [...], "map": [...] }` where each entry has `{ kind, tags, title, summary, body, confidence }`.
+   d. Pipe the JSON into the CLI primitive:
+
+      ```bash
+      echo '<json>' | npx @e0ipso/ai-knowledge-base@latest session-log update-proposals <path> --status done
+      ```
+
+   e. On failure (malformed output, schema violation, or CLI error), call:
+
+      ```bash
+      npx @e0ipso/ai-knowledge-base@latest session-log update-proposals <path> --status failed --error "<message>"
+      ```
+
+5. **Report summary:** `Extracted proposals from N session(s) (M failed). Proceeding to curation.` (replace N and M with actual counts).
+
+6. **Fall through** to Step 1, which now picks up freshly-`done` logs alongside any previously-`done` logs.
 
 ## 1. Enumerate pending session logs
 

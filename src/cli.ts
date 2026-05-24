@@ -8,6 +8,7 @@ import { runIndexRebuild } from './commands/index-rebuild.js';
 import { runInit } from './commands/init.js';
 import { runLintCommand } from './commands/lint.js';
 import { runLogsPrune } from './commands/logs-prune.js';
+import { runSessionLogUpdateProposalsCommand } from './commands/session-log-update-proposals.js';
 import { runNodeAddLauncher } from './commands/node-add.js';
 import { runNodeWriteCommand } from './commands/node-write.js';
 import { runStatus } from './commands/status.js';
@@ -243,6 +244,24 @@ async function main(): Promise<void> {
     )
     .action(async () => {
       const code = await runLogsPrune();
+      process.exit(code);
+    });
+
+  const sessionLogGroup = program.command('session-log').description('Manage session log files.');
+  sessionLogGroup
+    .command('update-proposals')
+    .description(
+      'Headless primitive: read proposal JSON from stdin, validate against ProposalOutputSchema, and write results into the session log frontmatter at <path>. Pure Node — no LLM.'
+    )
+    .argument('<path>', 'path to the session log file')
+    .requiredOption('--status <status>', 'proposal status: done or failed')
+    .option('--error <message>', 'error message (used with --status failed)')
+    .action(async (path: string, opts: { status: string; error?: string }) => {
+      const code = await runSessionLogUpdateProposalsCommand({
+        path,
+        status: opts.status,
+        error: opts.error,
+      });
       process.exit(code);
     });
 

@@ -8,7 +8,7 @@ import type { RepoPaths } from './paths.js';
 import { STATE_LOCK_OPTIONS } from './state.js';
 import { compactStamp } from './time.js';
 
-export const DEFAULT_MAX_ENTRIES = 5;
+export const DEFAULT_MAX_ENTRIES = Infinity;
 export const DEFAULT_TIMEOUT_MS = 60_000;
 export const MAX_PROPOSAL_ERROR_LEN = 500;
 
@@ -214,7 +214,7 @@ function relativeLogPath(sessionsDir: string, logFile: string): string {
   return rel;
 }
 
-interface FrontmatterPatch {
+export interface FrontmatterPatch {
   proposal_status: 'done' | 'failed';
   proposal_completed_at: string | null;
   proposal_error: string | null;
@@ -222,7 +222,7 @@ interface FrontmatterPatch {
   proposals?: { practice: unknown[]; map: unknown[] };
 }
 
-function writeSessionLogFrontmatter(
+export function writeSessionLogFrontmatter(
   file: string,
   parsed: matter.GrayMatterFile<string>,
   patch: FrontmatterPatch
@@ -238,7 +238,7 @@ function writeSessionLogFrontmatter(
   writeFileSync(file, serialized);
 }
 
-function updateProposalBody(content: string, patch: FrontmatterPatch): string {
+export function updateProposalBody(content: string, patch: FrontmatterPatch): string {
   if (patch.proposal_status !== 'done') return content;
   // Replace the "(populated by proposal worker)" placeholder with a brief
   // summary so a human browsing the session log can see what the extractor

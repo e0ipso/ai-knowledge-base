@@ -5,6 +5,7 @@
  * session log. Configured in `.codex/hooks.json` with `async: true` so it
  * never blocks the agent.
  */
+import { execFileSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { appendHookDiagnostic } from '../../../lib/hook-diagnostic.js';
@@ -18,6 +19,15 @@ const PACKAGE_TAG = '[ai-knowledge-base]';
 
 async function main(): Promise<void> {
   if (process.env['KB_BUILDER_INTERNAL'] === '1') return;
+
+  try {
+    execFileSync('which', ['codex'], { stdio: 'ignore' });
+  } catch {
+    process.stderr.write(
+      `${PACKAGE_TAG} codex not found on PATH; deferring extraction to /kb-curate\n`
+    );
+    return;
+  }
 
   const raw = await readStdin();
   let input: { cwd?: unknown } = {};

@@ -210,6 +210,19 @@ describe('drainProposalQueue', () => {
     expect(summary.remaining).toBe(2);
   });
 
+  it('processes all pending entries by default (no cap)', async () => {
+    for (const id of ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7']) {
+      seedSession(harness, id, `[USER]: hi-${id}`);
+    }
+    const summary = await drainProposalQueue({
+      paths: harness.paths,
+      promptTemplate: PROMPT_TEMPLATE,
+      runner: successRunner(),
+    });
+    expect(summary.processed).toHaveLength(7);
+    expect(summary.remaining).toBe(0);
+  });
+
   it('marks a session log as failed on runner error without retrying within the drain', async () => {
     const file = seedSession(harness, 'doomed', '[USER]: hi-doomed');
     let calls = 0;
