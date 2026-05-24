@@ -11,7 +11,7 @@ import {
   countPendingSessions,
   summarizePendingSessions,
 } from '../../src/lib/session-start.js';
-import { writeState, readState } from '../../src/lib/state.js';
+import { readState } from '../../src/lib/state.js';
 
 interface Harness {
   root: string;
@@ -203,39 +203,6 @@ describe('buildSessionStartContext', () => {
     expect(state.last_nudged_at).toBe(now.toISOString());
   });
 
-  it('respects the hourly throttle (no nudge within 1 hour of last_nudged_at)', () => {
-    for (let i = 0; i < DEFAULT_NUDGE_THRESHOLD; i += 1) seedSession(harness, `s-${i}`, false);
-    writeState(harness.stateFile, {
-      schema_version: 1,
-      last_nudged_at: '2026-05-11T10:00:00Z',
-    });
-    const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
-      nodesDir: harness.nodesDir,
-      sessionsDir: harness.sessionsDir,
-      stateFile: harness.stateFile,
-      now: () => new Date('2026-05-11T10:30:00Z'), // 30 minutes later
-    });
-    expect(result.nudged).toBe(false);
-    expect(result.additionalContext).not.toContain('pending session log');
-  });
-
-  it('re-nudges after the throttle elapses', () => {
-    for (let i = 0; i < DEFAULT_NUDGE_THRESHOLD; i += 1) seedSession(harness, `s-${i}`, false);
-    writeState(harness.stateFile, {
-      schema_version: 1,
-      last_nudged_at: '2026-05-11T10:00:00Z',
-    });
-    const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
-      nodesDir: harness.nodesDir,
-      sessionsDir: harness.sessionsDir,
-      stateFile: harness.stateFile,
-      now: () => new Date('2026-05-11T11:30:00Z'), // 90 minutes later
-    });
-    expect(result.nudged).toBe(true);
-  });
-
   it('does not nudge when below threshold', () => {
     seedSession(harness, 'just-one', false);
     const result = buildSessionStartContext({
@@ -315,26 +282,6 @@ describe('buildSessionStartContext', () => {
     expect(result.additionalContext).toContain(
       `${DEFAULT_NUDGE_THRESHOLD * 2} pending session log(s)`
     );
-  });
-
-  it('throttle suppresses loud form when last_nudged_at is recent', () => {
-    for (let i = 0; i < DEFAULT_NUDGE_THRESHOLD; i += 1) {
-      seedSession(harness, `s-${i}`, false, { capturedAt: '2026-05-03T10:00:00Z' });
-    }
-    writeState(harness.stateFile, {
-      schema_version: 1,
-      last_nudged_at: '2026-05-11T09:30:00Z', // 30 min before "now"
-    });
-    const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
-      nodesDir: harness.nodesDir,
-      sessionsDir: harness.sessionsDir,
-      stateFile: harness.stateFile,
-      now: () => new Date('2026-05-11T10:00:00Z'),
-    });
-    expect(result.nudged).toBe(false);
-    expect(result.additionalContext).not.toContain('KB curation queue is overdue');
-    expect(result.additionalContext).not.toContain('pending session log');
   });
 
   it('still emits the soft nudge when one session log is malformed', () => {

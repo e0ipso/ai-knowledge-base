@@ -8,7 +8,6 @@ import { readState, writeState } from './state.js';
 
 export const DEFAULT_NUDGE_THRESHOLD = 5;
 export const DEFAULT_STALE_DAYS = 7;
-export const NUDGE_THROTTLE_MS = 60 * 60 * 1000; // 1 hour
 
 export interface SessionStartContext {
   kbDir: string;
@@ -18,7 +17,6 @@ export interface SessionStartContext {
   lintStateFile?: string;
   threshold?: number;
   staleDays?: number;
-  throttleMs?: number;
   now?: () => Date;
 }
 
@@ -43,7 +41,7 @@ export interface SessionStartResult {
  * 1. Reads INDEX.md (or returns a "KB is empty" stub if missing).
  * 2. Detects staleness by comparing the frontmatter `nodes_hash` against
  *    the live hash of `nodes/`. If mismatched, appends a warning line.
- * 3. Counts pending session logs and, when ≥ threshold and not throttled,
+ * 3. Counts pending session logs and, when >= threshold,
  *    appends a nudge and persists `last_nudged_at` to `state.json`.
  *
  * Pure-ish: the only side effect is the state.json write when a nudge fires.
@@ -52,7 +50,6 @@ export function buildSessionStartContext(ctx: SessionStartContext): SessionStart
   const now = ctx.now ?? (() => new Date());
   const threshold = ctx.threshold ?? DEFAULT_NUDGE_THRESHOLD;
   const staleDays = ctx.staleDays ?? DEFAULT_STALE_DAYS;
-  const throttleMs = ctx.throttleMs ?? NUDGE_THROTTLE_MS;
 
   const { content: indexBody, frontmatterHash, missing } = loadIndex(ctx.kbDir);
   const liveHash = computeNodesHash(ctx.nodesDir);
@@ -62,10 +59,7 @@ export function buildSessionStartContext(ctx: SessionStartContext): SessionStart
   const pending = summary.pending;
   const state = readState(ctx.stateFile);
   const nowDate = now();
-  const lastNudgedAt = parseLastNudgedAt(state.last_nudged_at ?? null);
-  const throttled =
-    lastNudgedAt !== null && nowDate.getTime() - lastNudgedAt.getTime() < throttleMs;
-  const shouldNudge = pending >= threshold && !throttled;
+  const shouldNudge = pending >= threshold;
 
   const oldestAgeDays =
     summary.oldestCapturedAt === null
@@ -234,9 +228,3 @@ export function countPendingSessions(sessionsDir: string): number {
   return summarizePendingSessions(sessionsDir).pending;
 }
 
-function parseLastNudgedAt(value: string | null): Date | null {
-  if (value === null) return null;
-  const ms = Date.parse(value);
-  if (!Number.isFinite(ms)) return null;
-  return new Date(ms);
-}

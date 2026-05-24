@@ -3,7 +3,7 @@
  *
  * Injects the current `INDEX.md` body as additionalContext, optionally
  * appends a stale-INDEX warning, and optionally appends a curate nudge
- * when the pending-session backlog exceeds the threshold (hourly throttle).
+ * when the pending-session backlog exceeds the threshold.
  *
  * Output format: a JSON object on stdout matching Claude Code's
  * `hookSpecificOutput.additionalContext` convention. Configured in
@@ -68,6 +68,11 @@ async function main(): Promise<void> {
         },
       })}\n`
     );
+    if (result.nudged) {
+      process.stderr.write(
+        `⚠️  ${result.pendingSessions} pending session log(s) -- run /kb-curate to process them.\n`
+      );
+    }
     process.stderr.write('🧠 Index: Knowledge base loaded.\n');
   } catch (err) {
     process.stderr.write(

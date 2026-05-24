@@ -36,4 +36,4 @@ Gitignored runtime state, validated by `StateFileSchema`.
 
 TTL is 30 minutes; stale locks are reclaimed. Manual recovery: clear the `lock` field manually if a process died without releasing.
 
-`last_nudged_at` is written by `kb-session-start.mjs` after it appends the curate nudge to the session's `additionalContext`. Used to throttle nudges to at most one per hour.
+`last_nudged_at` is written by `kb-session-start.mjs` after it appends the curate nudge to the session's `additionalContext`. Recorded for audit purposes; no throttle is applied.

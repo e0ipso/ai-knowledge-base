@@ -62,6 +62,11 @@ async function main(): Promise<void> {
     const target = join(root, '.opencode', 'AGENTS.md');
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, `${AGENTS_HEADER}${result.additionalContext}`);
+    if (result.nudged) {
+      process.stderr.write(
+        `⚠️  ${result.pendingSessions} pending session log(s) -- run /kb-curate to process them.\n`
+      );
+    }
     process.stderr.write('🧠 Index: Knowledge base loaded.\n');
   } catch (err) {
     process.stderr.write(

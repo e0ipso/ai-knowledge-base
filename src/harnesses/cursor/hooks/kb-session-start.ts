@@ -53,6 +53,11 @@ async function main(): Promise<void> {
       threshold: settings.curationThreshold,
     });
     process.stdout.write(JSON.stringify({ additional_context: result.additionalContext }));
+    if (result.nudged) {
+      process.stderr.write(
+        `⚠️  ${result.pendingSessions} pending session log(s) -- run /kb-curate to process them.\n`
+      );
+    }
     process.stderr.write('🧠 Index: Knowledge base loaded.\n');
   } catch (err) {
     process.stderr.write(
