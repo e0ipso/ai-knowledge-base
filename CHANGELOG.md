@@ -1,3 +1,10 @@
+## [0.20.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.19.1...v0.20.0) (2026-05-24)
+
+### Features
+
+* always-on curation nudge via stderr ([7ba2cfa](https://github.com/e0ipso/ai-knowledge-base/commit/7ba2cfaf8e466ba093234695f16409c4c8bef909))
+* two-tier proposal extraction with inline /kb-curate drain ([f82d257](https://github.com/e0ipso/ai-knowledge-base/commit/f82d257a1d49d3edbecccf3ab30e7bec4e165328))
+
 ## [0.19.1](https://github.com/e0ipso/ai-knowledge-base/compare/v0.19.0...v0.19.1) (2026-05-23)
 
 ### Bug Fixes
