@@ -7908,12 +7908,10 @@ function writeState(file, state) {
 // src/lib/session-start.ts
 var DEFAULT_NUDGE_THRESHOLD = 5;
 var DEFAULT_STALE_DAYS = 7;
-var NUDGE_THROTTLE_MS = 60 * 60 * 1e3;
 function buildSessionStartContext(ctx) {
   const now = ctx.now ?? (() => /* @__PURE__ */ new Date());
   const threshold = ctx.threshold ?? DEFAULT_NUDGE_THRESHOLD;
   const staleDays = ctx.staleDays ?? DEFAULT_STALE_DAYS;
-  const throttleMs = ctx.throttleMs ?? NUDGE_THROTTLE_MS;
   const { content: indexBody, frontmatterHash, missing } = loadIndex(ctx.kbDir);
   const liveHash = computeNodesHash(ctx.nodesDir);
   const indexStale = !missing && frontmatterHash !== null && frontmatterHash !== liveHash;
@@ -7921,9 +7919,7 @@ function buildSessionStartContext(ctx) {
   const pending = summary.pending;
   const state = readState(ctx.stateFile);
   const nowDate = now();
-  const lastNudgedAt = parseLastNudgedAt(state.last_nudged_at ?? null);
-  const throttled = lastNudgedAt !== null && nowDate.getTime() - lastNudgedAt.getTime() < throttleMs;
-  const shouldNudge = pending >= threshold && !throttled;
+  const shouldNudge = pending >= threshold;
   const oldestAgeDays = summary.oldestCapturedAt === null ? 0 : Math.max(
     0,
     Math.floor((nowDate.getTime() - summary.oldestCapturedAt.getTime()) / 864e5)
@@ -7982,7 +7978,8 @@ function buildSessionStartContext(ctx) {
     lintNudged,
     indexMissing: missing,
     indexStale,
-    pendingSessions: pending
+    pendingSessions: pending,
+    candidateCount: summary.candidateCount
   };
 }
 function loadIndex(kbDir) {
@@ -8045,12 +8042,6 @@ function summarizePendingSessions(sessionsDir) {
     }
   }
   return { pending, candidateCount, oldestCapturedAt: oldest };
-}
-function parseLastNudgedAt(value) {
-  if (value === null) return null;
-  const ms = Date.parse(value);
-  if (!Number.isFinite(ms)) return null;
-  return new Date(ms);
 }
 
 // src/lib/paths.ts
@@ -10803,8 +10794,10 @@ async function main() {
       lintStateFile: lintStateFile(paths.stateDir),
       threshold: settings.curationThreshold
     });
+    const statusLine = result.nudged ? `\u{1F514} KB curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates \u2014 run /kb-curate` : `\u{1F4CB} KB queue: ${result.pendingSessions} pending session log(s), ${result.candidateCount} candidate(s)`;
     process.stdout.write(
       `${JSON.stringify({
+        systemMessage: statusLine,
         hookSpecificOutput: {
           hookEventName: "SessionStart",
           additionalContext: result.additionalContext
@@ -10812,7 +10805,6 @@ async function main() {
       })}
 `
     );
-    process.stderr.write("\u{1F9E0} Index: Knowledge base loaded.\n");
   } catch (err) {
     process.stderr.write(
       `${PACKAGE_TAG} session-start error: ${err instanceof Error ? err.message : String(err)}

@@ -65,7 +65,9 @@ async function main(): Promise<void> {
         `${PACKAGE_TAG} secret scan blocked transcript capture: ${result.error ?? 'unknown error'}\n`
       );
     } else {
-      process.stderr.write('💾 Capture: Session transcript saved.\n');
+      process.stdout.write(
+        `${JSON.stringify({ systemMessage: '💾 Capture: Session transcript saved.' })}\n`
+      );
     }
   } catch (err) {
     process.stderr.write(

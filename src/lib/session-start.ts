@@ -96,7 +96,7 @@ export function buildSessionStartContext(ctx: SessionStartContext): SessionStart
     const copyPaste = 'Run `/kb-curate` (or `npx @e0ipso/ai-knowledge-base curate`)';
     lines.push('');
     if (loud) {
-      lines.push('> 🔔 KB curation queue is overdue');
+      lines.push('> 🚨 KB curation queue is overdue');
       lines.push(
         `> ${pending} pending session log(s), ${summary.candidateCount} candidate proposal(s), ${oldestPhrase}`
       );

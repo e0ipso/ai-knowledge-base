@@ -60,24 +60,18 @@ async function main(): Promise<void> {
       lintStateFile: lintStateFile(paths.stateDir),
       threshold: settings.curationThreshold,
     });
+    const statusLine = result.nudged
+      ? `🚨 KB curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates — run /kb-curate`
+      : `📋 KB queue: ${result.pendingSessions} pending session log(s), ${result.candidateCount} candidate(s)`;
     process.stdout.write(
       `${JSON.stringify({
+        systemMessage: statusLine,
         hookSpecificOutput: {
           hookEventName: 'SessionStart',
           additionalContext: result.additionalContext,
         },
       })}\n`
     );
-    if (result.nudged) {
-      process.stderr.write(
-        `🔔 KB curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates — run /kb-curate\n`
-      );
-    } else {
-      process.stderr.write(
-        `📋 KB queue: ${result.pendingSessions} pending session log(s), ${result.candidateCount} candidate(s)\n`
-      );
-    }
-    process.stderr.write('🧠 Index: Knowledge base loaded.\n');
   } catch (err) {
     process.stderr.write(
       `${PACKAGE_TAG} session-start error: ${err instanceof Error ? err.message : String(err)}\n`
