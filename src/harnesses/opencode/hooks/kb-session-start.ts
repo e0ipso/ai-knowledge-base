@@ -64,7 +64,7 @@ async function main(): Promise<void> {
     writeFileSync(target, `${AGENTS_HEADER}${result.additionalContext}`);
     if (result.nudged) {
       process.stderr.write(
-        `🔔 KB curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates — run /kb-curate\n`
+        `🚨 KB curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates — run /kb-curate\n`
       );
     } else {
       process.stderr.write(

@@ -54,7 +54,7 @@ async function main(): Promise<void> {
     process.stdout.write(JSON.stringify({ additionalContext: result.additionalContext }));
     if (result.nudged) {
       process.stderr.write(
-        `🔔 KB curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates — run /kb-curate\n`
+        `🚨 KB curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates — run /kb-curate\n`
       );
     } else {
       process.stderr.write(
