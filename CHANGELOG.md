@@ -1,3 +1,10 @@
+## [0.22.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.21.0...v0.22.0) (2026-05-25)
+
+### Features
+
+* use alert emoji for overdue nudge ([ef60bf5](https://github.com/e0ipso/ai-knowledge-base/commit/ef60bf58cebb2143361d089b2ba4581430e17cd5))
+* use systemMessage, drop throttle ([5dbd7c0](https://github.com/e0ipso/ai-knowledge-base/commit/5dbd7c0f366635b8fc19172341b1a0eec2869ac6))
+
 ## [0.21.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.20.0...v0.21.0) (2026-05-25)
 
 ### Features
