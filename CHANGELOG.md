@@ -1,3 +1,9 @@
+## [0.23.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.22.0...v0.23.0) (2026-05-25)
+
+### Features
+
+* initialize KB again ([1dc3228](https://github.com/e0ipso/ai-knowledge-base/commit/1dc322858013d2af9d474d5640e71b4a958c49b2))
+
 ## [0.22.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.21.0...v0.22.0) (2026-05-25)
 
 ### Features
