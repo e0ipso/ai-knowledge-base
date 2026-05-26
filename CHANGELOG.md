@@ -1,3 +1,9 @@
+## [0.25.1](https://github.com/e0ipso/ai-knowledge-base/compare/v0.25.0...v0.25.1) (2026-05-26)
+
+### Bug Fixes
+
+* surface KB nudge to Cursor users ([ec8efcf](https://github.com/e0ipso/ai-knowledge-base/commit/ec8efcf36f59ab253c655e3e4820a26bfcf6ad79)), closes [#40](https://github.com/e0ipso/ai-knowledge-base/issues/40)
+
 ## [0.25.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.24.0...v0.25.0) (2026-05-26)
 
 ### Features
