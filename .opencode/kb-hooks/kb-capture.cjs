@@ -6990,6 +6990,23 @@ function appendHookDiagnostic(hook, phase, error, logsDir) {
   }
 }
 
+// src/lib/stdin.ts
+function readStdin() {
+  return new Promise((resolve2) => {
+    if (process.stdin.isTTY) {
+      resolve2("");
+      return;
+    }
+    let data = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      data += chunk;
+    });
+    process.stdin.on("end", () => resolve2(data));
+    process.stdin.on("error", () => resolve2(""));
+  });
+}
+
 // src/lib/paths.ts
 var import_node_fs5 = require("fs");
 var import_node_path4 = require("path");
@@ -7183,21 +7200,6 @@ function shapeExportedTranscript(json2) {
     out.interleaved.push({ role: message.role === "user" ? "user" : "agent", text });
   }
   return out;
-}
-function readStdin() {
-  return new Promise((resolve2) => {
-    if (process.stdin.isTTY) {
-      resolve2("");
-      return;
-    }
-    let data = "";
-    process.stdin.setEncoding("utf8");
-    process.stdin.on("data", (chunk) => {
-      data += chunk;
-    });
-    process.stdin.on("end", () => resolve2(data));
-    process.stdin.on("error", () => resolve2(""));
-  });
 }
 void main().catch((err) => {
   try {

@@ -7904,7 +7904,7 @@ function writeState(file, state) {
 }
 
 // src/lib/session-start.ts
-var DEFAULT_NUDGE_THRESHOLD = 5;
+var DEFAULT_NUDGE_THRESHOLD = 20;
 var DEFAULT_STALE_DAYS = 7;
 function buildSessionStartContext(ctx) {
   const now = ctx.now ?? (() => /* @__PURE__ */ new Date());
@@ -10762,6 +10762,24 @@ function loadFile(file) {
   return result.data;
 }
 
+// src/lib/stdin.ts
+init_cjs_shims();
+function readStdin() {
+  return new Promise((resolve2) => {
+    if (process.stdin.isTTY) {
+      resolve2("");
+      return;
+    }
+    let data = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      data += chunk;
+    });
+    process.stdin.on("end", () => resolve2(data));
+    process.stdin.on("error", () => resolve2(""));
+  });
+}
+
 // src/harnesses/cursor/hooks/kb-session-start.ts
 var PACKAGE_TAG = "[ai-knowledge-base]";
 var HARD_DEADLINE_MS = 1e3;
@@ -10796,7 +10814,8 @@ async function main() {
       lintStateFile: lintStateFile(paths.stateDir),
       threshold: settings.curationThreshold
     });
-    let context = result.additionalContext;
+    const statusLine = result.nudged ? `\u{1F6A8} KB curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates \u2014 run /kb-curate` : `\u{1F4CB} KB queue: ${result.pendingSessions} pending session log(s), ${result.candidateCount} candidate(s)`;
+    let context = statusLine + "\n\n" + result.additionalContext;
     if (result.nudged) {
       const box = `\u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510
 \u2502 \u{1F6A8} KB curation is overdue            \u2502
@@ -10824,21 +10843,6 @@ ${result.pendingSessions} pending session(s), ${result.candidateCount} candidate
 `
     );
   }
-}
-function readStdin() {
-  return new Promise((resolve2) => {
-    if (process.stdin.isTTY) {
-      resolve2("");
-      return;
-    }
-    let data = "";
-    process.stdin.setEncoding("utf8");
-    process.stdin.on("data", (chunk) => {
-      data += chunk;
-    });
-    process.stdin.on("end", () => resolve2(data));
-    process.stdin.on("error", () => resolve2(""));
-  });
 }
 void main().catch((err) => {
   try {

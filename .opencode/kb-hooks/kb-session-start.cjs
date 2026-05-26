@@ -7904,7 +7904,7 @@ function writeState(file, state) {
 }
 
 // src/lib/session-start.ts
-var DEFAULT_NUDGE_THRESHOLD = 5;
+var DEFAULT_NUDGE_THRESHOLD = 20;
 var DEFAULT_STALE_DAYS = 7;
 function buildSessionStartContext(ctx) {
   const now = ctx.now ?? (() => /* @__PURE__ */ new Date());
@@ -10762,6 +10762,24 @@ function loadFile(file) {
   return result.data;
 }
 
+// src/lib/stdin.ts
+init_cjs_shims();
+function readStdin() {
+  return new Promise((resolve2) => {
+    if (process.stdin.isTTY) {
+      resolve2("");
+      return;
+    }
+    let data = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      data += chunk;
+    });
+    process.stdin.on("end", () => resolve2(data));
+    process.stdin.on("error", () => resolve2(""));
+  });
+}
+
 // src/harnesses/opencode/hooks/kb-session-start.ts
 var PACKAGE_TAG = "[ai-knowledge-base]";
 var HARD_DEADLINE_MS = 1e3;
@@ -10797,9 +10815,19 @@ async function main() {
       lintStateFile: lintStateFile(paths.stateDir),
       threshold: settings.curationThreshold
     });
+    const statusLine = result.nudged ? `\u{1F6A8} KB curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates \u2014 run /kb-curate` : `\u{1F4CB} KB queue: ${result.pendingSessions} pending session log(s), ${result.candidateCount} candidate(s)`;
+    let content = statusLine + "\n\n" + result.additionalContext;
+    if (result.nudged) {
+      const box = `\u250C\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2510
+\u2502 \u{1F6A8} KB curation is overdue            \u2502
+\u2502 Run /kb-curate to process them.      \u2502
+\u2514\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2518
+${result.pendingSessions} pending session(s), ${result.candidateCount} candidate(s)`;
+      content += "\n> IMPORTANT: After completing your response, append the following block verbatim inside a code fence as an addendum at the very end:\n>\n> ```\n> " + box.split("\n").join("\n> ") + "\n> ```\n";
+    }
     const target = (0, import_node_path8.join)(root, ".opencode", "AGENTS.md");
     (0, import_node_fs7.mkdirSync)((0, import_node_path8.dirname)(target), { recursive: true });
-    (0, import_node_fs7.writeFileSync)(target, `${AGENTS_HEADER}${result.additionalContext}`);
+    (0, import_node_fs7.writeFileSync)(target, `${AGENTS_HEADER}${content}`);
     if (result.nudged) {
       process.stderr.write(
         `\u{1F6A8} KB curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates \u2014 run /kb-curate
@@ -10818,21 +10846,6 @@ async function main() {
 `
     );
   }
-}
-function readStdin() {
-  return new Promise((resolve2) => {
-    if (process.stdin.isTTY) {
-      resolve2("");
-      return;
-    }
-    let data = "";
-    process.stdin.setEncoding("utf8");
-    process.stdin.on("data", (chunk) => {
-      data += chunk;
-    });
-    process.stdin.on("end", () => resolve2(data));
-    process.stdin.on("error", () => resolve2(""));
-  });
 }
 void main().catch((err) => {
   try {

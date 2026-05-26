@@ -3589,6 +3589,24 @@ function appendHookDiagnostic(hook, phase, error, logsDir) {
   }
 }
 
+// src/lib/stdin.ts
+init_cjs_shims();
+function readStdin() {
+  return new Promise((resolve2) => {
+    if (process.stdin.isTTY) {
+      resolve2("");
+      return;
+    }
+    let data = "";
+    process.stdin.setEncoding("utf8");
+    process.stdin.on("data", (chunk) => {
+      data += chunk;
+    });
+    process.stdin.on("end", () => resolve2(data));
+    process.stdin.on("error", () => resolve2(""));
+  });
+}
+
 // src/lib/session-start.ts
 init_cjs_shims();
 var import_node_fs4 = require("fs");
@@ -7904,7 +7922,7 @@ function writeState(file, state) {
 }
 
 // src/lib/session-start.ts
-var DEFAULT_NUDGE_THRESHOLD = 5;
+var DEFAULT_NUDGE_THRESHOLD = 20;
 var DEFAULT_STALE_DAYS = 7;
 function buildSessionStartContext(ctx) {
   const now = ctx.now ?? (() => /* @__PURE__ */ new Date());
@@ -10812,21 +10830,6 @@ async function main() {
 `
     );
   }
-}
-function readStdin() {
-  return new Promise((resolve2) => {
-    if (process.stdin.isTTY) {
-      resolve2("");
-      return;
-    }
-    let data = "";
-    process.stdin.setEncoding("utf8");
-    process.stdin.on("data", (chunk) => {
-      data += chunk;
-    });
-    process.stdin.on("end", () => resolve2(data));
-    process.stdin.on("error", () => resolve2(""));
-  });
 }
 void main().catch((err) => {
   try {

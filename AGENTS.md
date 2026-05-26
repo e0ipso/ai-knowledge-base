@@ -124,3 +124,7 @@ Each `src/templates-source/prompts/*.md` and `src/templates-source/claude/comman
 We dogfood the tool. [`.ai/knowledge-base/nodes/`](.ai/knowledge-base/nodes/) contains the curated knowledge about how this codebase is built. Start at [`INDEX.md`](.ai/knowledge-base/INDEX.md); the practice nodes encode hard-won rules that are easier to obey than to re-derive.
 
 To add to the KB during a session: invoke the `kb-add` skill. To process accumulated session captures: invoke `kb-curate` ([map-curate-command](.ai/knowledge-base/nodes/map/map-curate-command.md)). To seed from existing docs: invoke `kb-bootstrap` ([map-kb-bootstrap-skill](.ai/knowledge-base/nodes/map/map-kb-bootstrap-skill.md)). All three write to `nodes/` directly; review with `git diff`, accept with `git commit`, reject with `git restore`.
+
+<!-- >>> @e0ipso/ai-knowledge-base:kb-index >>> -->
+Curated project knowledge lives in [.ai/knowledge-base/INDEX.md](.ai/knowledge-base/INDEX.md). Consult it before designing a non-trivial change.
+<!-- <<< @e0ipso/ai-knowledge-base:kb-index <<< -->
