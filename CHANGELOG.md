@@ -1,3 +1,14 @@
+## [0.25.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.24.0...v0.25.0) (2026-05-26)
+
+### Features
+
+* add KB prefix to hook status messages ([c6f9f11](https://github.com/e0ipso/ai-knowledge-base/commit/c6f9f11b31879a0579ca6ddca12d2465f9977f44))
+
+### Bug Fixes
+
+* include pending-drain logs in session count ([8bdd08f](https://github.com/e0ipso/ai-knowledge-base/commit/8bdd08f607773e0bbd3b3ea1e29cb9ffc812f6e2))
+* prevent updateGitignore from appending extra newline on each upgrade ([16982ef](https://github.com/e0ipso/ai-knowledge-base/commit/16982efbe5381cdb7491827d64df248dfb46ee6d))
+
 ## [0.24.0](https://github.com/e0ipso/ai-knowledge-base/compare/v0.23.0...v0.24.0) (2026-05-25)
 
 ### ⚠ BREAKING CHANGES
