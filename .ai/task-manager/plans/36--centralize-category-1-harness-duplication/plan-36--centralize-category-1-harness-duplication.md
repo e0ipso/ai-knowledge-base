@@ -179,3 +179,33 @@ AGENTS.md does not need updating — it describes harness behavior, not internal
 - The drift report also identifies Category 2 (partially centralizable) and Category 3 (bugs from incomplete propagation). Those are explicitly out of scope for this plan.
 - The `readStdin()` extraction alone eliminates 14 of 15 copies (keeping one as the shared version), saving ~210 lines. This is the highest-value single change.
 - Each extraction is independent and can be done in isolation — there are no ordering dependencies between the five groups.
+
+## Execution Blueprint
+
+**Validation Gates:**
+- Reference: `/config/hooks/POST_PHASE.md`
+
+```mermaid
+graph TD
+    001[Task 01: Extract readStdin to shared module]
+    002[Task 02: Extract pickModelChoice, loadProposalPrompt, copyTree]
+    003[Task 03: Unify Paths/Locations per harness]
+```
+
+### ✅ Phase 1: Parallel Extractions
+**Parallel Tasks:**
+- ✔️ Task 01: Extract readStdin() into src/lib/stdin.ts (15 hook files)
+- ✔️ Task 02: Extract pickModelChoice, loadProposalPrompt, copyTree into existing lib modules (11 files)
+- ✔️ Task 03: Unify *Paths()/*Locations() per harness (8 files)
+
+All three tasks have zero dependencies and operate on disjoint file sets — they execute fully in parallel.
+
+### Post-phase Actions
+- Verify zero local definitions remain: `grep -rn "function readStdin\|function pickModelChoice\|function loadProposalPrompt\|function copyTree" src/harnesses/`
+- Verify Locations eliminated: `grep -rn "function.*Locations" src/harnesses/*/doctor.ts`
+- Full build: `npm run build`
+- Full test suite: `npm test`
+
+### Execution Summary
+- Total Phases: 1
+- Total Tasks: 3

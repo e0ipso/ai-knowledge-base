@@ -4,12 +4,12 @@
  * Drains the proposal queue via `agent -p --output-format json`.
  */
 import { execFileSync } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 import { appendHookDiagnostic } from '../../../lib/hook-diagnostic.js';
-import { findRepoRoot, packageTemplatesDir, repoPaths } from '../../../lib/paths.js';
+import { findRepoRoot, repoPaths } from '../../../lib/paths.js';
+import { drainProposalQueue, loadProposalPrompt, type ProposalRunner } from '../../../lib/proposal-drain.js';
 import { resolveSettings } from '../../../lib/settings.js';
-import { drainProposalQueue, type ProposalRunner } from '../../../lib/proposal-drain.js';
+import { readStdin } from '../../../lib/stdin.js';
 import { runHeadlessCursor } from '../headless.js';
 import { buildCursorHarnessOpts } from '../opts.js';
 
@@ -80,29 +80,6 @@ async function main(): Promise<void> {
   }
 }
 
-function loadProposalPrompt(promptsDir: string): string | null {
-  const override = join(promptsDir, 'proposal-extract.md');
-  if (existsSync(override)) return readFileSync(override, 'utf8');
-  const bundled = join(packageTemplatesDir(), 'prompts/proposal-extract.md');
-  if (existsSync(bundled)) return readFileSync(bundled, 'utf8');
-  return null;
-}
-
-function readStdin(): Promise<string> {
-  return new Promise(resolve => {
-    if (process.stdin.isTTY) {
-      resolve('');
-      return;
-    }
-    let data = '';
-    process.stdin.setEncoding('utf8');
-    process.stdin.on('data', (chunk: string) => {
-      data += chunk;
-    });
-    process.stdin.on('end', () => resolve(data));
-    process.stdin.on('error', () => resolve(''));
-  });
-}
 
 void main().catch((err: unknown) => {
   try {

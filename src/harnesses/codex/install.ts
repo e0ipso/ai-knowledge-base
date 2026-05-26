@@ -1,5 +1,6 @@
-import { cpSync, existsSync, mkdirSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { copyTree } from '../../lib/fs-atomic.js';
 import { installSharedSkills } from '../../lib/install-skills.js';
 import type { HarnessInstallOptions } from '../types.js';
 import { codexHookSpecs } from './hook-spec.js';
@@ -13,13 +14,15 @@ import { writeCodexHooks } from './hooks-config.js';
  */
 export const CODEX_TEMPLATE_SUBDIR = 'codex';
 
-function codexPaths(root: string) {
+export function codexPaths(root: string) {
   const dir = join(root, '.codex');
   return {
     dir,
     hooksDir: join(dir, 'hooks'),
     skillsDir: join(root, '.agents/skills'),
     settingsFile: join(dir, 'hooks.json'),
+    hooksFile: join(dir, 'hooks.json'),
+    configToml: join(dir, 'config.toml'),
   };
 }
 
@@ -60,8 +63,3 @@ export function refreshCodexTemplates(opts: HarnessInstallOptions): void {
   installSharedSkills(opts.templatesDir, paths.skillsDir);
 }
 
-function copyTree(src: string, dest: string): void {
-  if (!existsSync(src)) return;
-  mkdirSync(dest, { recursive: true });
-  cpSync(src, dest, { recursive: true, force: true });
-}

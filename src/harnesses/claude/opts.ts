@@ -1,7 +1,6 @@
 import { z } from 'zod';
-import type { EffectiveSettings, ModelChoice } from '../../lib/settings.js';
+import { pickModelChoice, type EffectiveSettings, type ModelChoiceRole } from '../../lib/settings.js';
 import { EffortLevelSchema, ModelFamilySchema } from '../../lib/schemas.js';
-import type { ModelChoiceRole } from '../types.js';
 
 /**
  * Claude-local Zod schema for the opaque `harnessOpts` blob handed to
@@ -29,20 +28,6 @@ const ROLE_ALLOWED_TOOLS: Record<ModelChoiceRole, string[]> = {
   curator: ['Read'],
   bootstrap: [],
 };
-
-function pickModelChoice(
-  settings: EffectiveSettings,
-  role: ModelChoiceRole
-): ModelChoice | undefined {
-  switch (role) {
-    case 'proposal':
-      return settings.proposalModel;
-    case 'curator':
-      return settings.curatorModel;
-    case 'bootstrap':
-      return settings.bootstrapModel;
-  }
-}
 
 /**
  * Builds a Claude-shaped `harnessOpts` blob from the resolved settings and

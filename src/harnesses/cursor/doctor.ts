@@ -10,21 +10,13 @@ import {
   type NamedDoctorCheck,
 } from '../types.js';
 import { cursorHookSpecs } from './hook-spec.js';
+import { cursorPaths } from './install.js';
 
 const exec = promisify(execFile);
 const EXPECTED_SKILLS = ['kb-add', 'kb-bootstrap', 'kb-curate'];
 
-function cursorLocations(root: string) {
-  const dir = join(root, '.cursor');
-  return {
-    hooksFile: join(dir, 'hooks.json'),
-    hooksDir: join(dir, 'hooks'),
-    skillsDir: join(dir, 'skills'),
-  };
-}
-
 export async function cursorDoctorChecks(paths: RepoPaths): Promise<NamedDoctorCheck[]> {
-  const locs = cursorLocations(paths.root);
+  const locs = cursorPaths(paths.root);
   return [
     { name: 'Cursor agent CLI on PATH', result: await checkAgentCli() },
     {

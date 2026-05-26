@@ -1,6 +1,6 @@
 import type { ZodSchema } from 'zod';
 import type { RepoPaths } from '../lib/paths.js';
-import type { EffectiveSettings } from '../lib/settings.js';
+import type { EffectiveSettings, ModelChoiceRole } from '../lib/settings.js';
 
 /**
  * Opaque lifecycle event identifier. Each adapter declares its own event
@@ -191,12 +191,7 @@ export interface HarnessAdapter {
   detectFromEnv?(env: NodeJS.ProcessEnv): boolean;
 }
 
-/**
- * Which of the three configurable model-choice settings (`proposalModel`,
- * `curatorModel`, `bootstrapModel`) the adapter should map into a
- * `harnessOpts` blob.
- */
-export type ModelChoiceRole = 'proposal' | 'curator' | 'bootstrap';
+export type { ModelChoiceRole } from '../lib/settings.js';
 
 export const ok = (detail: string): DoctorCheckResult => ({ ok: true, detail });
 export const errCheck = (detail: string): DoctorCheckResult => ({

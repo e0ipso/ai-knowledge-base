@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import type { EffectiveSettings, ModelChoice } from '../../lib/settings.js';
-import type { ModelChoiceRole } from '../types.js';
+import { pickModelChoice, type EffectiveSettings, type ModelChoiceRole } from '../../lib/settings.js';
 
 /**
  * Cursor-local Zod schema for the opaque `harnessOpts` blob handed to
@@ -15,20 +14,6 @@ export const CursorHarnessOptsSchema = z
   .strict();
 
 export type CursorHarnessOpts = z.infer<typeof CursorHarnessOptsSchema>;
-
-function pickModelChoice(
-  settings: EffectiveSettings,
-  role: ModelChoiceRole
-): ModelChoice | undefined {
-  switch (role) {
-    case 'proposal':
-      return settings.proposalModel;
-    case 'curator':
-      return settings.curatorModel;
-    case 'bootstrap':
-      return settings.bootstrapModel;
-  }
-}
 
 /**
  * Builds a Cursor-shaped `harnessOpts` blob from resolved settings and

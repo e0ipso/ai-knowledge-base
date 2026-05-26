@@ -9,6 +9,7 @@ import { runLint } from '../../../lib/lint.js';
 import { lintStateFile, readLintState, writeLintState } from '../../../lib/lint-state.js';
 import { findRepoRoot, repoPaths } from '../../../lib/paths.js';
 import { resolveSettings } from '../../../lib/settings.js';
+import { readStdin } from '../../../lib/stdin.js';
 
 const PACKAGE_TAG = '[ai-knowledge-base]';
 
@@ -64,21 +65,6 @@ async function main(): Promise<void> {
   }
 }
 
-function readStdin(): Promise<string> {
-  return new Promise(resolve => {
-    if (process.stdin.isTTY) {
-      resolve('');
-      return;
-    }
-    let data = '';
-    process.stdin.setEncoding('utf8');
-    process.stdin.on('data', (chunk: string) => {
-      data += chunk;
-    });
-    process.stdin.on('end', () => resolve(data));
-    process.stdin.on('error', () => resolve(''));
-  });
-}
 
 void main().catch((err: unknown) => {
   try {

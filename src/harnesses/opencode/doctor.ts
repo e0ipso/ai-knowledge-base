@@ -5,23 +5,14 @@ import { promisify } from 'node:util';
 import type { RepoPaths } from '../../lib/paths.js';
 import { errCheck, ok, type DoctorCheckResult, type NamedDoctorCheck } from '../types.js';
 import { openCodeHookSpecs } from './hook-spec.js';
+import { openCodePaths } from './install.js';
 
 const exec = promisify(execFile);
 const EXPECTED_SKILLS = ['kb-add', 'kb-bootstrap', 'kb-curate'];
 export const OPENCODE_PLUGIN_MARKER = '// @e0ipso/ai-knowledge-base plugin';
 
-function openCodeLocations(root: string) {
-  const dir = join(root, '.opencode');
-  return {
-    pluginsDir: join(dir, 'plugins'),
-    pluginFile: join(dir, 'plugins', 'kb.mjs'),
-    kbHooksDir: join(dir, 'kb-hooks'),
-    skillsDir: join(dir, 'skills'),
-  };
-}
-
 export async function openCodeDoctorChecks(paths: RepoPaths): Promise<NamedDoctorCheck[]> {
-  const locs = openCodeLocations(paths.root);
+  const locs = openCodePaths(paths.root);
   return [
     { name: 'opencode CLI on PATH', result: await checkOpenCodeCli() },
     { name: 'OpenCode plugin installed', result: checkPlugin(locs.pluginFile) },

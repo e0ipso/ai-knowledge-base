@@ -1,5 +1,6 @@
-import { cpSync, existsSync, mkdirSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { copyTree } from '../../lib/fs-atomic.js';
 import { installSharedSkills } from '../../lib/install-skills.js';
 import type { HarnessInstallOptions } from '../types.js';
 import { cursorHookSpecs } from './hook-spec.js';
@@ -7,13 +8,14 @@ import { writeCursorHooksConfig } from './hooks-config.js';
 
 export const CURSOR_TEMPLATE_SUBDIR = 'cursor';
 
-function cursorPaths(root: string) {
+export function cursorPaths(root: string) {
   const dir = join(root, '.cursor');
   return {
     dir,
     hooksDir: join(dir, 'hooks'),
     skillsDir: join(dir, 'skills'),
     settingsFile: join(dir, 'hooks.json'),
+    hooksFile: join(dir, 'hooks.json'),
   };
 }
 
@@ -38,8 +40,3 @@ export async function installCursor(opts: HarnessInstallOptions): Promise<void> 
   );
 }
 
-function copyTree(src: string, dest: string): void {
-  if (!existsSync(src)) return;
-  mkdirSync(dest, { recursive: true });
-  cpSync(src, dest, { recursive: true, force: true });
-}

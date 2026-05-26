@@ -1,5 +1,6 @@
-import { cpSync, existsSync, mkdirSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { copyTree } from '../../lib/fs-atomic.js';
 import { installSharedSkills } from '../../lib/install-skills.js';
 import type { HarnessInstallOptions } from '../types.js';
 import { CLAUDE_HOOK_SPECS } from './hook-spec.js';
@@ -12,7 +13,7 @@ import { writeClaudeHookConfig } from './hooks-config.js';
  */
 export const CLAUDE_TEMPLATE_SUBDIR = 'claude';
 
-function claudePaths(root: string) {
+export function claudePaths(root: string) {
   const dir = join(root, '.claude');
   return {
     dir,
@@ -57,8 +58,3 @@ export function refreshClaudeTemplates(opts: HarnessInstallOptions): void {
   installSharedSkills(opts.templatesDir, paths.skillsDir);
 }
 
-function copyTree(src: string, dest: string): void {
-  if (!existsSync(src)) return;
-  mkdirSync(dest, { recursive: true });
-  cpSync(src, dest, { recursive: true, force: true });
-}

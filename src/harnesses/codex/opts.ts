@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import type { EffectiveSettings, ModelChoice } from '../../lib/settings.js';
-import type { ModelChoiceRole } from '../types.js';
+import { pickModelChoice, type EffectiveSettings, type ModelChoiceRole } from '../../lib/settings.js';
 
 /**
  * Codex-local Zod schema for the opaque `harnessOpts` blob handed to
@@ -19,20 +18,6 @@ export const CodexHarnessOptsSchema = z
   .strict();
 
 export type CodexHarnessOpts = z.infer<typeof CodexHarnessOptsSchema>;
-
-function pickModelChoice(
-  settings: EffectiveSettings,
-  role: ModelChoiceRole
-): ModelChoice | undefined {
-  switch (role) {
-    case 'proposal':
-      return settings.proposalModel;
-    case 'curator':
-      return settings.curatorModel;
-    case 'bootstrap':
-      return settings.bootstrapModel;
-  }
-}
 
 /**
  * Builds a Codex-shaped `harnessOpts` blob from the resolved settings and

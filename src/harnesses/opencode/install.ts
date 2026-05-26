@@ -1,5 +1,6 @@
-import { cpSync, existsSync, mkdirSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { copyTree } from '../../lib/fs-atomic.js';
 import { installSharedSkills } from '../../lib/install-skills.js';
 import type { HarnessInstallOptions } from '../types.js';
 
@@ -11,13 +12,14 @@ import type { HarnessInstallOptions } from '../types.js';
  */
 export const OPENCODE_TEMPLATE_SUBDIR = 'opencode';
 
-function openCodePaths(root: string) {
+export function openCodePaths(root: string) {
   const dir = join(root, '.opencode');
   return {
     dir,
     pluginsDir: join(dir, 'plugins'),
     kbHooksDir: join(dir, 'kb-hooks'),
     skillsDir: join(dir, 'skills'),
+    pluginFile: join(dir, 'plugins', 'kb.mjs'),
   };
 }
 
@@ -47,10 +49,4 @@ export async function installOpenCode(opts: HarnessInstallOptions): Promise<void
   }
 
   installSharedSkills(opts.templatesDir, paths.skillsDir);
-}
-
-function copyTree(src: string, dest: string): void {
-  if (!existsSync(src)) return;
-  mkdirSync(dest, { recursive: true });
-  cpSync(src, dest, { recursive: true, force: true });
 }

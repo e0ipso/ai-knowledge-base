@@ -1,6 +1,5 @@
 import { z } from 'zod';
-import type { EffectiveSettings, ModelChoice } from '../../lib/settings.js';
-import type { ModelChoiceRole } from '../types.js';
+import { pickModelChoice, type EffectiveSettings, type ModelChoiceRole } from '../../lib/settings.js';
 
 /**
  * OpenCode-local Zod schema for the opaque `harnessOpts` blob handed to
@@ -19,20 +18,6 @@ export const OpenCodeHarnessOptsSchema = z
   .strict();
 
 export type OpenCodeHarnessOpts = z.infer<typeof OpenCodeHarnessOptsSchema>;
-
-function pickModelChoice(
-  settings: EffectiveSettings,
-  role: ModelChoiceRole
-): ModelChoice | undefined {
-  switch (role) {
-    case 'proposal':
-      return settings.proposalModel;
-    case 'curator':
-      return settings.curatorModel;
-    case 'bootstrap':
-      return settings.bootstrapModel;
-  }
-}
 
 /**
  * Builds an OpenCode-shaped `harnessOpts` blob from the resolved settings

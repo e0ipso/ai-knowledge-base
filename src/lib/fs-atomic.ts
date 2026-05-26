@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
+import { cpSync, existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import type { ZodType } from 'zod';
 
@@ -19,4 +19,10 @@ export function readJsonValidated<T>(file: string, schema: ZodType<T>, fallback:
   } catch {
     return fallback;
   }
+}
+
+export function copyTree(src: string, dest: string): void {
+  if (!existsSync(src)) return;
+  mkdirSync(dest, { recursive: true });
+  cpSync(src, dest, { recursive: true, force: true });
 }

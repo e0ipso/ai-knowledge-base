@@ -11,23 +11,14 @@ import {
   type NamedDoctorCheck,
 } from '../types.js';
 import { codexHookSpecs } from './hook-spec.js';
+import { codexPaths } from './install.js';
 
 const exec = promisify(execFile);
 const EXPECTED_SKILLS = ['kb-add', 'kb-bootstrap', 'kb-curate'];
 const TOML_HOOKS_HEADER = /^\s*\[hooks\b/m;
 
-function codexLocations(root: string) {
-  const dir = join(root, '.codex');
-  return {
-    hooksFile: join(dir, 'hooks.json'),
-    configToml: join(dir, 'config.toml'),
-    hooksDir: join(dir, 'hooks'),
-    skillsDir: join(root, '.agents/skills'),
-  };
-}
-
 export async function codexDoctorChecks(paths: RepoPaths): Promise<NamedDoctorCheck[]> {
-  const locs = codexLocations(paths.root);
+  const locs = codexPaths(paths.root);
   return [
     { name: 'codex CLI on PATH', result: await checkCodexCli() },
     {

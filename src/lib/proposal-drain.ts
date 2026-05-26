@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import type { ZodSchema } from 'zod';
 import { ProposalOutputSchema } from './schemas.js';
 import lockfile from 'proper-lockfile';
-import type { RepoPaths } from './paths.js';
+import { packageTemplatesDir, type RepoPaths } from './paths.js';
 import { STATE_LOCK_OPTIONS } from './state.js';
 import { compactStamp } from './time.js';
 
@@ -247,4 +247,12 @@ export function updateProposalBody(content: string, patch: FrontmatterPatch): st
     /\(populated by proposal worker\)/,
     `_Extraction complete; see proposals in frontmatter._`
   );
+}
+
+export function loadProposalPrompt(promptsDir: string): string | null {
+  const override = join(promptsDir, 'proposal-extract.md');
+  if (existsSync(override)) return readFileSync(override, 'utf8');
+  const bundled = join(packageTemplatesDir(), 'prompts/proposal-extract.md');
+  if (existsSync(bundled)) return readFileSync(bundled, 'utf8');
+  return null;
 }

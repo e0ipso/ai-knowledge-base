@@ -5,21 +5,13 @@ import { promisify } from 'node:util';
 import type { RepoPaths } from '../../lib/paths.js';
 import { errCheck, ok, type NamedDoctorCheck, type DoctorCheckResult } from '../types.js';
 import { CLAUDE_HOOK_SPECS } from './hook-spec.js';
+import { claudePaths } from './install.js';
 
 const exec = promisify(execFile);
 const EXPECTED_SKILLS = ['kb-add', 'kb-bootstrap', 'kb-curate'];
 
-function claudeLocations(root: string) {
-  const dir = join(root, '.claude');
-  return {
-    settingsFile: join(dir, 'settings.json'),
-    hooksDir: join(dir, 'hooks'),
-    skillsDir: join(dir, 'skills'),
-  };
-}
-
 export async function claudeDoctorChecks(paths: RepoPaths): Promise<NamedDoctorCheck[]> {
-  const locs = claudeLocations(paths.root);
+  const locs = claudePaths(paths.root);
   return [
     { name: 'claude CLI on PATH', result: await checkClaudeCli() },
     {

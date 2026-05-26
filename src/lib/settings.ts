@@ -5,6 +5,8 @@ import { SettingsSchema, type ModelChoice, type SettingsFile } from './schemas.j
 
 export type { ModelChoice };
 
+export type ModelChoiceRole = 'proposal' | 'curator' | 'bootstrap';
+
 /**
  * Documented defaults for the user-facing settings.
  */
@@ -139,4 +141,18 @@ export function defaultProjectConfigBody(): string {
     '',
   ].join('\n');
   return `${header}${yaml.dump(body, { indent: 2, lineWidth: 0, noRefs: true })}`;
+}
+
+export function pickModelChoice(
+  settings: EffectiveSettings,
+  role: ModelChoiceRole
+): ModelChoice | undefined {
+  switch (role) {
+    case 'proposal':
+      return settings.proposalModel;
+    case 'curator':
+      return settings.curatorModel;
+    case 'bootstrap':
+      return settings.bootstrapModel;
+  }
 }
