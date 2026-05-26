@@ -4,38 +4,38 @@
     "task-create-plan": {
       "source": "e0ipso/ai-task-manager",
       "sourceType": "github",
-      "skillPath": ".agents/skills/task-create-plan/SKILL.md",
-      "computedHash": "e75a926a47945f9f3e52953e7dcb025bcafa2fb6bf4b663dd84e272b1837734f"
+      "skillPath": "templates/harness/skills/task-create-plan/SKILL.md",
+      "computedHash": "4a3973985f9c0e2778771f56af2d1496737089ab84940201a1082e1e9d0ab5db"
     },
     "task-execute-blueprint": {
       "source": "e0ipso/ai-task-manager",
       "sourceType": "github",
-      "skillPath": ".agents/skills/task-execute-blueprint/SKILL.md",
-      "computedHash": "1ad0659a02c68ab2b8ef0b244b568e9bf5dd381cde7d19546afc455b679c6632"
+      "skillPath": "templates/harness/skills/task-execute-blueprint/SKILL.md",
+      "computedHash": "fa4f1de7c8f8cc829e8fa836d9dfd512b89e410ff49e7a731db0fe57918217be"
     },
     "task-execute-task": {
       "source": "e0ipso/ai-task-manager",
       "sourceType": "github",
-      "skillPath": ".agents/skills/task-execute-task/SKILL.md",
-      "computedHash": "188a0dc1437429182c2921bd3d47072db7ce215cf50923032e48e9a9d9f11c0f"
+      "skillPath": "templates/harness/skills/task-execute-task/SKILL.md",
+      "computedHash": "20cc0464c148f11d066b6a37ee8b0a656063335c281b2170722545452d9608a9"
     },
     "task-full-workflow": {
       "source": "e0ipso/ai-task-manager",
       "sourceType": "github",
-      "skillPath": ".agents/skills/task-full-workflow/SKILL.md",
-      "computedHash": "525d17cdf573e02220a7ff46b1e481c5996e4fa006e6d4afaa0a9bfc7f4d741c"
+      "skillPath": "templates/harness/skills/task-full-workflow/SKILL.md",
+      "computedHash": "e4ae5731882cd70abb87eb04434c37214fda982c02b2e147f98daf2c5227020d"
     },
     "task-generate-tasks": {
       "source": "e0ipso/ai-task-manager",
       "sourceType": "github",
-      "skillPath": ".agents/skills/task-generate-tasks/SKILL.md",
-      "computedHash": "a23a8db42b302949afe013109e5d27fae2a6a3b165edbc7b716e41d9d5fa836b"
+      "skillPath": "templates/harness/skills/task-generate-tasks/SKILL.md",
+      "computedHash": "db5e5440777d9466a578376ffd746dd0494c7f432b665b117f2c2c3404653af7"
     },
     "task-refine-plan": {
       "source": "e0ipso/ai-task-manager",
       "sourceType": "github",
-      "skillPath": ".agents/skills/task-refine-plan/SKILL.md",
-      "computedHash": "45de1e49a802514809fd59e05fc0247edd4f12ffbc60c19cf98f6dccdab1788b"
+      "skillPath": "templates/harness/skills/task-refine-plan/SKILL.md",
+      "computedHash": "79116e3da7ede487ec7d7a124e7e0377f7e826f51f546fcd30b19861fd2cbbcb"
     }
   }
 }

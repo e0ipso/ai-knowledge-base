@@ -42,9 +42,14 @@ These indicators are purely informational. Do not pause or wait for user input w
 
 #### 1. Locate the task-manager root
 
-Run `scripts/find-task-manager-root.cjs` from the user's working directory. The script walks up looking for `.ai/task-manager/.init-metadata.json` and prints the absolute path of the resolved root on success.
+Run `scripts/find-task-manager-root.cjs` from the user's working directory.
+The script walks up looking for `.ai/task-manager/.init-metadata.json` and
+prints the absolute path of the resolved root on success.
 
-If the script exits non-zero, the working directory is not inside an initialized task-manager workspace. Stop and ask the user to run the project initializer before continuing.
+If the script exits non-zero, the working directory is not inside an
+initialized task-manager workspace. Stop and ask the user to run the project
+initializer (e.g. `npx @e0ipso/ai-task-manager init`) before continuing. Do
+not attempt to execute the full workflow outside of a valid root.
 
 For every subsequent step, treat the path printed by this script as `<root>`.
 
@@ -128,45 +133,58 @@ Read these files in order:
 
 #### 3. Analyze and decompose the plan
 
-Read the entire plan. Identify all concrete deliverables explicitly stated. Decompose each deliverable into atomic tasks only when genuinely needed.
+Read the entire plan. Identify all concrete deliverables **explicitly stated**.
+Decompose each deliverable into atomic tasks only when genuinely needed.
 
-Apply task minimization principles:
+**Task minimization (mandatory):**
 
-- Create only the minimum number of tasks necessary. Target a 20–30% reduction from comprehensive lists.
-- Direct Implementation Only: each task corresponds to an explicit requirement, not a nice-to-have.
-- DRY Task Principle: each task has a unique, non-overlapping purpose.
-- Question Everything: for each task, ask "Is this absolutely necessary to meet the plan objectives?"
-- Avoid Gold-plating: resist comprehensive features the plan does not require.
+- Create only the minimum number of tasks necessary. Target a 20–30%
+  reduction from comprehensive lists by questioning the necessity of each
+  candidate.
+- **Direct Implementation Only**: a task corresponds to an explicit
+  requirement, not a "nice-to-have".
+- **DRY Task Principle**: each task has a unique, non-overlapping purpose.
+- **Question Everything**: for each task, ask "Is this absolutely necessary
+  to meet the plan objectives?"
+- **Avoid Gold-plating**: resist comprehensive features the plan does not
+  require.
 
-Antipatterns to avoid:
+**Antipatterns to avoid:**
 
-- Separating error handling from the main implementation when it can be inline.
-- Splitting trivially small operations into multiple tasks.
-- Adding tasks for future extensibility or best practices the plan does not mention.
+- Separating "error handling" from the main implementation when it can be
+  inline.
+- Splitting trivially small operations into multiple tasks (e.g. "validate
+  input" + "process input" as separate units).
+- Adding tasks for "future extensibility" or "best practices" the plan does
+  not mention.
 - Comprehensive test suites for trivial functionality.
 
 #### 4. Apply granularity and skill rules
 
 Each task must be:
 
-- Single-purpose — one clear deliverable.
-- Atomic — cannot be meaningfully split further.
-- Skill-specific — executable by an agent with 1–2 technical skills.
-- Verifiable — has explicit acceptance criteria.
+- **Single-purpose** — one clear deliverable.
+- **Atomic** — cannot be meaningfully split further.
+- **Skill-specific** — executable by an agent with 1–2 technical skills.
+- **Verifiable** — has explicit acceptance criteria.
 
-Skill assignment (kebab-case, automatically inferred):
+Skill assignment (kebab-case, automatically inferred from the task's
+technical requirements):
 
-- 1 skill — single-domain task (e.g., `["css"]`, `["jest"]`).
-- 2 skills — complementary domains (e.g., `["api-endpoints", "database"]`).
+- 1 skill — single-domain task (e.g. `["css"]`, `["jest"]`).
+- 2 skills — complementary domains (e.g. `["api-endpoints", "database"]`,
+  `["react-components", "jest"]`).
 - 3+ skills indicates the task should be broken down further.
 
-#### 5. Test philosophy
+#### 5. Test philosophy: "write a few tests, mostly integration"
 
-When generating test tasks, follow: "write a few tests, mostly integration".
+When generating test tasks, keep this constraint:
 
-Meaningful tests verify custom business logic, critical paths, and edge cases specific to this application. Test your code, not the framework or library.
+**Definition.** Meaningful tests verify custom business logic, critical paths,
+and edge cases specific to this application. Test *your* code, not the
+framework or library.
 
-When TO write tests:
+**When TO write tests:**
 
 - Custom business logic and algorithms.
 - Critical user workflows and data transformations.
@@ -174,7 +192,7 @@ When TO write tests:
 - Integration points between components.
 - Complex validation logic or calculations.
 
-When NOT to write tests:
+**When NOT to write tests:**
 
 - Third-party library functionality.
 - Framework features.
@@ -182,7 +200,16 @@ When NOT to write tests:
 - Trivial getters/setters or static configuration.
 - Obvious functionality that would break immediately if incorrect.
 
-Combine related test scenarios into a single task. Favor integration and critical-path coverage over per-method unit tests.
+**Test task creation rules:**
+
+- Combine related test scenarios into a single task (e.g. "Test user
+  authentication flow" not separate tasks for login, logout, validation).
+- Favor integration and critical-path coverage over per-method unit tests.
+- Avoid one test task per CRUD operation.
+- Question whether simple functions need a dedicated test task.
+
+If any test task is generated, restate this section verbatim or near-verbatim
+in that task's "Implementation Notes" so the executing agent applies it.
 
 #### 6. Dependency analysis
 
@@ -207,7 +234,8 @@ Write each task to:
 <root>/plans/<plan-dir-name>/tasks/{padded-id}--{slug}.md
 ```
 
-Each file must conform to `<root>/config/templates/TASK_TEMPLATE.md`, including required frontmatter fields:
+Each file must conform to `<root>/config/templates/TASK_TEMPLATE.md`,
+including required frontmatter fields:
 
 - `id` (integer)
 - `group` (string)
@@ -218,20 +246,27 @@ Each file must conform to `<root>/config/templates/TASK_TEMPLATE.md`, including 
 
 Optional frontmatter for high-complexity or decomposed tasks:
 
-- `complexity_score` (number, 1–10, include only if >4)
+- `complexity_score` (number, 1–10, include only if >4 or for decomposed
+  tasks)
 - `complexity_notes` (string)
 
-The body sections (Objective, Skills Required, Acceptance Criteria, Technical Requirements, Input Dependencies, Output Artifacts, Implementation Notes) must be filled with task-specific content. Place detailed implementation guidance inside a `<details>` block under "Implementation Notes" so a non-thinking LLM could execute the task from that section alone.
+The body sections (Objective, Skills Required, Acceptance Criteria, Technical
+Requirements, Input Dependencies, Output Artifacts, Implementation Notes)
+must be filled with task-specific content. Place detailed implementation
+guidance inside a `<details>` block under "Implementation Notes" — write it
+so a non-thinking LLM could execute the task from that section alone.
 
 #### 9. Validation checklist
 
 Before declaring task generation complete, verify:
 
-- Each task has 1–2 appropriate technical skills assigned and inferred from its objectives.
-- Dependencies form an acyclic graph.
-- Task IDs are unique, sequential, and start from the value returned by `get-next-task-id.cjs`.
+- Each task has 1–2 appropriate technical skills assigned and inferred from
+  its objectives.
+- Dependencies form an acyclic graph; no orphan or circular references.
+- Task IDs are unique, sequential, and start from the value returned by
+  `get-next-task-id.cjs`.
 - Groups are consistent and meaningful.
-- Every explicitly stated deliverable in the plan is covered.
+- Every **explicitly stated** deliverable in the plan is covered.
 - No redundant or overlapping tasks.
 - Minimization applied (20–30% reduction target).
 - Test tasks focus on business logic, not framework functionality.
@@ -310,9 +345,9 @@ Read `<root>/config/hooks/PRE_PHASE.md` and execute its instructions before star
 ##### 5b. Task dispatch
 Identify all tasks scheduled for this phase whose dependencies are fully satisfied. Read `<root>/config/hooks/PRE_TASK_EXECUTION.md` and execute its instructions before starting any implementation work.
 
-Deploy all selected agents simultaneously. Each agent MUST:
+Deploy all selected agents simultaneously using your internal Task tool. Each agent MUST:
 
-1. Read and execute `<root>/config/hooks/PRE_TASK_EXECUTION.md` before starting implementation.
+1. Read and execute `<root>/config/hooks/PRE_TASK_EXECUTION.md` before starting any implementation work.
 2. Execute the task according to its requirements.
 3. Monitor execution progress and capture outputs and artifacts.
 4. Update task status in real-time.
