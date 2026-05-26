@@ -1,11 +1,11 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:5bad7f1c91714347d8f0498d635ab2974f3437618f96e61f19e01b7591feb9ae'
-node_count: 50
+nodes_hash: 'sha256:cf954ea1b79276f393417fd8ef6740ba5c5ede21be1e773642823a66ecfa1522'
+node_count: 55
 ---
 # KB Graph
 
-Total nodes: 50
+Total nodes: 55
 
 ## map-ai-knowledge-base-package
 
@@ -220,6 +220,13 @@ Total nodes: 50
 - **relates_to:** map-bootstrap-state-file
 - **derived_from:** docs/internals/architecture.md, docs/internals/schemas.md
 
+## map-update-agents-md-kb-index-pointer-injection-into-agents-md
+
+- **kind:** map
+- **title:** updateAgentsMd - KB index pointer injection into AGENTS.md
+- **tags:** init, upgrade, agents-md, markers, index
+- **relates_to:** map-index-md, practice-init-does-not-install-commit-tooling
+
 ## practice-adapters-never-cross-directories
 
 - **kind:** practice
@@ -290,6 +297,13 @@ Total nodes: 50
 - **relates_to:** map-conflict-files, map-curator-action, map-curate-command
 - **derived_from:** docs/how-it-works.md, docs/daily-use.md, docs/internals/prompts.md, docs/internals/schemas.md
 
+## practice-cursor-sessionstart-additional-context-is-silently-dropped
+
+- **kind:** practice
+- **title:** Cursor sessionStart additional_context is silently dropped
+- **tags:** cursor, harness, hooks, gotcha, context-injection
+- **relates_to:** map-cursor-harness-adapter
+
 ## practice-determinism-contract
 
 - **kind:** practice
@@ -303,6 +317,12 @@ Total nodes: 50
 - **kind:** practice
 - **title:** Do not justify scope decisions by current-snapshot file contents
 - **tags:** yagni, assumptions, verification
+
+## practice-document-model-recommendations-with-harness-agnostic-framing-2
+
+- **kind:** practice
+- **title:** Document model recommendations with harness-agnostic framing
+- **tags:** documentation, harness, models, recommendations
 
 ## practice-dont-run-llm-pipelines-in-ci
 
@@ -320,12 +340,25 @@ Total nodes: 50
 - **relates_to:** map-harness-adapter, map-cursor-harness-adapter, map-config-yaml
 - **derived_from:** docs/cli-reference.md, docs/installation.md
 
+## practice-hook-behavior-changes-must-be-applied-to-all-four-harness-adapters
+
+- **kind:** practice
+- **title:** Hook behavior changes must be applied to all four harness adapters
+- **tags:** harness, hooks, architecture, drift
+
 ## practice-hook-status-messages-include-kb-prefix-after-emoji
 
 - **kind:** practice
 - **title:** Hook status messages include KB prefix after emoji
 - **tags:** hooks, messaging, ux
 - **relates_to:** map-capture-hook, map-session-start-hook, map-proposal-drain-hook, map-claude-harness
+
+## practice-init-and-upgrade-inject-a-static-kb-index-pointer-into-agents-md
+
+- **kind:** practice
+- **title:** init and upgrade inject a static KB index pointer into AGENTS.md
+- **tags:** init, upgrade, agents-md, index, markers
+- **relates_to:** map-index-md, map-session-start-hook
 
 ## practice-init-does-not-install-commit-tooling
 
