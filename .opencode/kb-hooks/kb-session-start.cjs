@@ -7665,7 +7665,6 @@ var NEVER = INVALID;
 // src/lib/schemas.ts
 init_cjs_shims();
 var CaptureTriggerSchema = external_exports.enum(["stop", "session_end", "pre_compact", "manual"]);
-var SecretScanStatusSchema = external_exports.enum(["clean", "redacted", "blocked", "skipped"]);
 var ProposalStatusSchema = external_exports.enum(["pending", "done", "failed"]);
 var SessionLogFrontmatterSchema = external_exports.object({
   schema_version: external_exports.literal(1),
@@ -7677,7 +7676,6 @@ var SessionLogFrontmatterSchema = external_exports.object({
   proposal_completed_at: external_exports.string().nullable(),
   proposal_error: external_exports.string().nullable(),
   proposal_log: external_exports.string().nullable(),
-  secret_scan_status: SecretScanStatusSchema,
   proposals: external_exports.object({
     practice: external_exports.array(external_exports.unknown()),
     map: external_exports.array(external_exports.unknown())
@@ -8025,12 +8023,15 @@ function summarizePendingSessions(sessionsDir) {
       const parsed = (0, import_gray_matter2.default)((0, import_node_fs4.readFileSync)(file, "utf8"));
       const fm = SessionLogFrontmatterSchema.safeParse(parsed.data);
       if (!fm.success) continue;
-      if (fm.data.proposal_status !== "done") continue;
+      const status = fm.data.proposal_status;
+      if (status !== "pending" && status !== "done") continue;
       const data = parsed.data;
       if (typeof data.curator_processed_at === "string") continue;
       pending += 1;
-      const proposals = fm.data.proposals;
-      candidateCount += (proposals?.practice?.length ?? 0) + (proposals?.map?.length ?? 0);
+      if (status === "done") {
+        const proposals = fm.data.proposals;
+        candidateCount += (proposals?.practice?.length ?? 0) + (proposals?.map?.length ?? 0);
+      }
       const ms = Date.parse(fm.data.captured_at);
       if (Number.isFinite(ms)) {
         const captured = new Date(ms);
@@ -10786,7 +10787,7 @@ async function main() {
   const paths = repoPaths(root);
   if (!(0, import_node_fs7.existsSync)(paths.installedVersionFile)) return;
   try {
-    process.stderr.write("\u{1F4D6} Index: Loading knowledge base\u2026\n");
+    process.stderr.write("\u{1F4D6} KB Index: Loading knowledge base\u2026\n");
     const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
     const result = buildSessionStartContext({
       kbDir: paths.kbDir,
@@ -10810,7 +10811,7 @@ async function main() {
 `
       );
     }
-    process.stderr.write("\u{1F9E0} Index: Knowledge base loaded.\n");
+    process.stderr.write("\u{1F9E0} KB Index: Knowledge base loaded.\n");
   } catch (err) {
     process.stderr.write(
       `${PACKAGE_TAG} session-start error: ${err instanceof Error ? err.message : String(err)}

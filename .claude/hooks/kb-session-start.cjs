@@ -8023,12 +8023,15 @@ function summarizePendingSessions(sessionsDir) {
       const parsed = (0, import_gray_matter2.default)((0, import_node_fs4.readFileSync)(file, "utf8"));
       const fm = SessionLogFrontmatterSchema.safeParse(parsed.data);
       if (!fm.success) continue;
-      if (fm.data.proposal_status !== "done") continue;
+      const status = fm.data.proposal_status;
+      if (status !== "pending" && status !== "done") continue;
       const data = parsed.data;
       if (typeof data.curator_processed_at === "string") continue;
       pending += 1;
-      const proposals = fm.data.proposals;
-      candidateCount += (proposals?.practice?.length ?? 0) + (proposals?.map?.length ?? 0);
+      if (status === "done") {
+        const proposals = fm.data.proposals;
+        candidateCount += (proposals?.practice?.length ?? 0) + (proposals?.map?.length ?? 0);
+      }
       const ms = Date.parse(fm.data.captured_at);
       if (Number.isFinite(ms)) {
         const captured = new Date(ms);
