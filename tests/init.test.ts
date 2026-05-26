@@ -83,6 +83,19 @@ describe('init', () => {
     const second = readFileSync(join(sandbox, '.gitignore'), 'utf8');
     const occurrences = second.match(/>>> @e0ipso\/ai-knowledge-base >>>/g) ?? [];
     expect(occurrences.length).toBe(1);
+    expect(second).toBe(first);
+  });
+
+  it('does not accumulate extra newlines on repeated upgrades', async () => {
+    writeFileSync(join(sandbox, '.gitignore'), 'node_modules\n');
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    const first = readFileSync(join(sandbox, '.gitignore'), 'utf8');
+
+    for (let i = 0; i < 5; i++) {
+      await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
+    }
+    const after = readFileSync(join(sandbox, '.gitignore'), 'utf8');
+    expect(after).toBe(first);
   });
 
   it('refuses to overwrite when already initialized', async () => {

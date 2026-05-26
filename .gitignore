@@ -17,12 +17,4 @@ settings.local.json
 .ai/knowledge-base/.state/
 !.ai/knowledge-base/.state/installed-version
 # <<< @e0ipso/ai-knowledge-base <<<
-
-
-
-
-
-
-
-
 .ai/task-manager/scratch

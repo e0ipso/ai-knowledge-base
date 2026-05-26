@@ -211,7 +211,8 @@ function updateGitignore(file: string): void {
     // Update in place: replace the managed block entirely.
     const before = existing.slice(0, existing.indexOf(GITIGNORE_BLOCK_START));
     const afterStart = existing.indexOf(GITIGNORE_BLOCK_END);
-    const after = afterStart >= 0 ? existing.slice(afterStart + GITIGNORE_BLOCK_END.length) : '';
+    const afterRaw = afterStart >= 0 ? existing.slice(afterStart + GITIGNORE_BLOCK_END.length) : '';
+    const after = afterRaw.startsWith('\n') ? afterRaw.slice(1) : afterRaw;
     const next = `${before}${buildBlock()}${after}`;
     writeFileSync(file, ensureTrailingNewline(next));
     return;
