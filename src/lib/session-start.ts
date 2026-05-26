@@ -31,7 +31,7 @@ export interface SessionStartResult {
   indexMissing: boolean;
   /** True if INDEX.md exists but its nodes_hash does not match nodes/. */
   indexStale: boolean;
-  /** Number of pending session logs (proposal done, not curated). */
+  /** Number of session logs awaiting processing (proposal extraction or curation). */
   pendingSessions: number;
   /** Total candidate proposals across pending sessions. */
   candidateCount: number;
@@ -185,9 +185,10 @@ export interface PendingSessionsSummary {
 /**
  * Single-pass walk over `_sessions/*.md` returning the pending count, the
  * sum of candidate proposals across those sessions, and the oldest
- * `captured_at` timestamp. Mirrors the filter used by `listPendingSessions`
- * in `src/lib/curate.ts`. Kept here so the consume hook does not have to
- * load the entire curate module.
+ * `captured_at` timestamp. Counts both `proposal_status: 'pending'` (awaiting
+ * proposal extraction) and `proposal_status: 'done'` (awaiting curation) logs
+ * that have not yet been curator-processed. Only 'done' logs contribute to
+ * `candidateCount`.
  */
 export function summarizePendingSessions(sessionsDir: string): PendingSessionsSummary {
   if (!existsSync(sessionsDir)) {
@@ -203,12 +204,15 @@ export function summarizePendingSessions(sessionsDir: string): PendingSessionsSu
       const parsed = matter(readFileSync(file, 'utf8'));
       const fm = SessionLogFrontmatterSchema.safeParse(parsed.data);
       if (!fm.success) continue;
-      if (fm.data.proposal_status !== 'done') continue;
+      const status = fm.data.proposal_status;
+      if (status !== 'pending' && status !== 'done') continue;
       const data = parsed.data as { curator_processed_at?: unknown };
       if (typeof data.curator_processed_at === 'string') continue;
       pending += 1;
-      const proposals = fm.data.proposals;
-      candidateCount += (proposals?.practice?.length ?? 0) + (proposals?.map?.length ?? 0);
+      if (status === 'done') {
+        const proposals = fm.data.proposals;
+        candidateCount += (proposals?.practice?.length ?? 0) + (proposals?.map?.length ?? 0);
+      }
       const ms = Date.parse(fm.data.captured_at);
       if (Number.isFinite(ms)) {
         const captured = new Date(ms);

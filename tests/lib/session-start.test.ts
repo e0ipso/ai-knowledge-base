@@ -68,6 +68,30 @@ function seedSession(
   );
 }
 
+function seedPendingDrainSession(
+  harness: Harness,
+  sessionId: string,
+  opts: SeedOptions = {}
+): void {
+  const capturedAt = opts.capturedAt ?? '2026-05-11T10:00:00Z';
+  const fm: Record<string, unknown> = {
+    schema_version: 1,
+    session_id: sessionId,
+    captured_by: 'stop',
+    captured_at: capturedAt,
+    transcript_hash: `sha256:${sessionId}`,
+    proposal_status: 'pending',
+    proposal_completed_at: null,
+    proposal_error: null,
+    proposal_log: null,
+    proposals: { practice: [], map: [] },
+  };
+  writeFileSync(
+    join(harness.sessionsDir, `session-${sessionId}.md`),
+    matter.stringify('## body\n', fm)
+  );
+}
+
 function seedMalformedSession(harness: Harness, sessionId: string): void {
   writeFileSync(
     join(harness.sessionsDir, `session-${sessionId}.md`),
@@ -106,6 +130,13 @@ describe('countPendingSessions', () => {
     seedSession(harness, 'b', false);
     seedSession(harness, 'c', true);
     expect(countPendingSessions(harness.sessionsDir)).toBe(2);
+  });
+
+  it('counts proposal-pending (awaiting drain) sessions', () => {
+    seedPendingDrainSession(harness, 'x');
+    seedPendingDrainSession(harness, 'y');
+    seedSession(harness, 'z', false);
+    expect(countPendingSessions(harness.sessionsDir)).toBe(3);
   });
 
   it('returns 0 for a missing sessions directory', () => {
@@ -330,6 +361,20 @@ describe('summarizePendingSessions', () => {
     expect(summary.pending).toBe(2);
     expect(summary.candidateCount).toBe(6);
     expect(summary.oldestCapturedAt?.toISOString()).toBe('2026-05-05T10:00:00.000Z');
+  });
+
+  it('includes proposal_status=pending logs in count but not in candidateCount', () => {
+    seedPendingDrainSession(harness, 'p1', { capturedAt: '2026-05-03T10:00:00Z' });
+    seedPendingDrainSession(harness, 'p2', { capturedAt: '2026-05-06T10:00:00Z' });
+    seedSession(harness, 'd1', false, {
+      capturedAt: '2026-05-07T10:00:00Z',
+      practiceCount: 3,
+      mapCount: 1,
+    });
+    const summary = summarizePendingSessions(harness.sessionsDir);
+    expect(summary.pending).toBe(3);
+    expect(summary.candidateCount).toBe(4);
+    expect(summary.oldestCapturedAt?.toISOString()).toBe('2026-05-03T10:00:00.000Z');
   });
 
   it('returns zeroes for an empty directory', () => {
