@@ -1,11 +1,11 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:f762a78a1f9840316a01d667da41c1662bb9a8af091495a854e5f127c109f78b'
-node_count: 45
+nodes_hash: 'sha256:5bad7f1c91714347d8f0498d635ab2974f3437618f96e61f19e01b7591feb9ae'
+node_count: 50
 ---
 # KB Graph
 
-Total nodes: 45
+Total nodes: 50
 
 ## map-ai-knowledge-base-package
 
@@ -70,6 +70,13 @@ Total nodes: 45
 - **tags:** conflicts, curator, schema
 - **relates_to:** practice-curator-never-auto-resolves-contradictions, map-curator-action
 - **derived_from:** docs/internals/schemas.md, docs/how-it-works.md, docs/troubleshooting.md
+
+## map-curate-cli-conflict-resolution-output-message
+
+- **kind:** map
+- **title:** curate CLI conflict-resolution output message
+- **tags:** cli, curate, conflicts, output
+- **relates_to:** map-curate-command, map-conflict-files
 
 ## map-curate-command
 
@@ -184,9 +191,9 @@ Total nodes: 45
 ## map-proposal-drain-hook
 
 - **kind:** map
-- **title:** kb-proposal-drain.mjs (extraction hook)
-- **tags:** hooks, extraction, llm, async
-- **relates_to:** map-session-log, map-proposal-candidate-schema, practice-recursion-guard-kb-builder-internal
+- **title:** kb-proposal-drain (extraction hook)
+- **tags:** hooks, extraction, llm, async, claude, billing
+- **relates_to:** map-session-log, map-proposal-candidate-schema, practice-recursion-guard-kb-builder-internal, map-curate-command, map-claude-harness, map-codex-harness, map-cursor-harness-adapter, map-opencode-harness
 - **derived_from:** docs/internals/hooks.md, docs/internals/architecture.md
 
 ## map-session-log
@@ -260,6 +267,13 @@ Total nodes: 45
 - **tags:** git, release, conventional-commits
 - **derived_from:** CONTRIBUTING.md
 
+## practice-curate-cli-conflict-output-names-the-three-resolution-outcomes
+
+- **kind:** practice
+- **title:** Curate CLI conflict output names the three resolution outcomes
+- **tags:** knowledge-base, kb-curate, conflicts, cli, ux
+- **relates_to:** map-curate-command, map-conflict-files, practice-curator-never-auto-resolves-contradictions
+
 ## practice-curator-drops-non-productive-candidates
 
 - **kind:** practice
@@ -284,6 +298,12 @@ Total nodes: 45
 - **relates_to:** map-nodes-hash, map-index-md, map-graph-md
 - **derived_from:** docs/internals/architecture.md
 
+## practice-do-not-justify-scope-decisions-by-current-snapshot-file-contents
+
+- **kind:** practice
+- **title:** Do not justify scope decisions by current-snapshot file contents
+- **tags:** yagni, assumptions, verification
+
 ## practice-dont-run-llm-pipelines-in-ci
 
 - **kind:** practice
@@ -300,12 +320,26 @@ Total nodes: 45
 - **relates_to:** map-harness-adapter, map-cursor-harness-adapter, map-config-yaml
 - **derived_from:** docs/cli-reference.md, docs/installation.md
 
+## practice-hook-status-messages-include-kb-prefix-after-emoji
+
+- **kind:** practice
+- **title:** Hook status messages include KB prefix after emoji
+- **tags:** hooks, messaging, ux
+- **relates_to:** map-capture-hook, map-session-start-hook, map-proposal-drain-hook, map-claude-harness
+
 ## practice-init-does-not-install-commit-tooling
 
 - **kind:** practice
 - **title:** init does not install husky/lint-staged/secretlint/commitlint
 - **tags:** init, install, scope
 - **derived_from:** docs/installation.md, docs/cli-reference.md
+
+## practice-inside-the-ai-knowledge-base-source-repo-run-the-cli-from-dist-not-via-npx
+
+- **kind:** practice
+- **title:** Inside the ai-knowledge-base source repo, run the CLI from dist/, not via npx
+- **tags:** knowledge-base, kb-curate, repo-local, npx, cli
+- **relates_to:** map-curate-command, map-ai-knowledge-base-package
 
 ## practice-lint-naming-rules
 

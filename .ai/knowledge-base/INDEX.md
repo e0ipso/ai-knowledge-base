@@ -1,17 +1,17 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:f762a78a1f9840316a01d667da41c1662bb9a8af091495a854e5f127c109f78b'
-node_count: 45
+nodes_hash: 'sha256:5bad7f1c91714347d8f0498d635ab2974f3437618f96e61f19e01b7591feb9ae'
+node_count: 50
 ---
 # KB Index
 
-_45 nodes • ~16332 estimated tokens_
+_50 nodes • ~17649 estimated tokens_
 
 
 ## Conventions (how we build)
 - **CLI launchers must set KB_BUILDER_INTERNAL=1 on the harness child** [`nodes/practice/practice-recursion-guard-kb-builder-internal.md`] #recursion #hooks #env
-- **Bootstrap never overwrites existing nodes** [`nodes/practice/practice-bootstrap-never-overwrites-existing-nodes.md`] #bootstrap #nodes #safety
 - **Curator never auto-resolves contradictions** [`nodes/practice/practice-curator-never-auto-resolves-contradictions.md`] #curator #conflicts #human-in-the-loop
+- **Bootstrap never overwrites existing nodes** [`nodes/practice/practice-bootstrap-never-overwrites-existing-nodes.md`] #bootstrap #nodes #safety
 - **Bootstrap is supervised and judgmental, not exhaustive** [`nodes/practice/practice-bootstrap-is-supervised-and-judgmental.md`] #bootstrap #supervision #sampling
 - **Determinism contract for INDEX/GRAPH generation** [`nodes/practice/practice-determinism-contract.md`] #determinism #indexing #testing
 - **Don't run curate or bootstrap-incremental in CI** [`nodes/practice/practice-dont-run-llm-pipelines-in-ci.md`] #ci #llm #workflow
@@ -21,54 +21,61 @@ _45 nodes • ~16332 estimated tokens_
 - **Adapters never reach into each other's directories** [`nodes/practice/practice-adapters-never-cross-directories.md`] #adapter #architecture #isolation
 - **Bump the prompt's Version comment on every behavior change** [`nodes/practice/practice-bump-prompt-version-comment.md`] #prompts #versioning #audit
 - **Conventional Commits drive semantic-release** [`nodes/practice/practice-conventional-commits-and-release.md`] #git #release #conventional-commits
+- **Curate CLI conflict output names the three resolution outcomes** [`nodes/practice/practice-curate-cli-conflict-output-names-the-three-resolution-outcomes.md`] #knowledge-base #kb-curate #conflicts #cli #ux
 - **Curator drops non-productive and change-oriented candidates** [`nodes/practice/practice-curator-drops-non-productive-candidates.md`] #curator #prompts #calibration #anti-pattern
 - **Default bootstrap nodes to confidence: medium** [`nodes/practice/practice-confidence-default-medium-bootstrap.md`] #bootstrap #confidence #calibration
+- **Do not justify scope decisions by current-snapshot file contents** [`nodes/practice/practice-do-not-justify-scope-decisions-by-current-snapshot-file-contents.md`] #yagni #assumptions #verification
+- **Hook status messages include KB prefix after emoji** [`nodes/practice/practice-hook-status-messages-include-kb-prefix-after-emoji.md`] #hooks #messaging #ux
 - **init does not install husky/lint-staged/secretlint/commitlint** [`nodes/practice/practice-init-does-not-install-commit-tooling.md`] #init #install #scope
+- **Inside the ai-knowledge-base source repo, run the CLI from dist/, not via npx** [`nodes/practice/practice-inside-the-ai-knowledge-base-source-repo-run-the-cli-from-dist-not-via-npx.md`] #knowledge-base #kb-curate #repo-local #npx #cli
 - **No em dashes anywhere in the project** [`nodes/practice/practice-no-em-dashes.md`] #style #writing #ai-detection
 - **Node naming: id, filename, and kind must agree** [`nodes/practice/practice-lint-naming-rules.md`] #lint #naming #nodes
 - **Review node changes via git** [`nodes/practice/practice-review-nodes-via-git.md`] #review #git #workflow
 - **Strict schema-version bump policy: no migrators** [`nodes/practice/practice-strict-schema-version-bump-policy.md`] #schema #versioning #breaking-change
 
 ## Components (what exists)
-- **Harness adapter** [`nodes/map/map-harness-adapter.md`] #harness #adapter #claude #codex #cursor #opencode #architecture
-- **bootstrap-incremental (CLI)** [`nodes/map/map-bootstrap-incremental-command.md`] #cli #bootstrap #deterministic
 - **curate (CLI command + /kb-curate skill)** [`nodes/map/map-curate-command.md`] #cli #curate #skill
+- **Harness adapter** [`nodes/map/map-harness-adapter.md`] #harness #adapter #claude #codex #cursor #opencode #architecture
+- **kb-proposal-drain (extraction hook)** [`nodes/map/map-proposal-drain-hook.md`] #hooks #extraction #llm #async #claude #billing
+- **bootstrap-incremental (CLI)** [`nodes/map/map-bootstrap-incremental-command.md`] #cli #bootstrap #deterministic
+- **Conflict files (conflicts/<run-id>-<n>.md)** [`nodes/map/map-conflict-files.md`] #conflicts #curator #schema
 - **INDEX.md** [`nodes/map/map-index-md.md`] #index #deterministic #sessionstart
-- **kb-proposal-drain.mjs (extraction hook)** [`nodes/map/map-proposal-drain-hook.md`] #hooks #extraction #llm #async
 - **/kb-bootstrap skill** [`nodes/map/map-kb-bootstrap-skill.md`] #skill #bootstrap #agent
 - **Curator action (add / modify / contradict / drop)** [`nodes/map/map-curator-action.md`] #schema #curator #action
 - **GRAPH.md** [`nodes/map/map-graph-md.md`] #graph #deterministic
 - **Node frontmatter schema** [`nodes/map/map-node-frontmatter.md`] #schema #frontmatter #nodes
-- **Conflict files (conflicts/<run-id>-<n>.md)** [`nodes/map/map-conflict-files.md`] #conflicts #curator #schema
-- **.state/bootstrap-state.json (per-doc hash cache)** [`nodes/map/map-bootstrap-state-file.md`] #bootstrap #hash #state #schema
-- **config.yaml (project settings)** [`nodes/map/map-config-yaml.md`] #config #settings #model
+- **Claude Code harness adapter** [`nodes/map/map-claude-harness.md`] #harness #claude #hooks
 - **kb-capture.mjs (capture hook)** [`nodes/map/map-capture-hook.md`] #hooks #capture
 - **kb-session-start.mjs (consume hook)** [`nodes/map/map-session-start-hook.md`] #hooks #consume #sessionstart #index
+- **.state/bootstrap-state.json (per-doc hash cache)** [`nodes/map/map-bootstrap-state-file.md`] #bootstrap #hash #state #schema
+- **Codex CLI harness adapter** [`nodes/map/map-codex-harness.md`] #harness #codex #hooks
+- **config.yaml (project settings)** [`nodes/map/map-config-yaml.md`] #config #settings #model
+- **Cursor harness adapter** [`nodes/map/map-cursor-harness-adapter.md`] #harness #cursor #hooks
 - **nodes/ directory and the two kinds** [`nodes/map/map-nodes-directory.md`] #nodes #practice #map #frontmatter #schema
+- **OpenCode harness adapter** [`nodes/map/map-opencode-harness.md`] #harness #opencode #hooks #plugin
 - **Session log (_sessions/*.md)** [`nodes/map/map-session-log.md`] #session #capture #state #schema
 - **.ai/knowledge-base/ directory layout** [`nodes/map/map-knowledge-base-directory.md`] #layout #state #directory
-- **Claude Code harness adapter** [`nodes/map/map-claude-harness.md`] #harness #claude #hooks
-- **Codex CLI harness adapter** [`nodes/map/map-codex-harness.md`] #harness #codex #hooks
-- **Cursor harness adapter** [`nodes/map/map-cursor-harness-adapter.md`] #harness #cursor #hooks
 - **nodes_hash algorithm** [`nodes/map/map-nodes-hash.md`] #hash #deterministic #sha256
-- **OpenCode harness adapter** [`nodes/map/map-opencode-harness.md`] #harness #opencode #hooks #plugin
 - **Proposal candidate schema** [`nodes/map/map-proposal-candidate-schema.md`] #schema #proposal #candidate
 - **.state/state.json (lock + nudge state)** [`nodes/map/map-state-file.md`] #state #lock #schema
 - **@e0ipso/ai-knowledge-base npm package** [`nodes/map/map-ai-knowledge-base-package.md`] #overview #package #npm
+- **curate CLI conflict-resolution output message** [`nodes/map/map-curate-cli-conflict-resolution-output-message.md`] #cli #curate #conflicts #output
 - **Hook build pipeline: TS sources to deployed .cjs bundles** [`nodes/map/map-hook-build-pipeline-ts-to-cjs.md`] #build #hooks #tsup #templates #cjs
 
 ## By topic
 
-- **#hooks (9):** kb-proposal-drain.mjs (extraction hook), CLI launchers must set KB_BUILDER_INTERNAL=1 on the harness child, kb-capture.mjs (capture hook), kb-session-start.mjs (consume hook), Claude Code harness adapter, Codex CLI harness adapter, Cursor harness adapter, OpenCode harness adapter, Hook build pipeline: TS sources to deployed .cjs bundles
-- **#schema (9):** Curator action (add / modify / contradict / drop), Node frontmatter schema, Conflict files (conflicts/<run-id>-<n>.md), .state/bootstrap-state.json (per-doc hash cache), nodes/ directory and the two kinds, Session log (_sessions/*.md), Proposal candidate schema, .state/state.json (lock + nudge state), Strict schema-version bump policy: no migrators
+- **#hooks (10):** kb-proposal-drain (extraction hook), Claude Code harness adapter, kb-capture.mjs (capture hook), kb-session-start.mjs (consume hook), CLI launchers must set KB_BUILDER_INTERNAL=1 on the harness child, Codex CLI harness adapter, Cursor harness adapter, OpenCode harness adapter, Hook build pipeline: TS sources to deployed .cjs bundles, Hook status messages include KB prefix after emoji
+- **#schema (9):** Conflict files (conflicts/<run-id>-<n>.md), Curator action (add / modify / contradict / drop), Node frontmatter schema, .state/bootstrap-state.json (per-doc hash cache), nodes/ directory and the two kinds, Session log (_sessions/*.md), Proposal candidate schema, .state/state.json (lock + nudge state), Strict schema-version bump policy: no migrators
 - **#harness (7):** Harness adapter, Claude Code harness adapter, Codex CLI harness adapter, Cursor harness adapter, OpenCode harness adapter, Don't translate event names across harness adapters, Pass --harness explicitly outside an active harness session
 - **#bootstrap (6):** bootstrap-incremental (CLI), /kb-bootstrap skill, .state/bootstrap-state.json (per-doc hash cache), Bootstrap never overwrites existing nodes, Bootstrap is supervised and judgmental, not exhaustive, Default bootstrap nodes to confidence: medium
-- **#curator (4):** Curator action (add / modify / contradict / drop), Conflict files (conflicts/<run-id>-<n>.md), Curator never auto-resolves contradictions, Curator drops non-productive and change-oriented candidates
+- **#cli (6):** curate (CLI command + /kb-curate skill), bootstrap-incremental (CLI), Pass --harness explicitly outside an active harness session, Curate CLI conflict output names the three resolution outcomes, curate CLI conflict-resolution output message, Inside the ai-knowledge-base source repo, run the CLI from dist/, not via npx
+- **#conflicts (4):** Conflict files (conflicts/<run-id>-<n>.md), Curator never auto-resolves contradictions, Curate CLI conflict output names the three resolution outcomes, curate CLI conflict-resolution output message
+- **#curator (4):** Conflict files (conflicts/<run-id>-<n>.md), Curator action (add / modify / contradict / drop), Curator never auto-resolves contradictions, Curator drops non-productive and change-oriented candidates
 - **#deterministic (4):** bootstrap-incremental (CLI), INDEX.md, GRAPH.md, nodes_hash algorithm
 - **#nodes (4):** Node frontmatter schema, nodes/ directory and the two kinds, Bootstrap never overwrites existing nodes, Node naming: id, filename, and kind must agree
 - **#state (4):** .state/bootstrap-state.json (per-doc hash cache), Session log (_sessions/*.md), .ai/knowledge-base/ directory layout, .state/state.json (lock + nudge state)
 - **#adapter (3):** Harness adapter, Don't translate event names across harness adapters, Adapters never reach into each other's directories
-- **#cli (3):** bootstrap-incremental (CLI), curate (CLI command + /kb-curate skill), Pass --harness explicitly outside an active harness session
+- **#claude (3):** Harness adapter, kb-proposal-drain (extraction hook), Claude Code harness adapter
 - **#codex (3):** Harness adapter, Codex CLI harness adapter, Pass --harness explicitly outside an active harness session
 - **#cursor (3):** Harness adapter, Cursor harness adapter, Pass --harness explicitly outside an active harness session
 - **#opencode (3):** Harness adapter, OpenCode harness adapter, Pass --harness explicitly outside an active harness session
@@ -76,23 +83,27 @@ _45 nodes • ~16332 estimated tokens_
 - **#architecture (2):** Harness adapter, Adapters never reach into each other's directories
 - **#calibration (2):** Curator drops non-productive and change-oriented candidates, Default bootstrap nodes to confidence: medium
 - **#capture (2):** kb-capture.mjs (capture hook), Session log (_sessions/*.md)
-- **#claude (2):** Harness adapter, Claude Code harness adapter
-- **#conflicts (2):** Conflict files (conflicts/<run-id>-<n>.md), Curator never auto-resolves contradictions
+- **#curate (2):** curate (CLI command + /kb-curate skill), curate CLI conflict-resolution output message
 - **#frontmatter (2):** Node frontmatter schema, nodes/ directory and the two kinds
 - **#git (2):** Conventional Commits drive semantic-release, Review node changes via git
 - **#hash (2):** .state/bootstrap-state.json (per-doc hash cache), nodes_hash algorithm
 - **#index (2):** INDEX.md, kb-session-start.mjs (consume hook)
-- **#llm (2):** kb-proposal-drain.mjs (extraction hook), Don't run curate or bootstrap-incremental in CI
+- **#kb-curate (2):** Curate CLI conflict output names the three resolution outcomes, Inside the ai-knowledge-base source repo, run the CLI from dist/, not via npx
+- **#knowledge-base (2):** Curate CLI conflict output names the three resolution outcomes, Inside the ai-knowledge-base source repo, run the CLI from dist/, not via npx
+- **#llm (2):** kb-proposal-drain (extraction hook), Don't run curate or bootstrap-incremental in CI
 - **#sessionstart (2):** INDEX.md, kb-session-start.mjs (consume hook)
 - **#skill (2):** curate (CLI command + /kb-curate skill), /kb-bootstrap skill
+- **#ux (2):** Curate CLI conflict output names the three resolution outcomes, Hook status messages include KB prefix after emoji
 - **#versioning (2):** Bump the prompt's Version comment on every behavior change, Strict schema-version bump policy: no migrators
 - **#workflow (2):** Don't run curate or bootstrap-incremental in CI, Review node changes via git
 - **#action (1):** Curator action (add / modify / contradict / drop)
 - **#agent (1):** /kb-bootstrap skill
 - **#ai-detection (1):** No em dashes anywhere in the project
 - **#anti-pattern (1):** Curator drops non-productive and change-oriented candidates
-- **#async (1):** kb-proposal-drain.mjs (extraction hook)
+- **#assumptions (1):** Do not justify scope decisions by current-snapshot file contents
+- **#async (1):** kb-proposal-drain (extraction hook)
 - **#audit (1):** Bump the prompt's Version comment on every behavior change
+- **#billing (1):** kb-proposal-drain (extraction hook)
 - **#breaking-change (1):** Strict schema-version bump policy: no migrators
 - **#build (1):** Hook build pipeline: TS sources to deployed .cjs bundles
 - **#candidate (1):** Proposal candidate schema
@@ -102,13 +113,12 @@ _45 nodes • ~16332 estimated tokens_
 - **#config (1):** config.yaml (project settings)
 - **#consume (1):** kb-session-start.mjs (consume hook)
 - **#conventional-commits (1):** Conventional Commits drive semantic-release
-- **#curate (1):** curate (CLI command + /kb-curate skill)
 - **#customization (1):** Local prompt overrides fall back to bundled templates
 - **#determinism (1):** Determinism contract for INDEX/GRAPH generation
 - **#directory (1):** .ai/knowledge-base/ directory layout
 - **#env (1):** CLI launchers must set KB_BUILDER_INTERNAL=1 on the harness child
 - **#events (1):** Don't translate event names across harness adapters
-- **#extraction (1):** kb-proposal-drain.mjs (extraction hook)
+- **#extraction (1):** kb-proposal-drain (extraction hook)
 - **#graph (1):** GRAPH.md
 - **#human-in-the-loop (1):** Curator never auto-resolves contradictions
 - **#indexing (1):** Determinism contract for INDEX/GRAPH generation
@@ -119,9 +129,12 @@ _45 nodes • ~16332 estimated tokens_
 - **#lint (1):** Node naming: id, filename, and kind must agree
 - **#lock (1):** .state/state.json (lock + nudge state)
 - **#map (1):** nodes/ directory and the two kinds
+- **#messaging (1):** Hook status messages include KB prefix after emoji
 - **#model (1):** config.yaml (project settings)
 - **#naming (1):** Node naming: id, filename, and kind must agree
 - **#npm (1):** @e0ipso/ai-knowledge-base npm package
+- **#npx (1):** Inside the ai-knowledge-base source repo, run the CLI from dist/, not via npx
+- **#output (1):** curate CLI conflict-resolution output message
 - **#override (1):** Local prompt overrides fall back to bundled templates
 - **#overview (1):** @e0ipso/ai-knowledge-base npm package
 - **#package (1):** @e0ipso/ai-knowledge-base npm package
@@ -130,6 +143,7 @@ _45 nodes • ~16332 estimated tokens_
 - **#proposal (1):** Proposal candidate schema
 - **#recursion (1):** CLI launchers must set KB_BUILDER_INTERNAL=1 on the harness child
 - **#release (1):** Conventional Commits drive semantic-release
+- **#repo-local (1):** Inside the ai-knowledge-base source repo, run the CLI from dist/, not via npx
 - **#review (1):** Review node changes via git
 - **#safety (1):** Bootstrap never overwrites existing nodes
 - **#sampling (1):** Bootstrap is supervised and judgmental, not exhaustive
@@ -142,4 +156,6 @@ _45 nodes • ~16332 estimated tokens_
 - **#templates (1):** Hook build pipeline: TS sources to deployed .cjs bundles
 - **#testing (1):** Determinism contract for INDEX/GRAPH generation
 - **#tsup (1):** Hook build pipeline: TS sources to deployed .cjs bundles
+- **#verification (1):** Do not justify scope decisions by current-snapshot file contents
 - **#writing (1):** No em dashes anywhere in the project
+- **#yagni (1):** Do not justify scope decisions by current-snapshot file contents

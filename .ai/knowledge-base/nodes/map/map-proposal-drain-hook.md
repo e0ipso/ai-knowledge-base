@@ -1,9 +1,9 @@
 ---
 schema_version: 1
 id: map-proposal-drain-hook
-title: "kb-proposal-drain.mjs (extraction hook)"
+title: "kb-proposal-drain (extraction hook)"
 kind: map
-tags: [hooks, extraction, llm, async]
+tags: [hooks, extraction, llm, async, claude, billing]
 derived_from:
   - docs/internals/hooks.md
   - docs/internals/architecture.md
@@ -11,23 +11,30 @@ relates_to:
   - map-session-log
   - map-proposal-candidate-schema
   - practice-recursion-guard-kb-builder-internal
+  - map-curate-command
+  - map-claude-harness
+  - map-codex-harness
+  - map-cursor-harness-adapter
+  - map-opencode-harness
 depends_on: []
 confidence: high
-summary: "Async SessionStart hook; sweeps pending _sessions/, spawns claude -p per log, populates proposals.{practice,map} and topics."
+summary: "Async SessionStart hook that sweeps pending _sessions/ and extracts proposals; the Claude adapter's hook is intentionally a no-op -- extraction runs inline during /kb-curate instead."
 ---
 
-# `kb-proposal-drain.mjs` (extraction hook)
+# `kb-proposal-drain` (extraction hook)
 
-Asynchronous hook fired on `SessionStart`. Pipeline:
+Asynchronous hook fired on `SessionStart`. Pipeline for Codex, Cursor, and OpenCode adapters:
 
 1. Recursion guard: exit if `KB_BUILDER_INTERNAL=1`.
 2. Acquire the `proposal-drain` lock in `state.json` (PID + 30-min TTL). Stale locks are reclaimed.
 3. Load the prompt: local override at `.ai/knowledge-base/.config/prompts/proposal-extract.md` first, bundled fallback otherwise.
 4. Sweep `_sessions/*.md` for frontmatter with `proposal_status: pending` and process each one.
-5. Per log: spawn `claude -p --output-format stream-json --verbose`, stream to `_logs/proposal/<session-id>__<ts>.jsonl`, parse the final `result`, validate against `ProposalOutputSchema`.
+5. Per log: spawn the adapter's headless runner (e.g. `codex exec`, `agent -p`, `opencode run`), stream to `_logs/proposal/<session-id>__<ts>.jsonl`, parse the final `result`, validate against `ProposalOutputSchema`.
 6. On success: update the session-log frontmatter with `proposal_status: done`, populated `proposals.{practice,map}`, and a deduped `topics` array.
-7. On failure: write `proposal_status: failed` with `proposal_error`. The drain does **not** retry — schema-mismatch, timeout, and bad-JSON failures do not heal on retry.
+7. On failure: write `proposal_status: failed` with `proposal_error`. The drain does **not** retry.
 
 To force re-extraction of a `failed` entry, set its `proposal_status` back to `pending` and clear `proposal_error`; the next drain sweep picks it up.
 
-Per-spawn model selection: reads `proposalModel: { name, effort }` from `config.yaml`; when set, passes `--model <name> --effort <effort>` to `claude -p`. When absent, both flags are omitted and the user's `claude` CLI default applies.
+**Claude adapter exception:** The Claude adapter's `kb-proposal-drain` hook is intentionally a no-op -- its `main()` only runs the recursion guard and returns immediately. The reason is billing: `claude -p` consumes the same Max plan tokens or API credits as an interactive `claude` session, so spawning a background child for proposal extraction would silently cost the user money. Instead, proposal extraction runs inline during the `/kb-curate` skill, where the user is already paying for the context window.
+
+Per-spawn model selection (non-Claude adapters): reads `proposalModel: { name, effort }` from `config.yaml`; when set, passes the appropriate model/effort flags to the headless runner. When absent, the runner's default applies.
