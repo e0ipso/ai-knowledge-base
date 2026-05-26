@@ -2,6 +2,7 @@ import { cpSync, existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync
 import { join } from 'node:path';
 import { refreshClaudeTemplates } from '../harnesses/claude/install.js';
 import { getHarness, hasHarness, listHarnessIds } from '../harnesses/registry.js';
+import { copyTree } from '../lib/fs-atomic.js';
 import { log } from '../lib/log.js';
 import { findRepoRoot, packageTemplatesDir, repoPaths } from '../lib/paths.js';
 import { ensureKbignore } from '../lib/kbignore-stub.js';
@@ -206,11 +207,6 @@ function writeInstalledVersion(file: string, stateDir: string, harnesses: string
   writeFileSync(file, `${JSON.stringify(installed, null, 2)}\n`);
 }
 
-function copyTree(src: string, dest: string): void {
-  if (!existsSync(src)) return;
-  mkdirSync(dest, { recursive: true });
-  cpSync(src, dest, { recursive: true, force: true });
-}
 
 function updateGitignore(file: string): void {
   const existing = existsSync(file) ? readFileSync(file, 'utf8') : '';
