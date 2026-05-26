@@ -19,6 +19,6 @@
 # terminal). Skills and hooks always resolve via env detection or
 # the explicit `--harness <id>` flag and ignore this setting.
 schema_version: 1
-curationThreshold: 5
+curationThreshold: 20
 logsRetentionDays: 30
 lintEveryNSessions: 50

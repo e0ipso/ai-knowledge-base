@@ -11,7 +11,7 @@ export type ModelChoiceRole = 'proposal' | 'curator' | 'bootstrap';
  * Documented defaults for the user-facing settings.
  */
 export const SETTINGS_DEFAULTS = {
-  curationThreshold: 5,
+  curationThreshold: 20,
   logsRetentionDays: 30,
   lintEveryNSessions: 50,
 } as const;

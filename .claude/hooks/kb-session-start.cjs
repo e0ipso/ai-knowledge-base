@@ -10572,7 +10572,7 @@ var jsYaml = {
 
 // src/lib/settings.ts
 var SETTINGS_DEFAULTS = {
-  curationThreshold: 5,
+  curationThreshold: 20,
   logsRetentionDays: 30,
   lintEveryNSessions: 50
 };
