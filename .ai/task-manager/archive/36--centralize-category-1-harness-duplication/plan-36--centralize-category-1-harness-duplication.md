@@ -209,3 +209,25 @@ All three tasks have zero dependencies and operate on disjoint file sets — the
 ### Execution Summary
 - Total Phases: 1
 - Total Tasks: 3
+
+## Execution Summary
+
+**Status**: Completed Successfully
+**Completed Date**: 2026-05-26
+
+### Results
+Extracted 5 groups of duplicated functions from harness adapters into shared `src/lib/` modules. Net reduction of 349 lines from `src/harnesses/` (4807 → 4458) with zero behavioral changes. Also cleaned up one additional `copyTree` duplicate discovered in `src/commands/init.ts` during post-execution review.
+
+- `readStdin()` → new `src/lib/stdin.ts` (15 copies eliminated)
+- `pickModelChoice()` + `ModelChoiceRole` → `src/lib/settings.ts` (4 copies eliminated)
+- `loadProposalPrompt()` → `src/lib/proposal-drain.ts` (3 copies eliminated)
+- `copyTree()` → `src/lib/fs-atomic.ts` (4+1 copies eliminated)
+- `*Paths()`/`*Locations()` unified per harness (4 doctor.ts copies eliminated)
+
+### Noteworthy Events
+- `ModelChoiceRole` type was in `src/harnesses/types.ts`, not `src/lib/settings.ts` as the plan assumed. Moved it to `settings.ts` with a re-export from `types.ts` to avoid breaking the `HarnessAdapter` interface contract.
+- `src/commands/init.ts` contained a 6th identical `copyTree()` copy not in the original harness drift report. Cleaned up during post-execution tech debt review.
+- `session-log-update-proposals.ts` has a `readStdin()` with a different implementation (TTY check, string-based) — intentionally left alone as it is not a duplicate.
+
+### Necessary follow-ups
+- Category 2 (partially centralizable) and Category 3 (bugs from incomplete propagation) from the harness drift report remain unaddressed — they are explicitly out of scope for this plan.
