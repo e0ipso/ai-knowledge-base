@@ -3,7 +3,7 @@ name: kb-bootstrap
 description: First-time bootstrap of the project knowledge base from existing markdown documentation. Surveys docs, follows cross-references, and writes new node files directly under `.ai/knowledge-base/nodes/`. Supervised by the user, who reviews each node on disk before accepting or deleting it. Use when the user wants to seed an empty knowledge base from the project's existing docs.
 ---
 
-<!-- Version: 3 -->
+<!-- Version: 1 -->
 
 # kb-bootstrap
 
@@ -148,6 +148,11 @@ When a piece of content has both aspects (e.g. "Use bravo_analytics.dispatcher, 
 - Boilerplate paragraphs inside otherwise-useful docs (standard license preamble, generic CI badges).
 - General programming knowledge that's not project-specific (Drupal/React/Django basics).
 - Aspirational TODOs and "we should eventually" content.
+- Maintenance or lifecycle actions and project history: version bumps, deprecations, release notes, dependency updates, rebuilds, changelog narration. Record the current state, not the act that produced it.
+- **Any content that references a plan, ticket, issue, work-order, or task id** (e.g. "Plan 96 …"): a red flag for story or history that belongs in git, not the KB.
+- Incidental facts a doc records about a one-off fix ("first publish needed a token") and dresses up as a convention. Capture only rules the project deliberately and repeatedly follows.
+
+The keep test for every candidate: would this still be a deliberate operating principle, or a current structural fact, six months from now - independent of the activity that surfaced it? If it only makes sense as a record of something that happened, skip it.
 
 ### 6. Draft each node body, then persist via `node write`
 

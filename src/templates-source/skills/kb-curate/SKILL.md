@@ -3,7 +3,7 @@ name: kb-curate
 description: Curate pending session logs into knowledge-base nodes by reading sessions in-host, drafting curator actions, then deduping and persisting via the ai-knowledge-base primitives. Resolves any surfaced contradictions interactively with the user. Use when the user wants to process accumulated session captures, or when the SessionStart nudge reports pending session logs.
 ---
 
-<!-- Version: 5 -->
+<!-- Version: 1 -->
 
 # kb-curate
 
@@ -160,7 +160,7 @@ Each sub-agent receives instructions like the following (inline the rule restate
 >     - **add**: candidate is genuinely new; no existing node already covers its scope. `target_node_id: null`.
 >     - **modify**: an existing node covers the same scope and the candidate refines it without negating it; verify `target_node_id` exists on disk first; rewrite the merged body in present-tense end-state (no "previously…" prose).
 >     - **contradict**: candidate directly negates an existing valid node (both cannot be true at the same scope); set `target_node_id` to the tightest-scope match.
->     - **drop**: near-rephrasing, low-signal, general programming knowledge, change-oriented framing, or non-productive provenance signals; `target_node_id: null`, `proposed_node: null`.
+>     - **drop**: near-rephrasing, low-signal, general programming knowledge, change-oriented framing, maintenance/lifecycle actions, project story or any plan/ticket/issue reference, incidental one-off facts dressed up as practices, or non-productive provenance signals; `target_node_id: null`, `proposed_node: null`.
 > - Hard constraints: never cross the practice/map boundary; `proposed_node` keys are exactly `title|kind|tags|summary|body|confidence|relates_to` (any other key will be rejected downstream).
 > - Write the actions as a JSON array (top-level) to the absolute path `<DRAFT_PATH>`. The file must contain exactly the JSON array, nothing else.
 > - Return the path on success.
@@ -262,6 +262,9 @@ Use when the candidate should not result in any change. Reasons to drop:
 - The candidate captured general programming knowledge, not project-specific.
 - The candidate is internally inconsistent or refers to things that don't exist elsewhere.
 - **Change-oriented framing** — transition narratives, migration stories, rename or removal logs, "we used to do X, now we do Y" wording. Automatic drop regardless of confidence. The KB describes the project's current end state, not its history.
+- **Maintenance or lifecycle actions** — version bumps, deprecations, releases, dependency updates, rebuilds, changelog edits ("we deprecated the old npm package"). The KB records the current state, not the act that produced it. Automatic drop.
+- **Project story or history, especially plan/ticket/issue references** — a candidate that names or links a plan, ticket, issue, work-order, or task id (e.g. "Plan 96 wire and fix serve UI interactions") is a red flag and an automatic drop. That history belongs in git, not the KB.
+- **Incidental facts disguised as practices** — a fact hit once while fixing a one-off problem, framed as a convention ("first publish requires a token"). A real practice is a rule the project deliberately and repeatedly follows; drop unless it is genuinely a standing principle.
 - **Non-productive provenance signals** in the candidate body or summary:
   - hedged/tentative wording ("we might", "we could", "potentially", "the idea is to"). Practice nodes describe rules, not hypotheses.
   - references to hypothetical or unrealized entities ("the planned X", "once we add Z"). Map nodes describe what is.
@@ -270,7 +273,7 @@ Use when the candidate should not result in any change. Reasons to drop:
 
   Weigh these together; drop when the combined signature suggests a non-productive session. Single-signal cases do not auto-drop.
 
-**Salvage rule for change-oriented candidates.** When a candidate narrates a transition but also conveys a clean end-state claim (e.g. "we renamed `foo_service` to `bar_service`" plus "the service that fans out tracking events is `bar_service`"), extract that end-state claim and keep it via `add` or `modify`, rewritten in present tense. When the entire candidate is the journey, drop the whole thing.
+**Salvage rule for change-oriented, action, and story candidates.** When a candidate narrates a transition, a maintenance action, or project story but also conveys a clean durable principle or current-state fact (e.g. "we renamed `foo_service` to `bar_service`" plus "the service that fans out tracking events is `bar_service`"), extract that durable part and keep it via `add` or `modify`, rewritten as a standing rule or present-tense fact. When the entire candidate is the journey, the activity, or the history, drop the whole thing. The keep test: would this still be a deliberate operating principle or a current structural fact six months from now, independent of the activity that surfaced it?
 
 ### Constraints (apply to every action)
 

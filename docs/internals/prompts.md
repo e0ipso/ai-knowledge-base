@@ -8,14 +8,14 @@ nav_order: 4
 
 The KB's LLM work runs in two places:
 
-1. The **proposal-drain hook** spawns a headless `claude -p` to convert each captured session log into a structured proposal. It loads its prompt from a local override path, falling back to the bundled template. Edit the file under `.ai/knowledge-base/.config/prompts/proposal-extract.md` to customize, delete it to revert.
+1. The **proposal-drain hook** spawns the active harness's headless driver to convert each captured session log into a structured proposal (on the Claude adapter it is a no-op — extraction runs inline during `/kb-curate`). It loads its prompt from a local override path, falling back to the bundled template. Edit the file under `.ai/knowledge-base/.config/prompts/proposal-extract.md` to customize, delete it to revert.
 2. The **kb-bootstrap, kb-curate, and kb-add skills** run inside the host harness session (launched via `<harness> -p "/kb-<name>"` or invoked directly from a session). Their prompts live with the skill, not in a separate prompt file: edit `.claude/skills/kb-<name>/SKILL.md` (and the equivalent under `.codex/`, `.cursor/`, `.opencode/`) to customize.
 
 Bump the top-of-file `Version: N` comment on every behavior change; logs record the prompt content so historic decisions stay auditable.
 
 ## Where each prompt lives
 
-- **`proposal-extract.md`** (v2 in the bundled template): drives the async proposal-drain hook to convert a redacted transcript into structured practice and map candidates. Spawned by `kb-proposal-drain` as a `claude -p` subprocess.
+- **`proposal-extract.md`** (v1 in the bundled template): drives the async proposal-drain hook to convert a redacted transcript into structured practice and map candidates. Run by `kb-proposal-drain` via the active harness's headless driver.
 - **`kb-curate/SKILL.md`**: the curate skill's canonical prompt. Reads pending session logs, drafts add/modify/contradict/drop actions in-session, hands the merged set to `curate-dedup`, walks contradictions with the user. There is no separate `curator.md` prompt file anymore. The curator logic that used to be spawned as a sub-agent is now the skill prompt.
 - **`kb-bootstrap/SKILL.md`**: the bootstrap skill's canonical prompt. Enumerates source markdown via `finddocs`, drafts node bodies inline, persists via `node write`. There is no separate `bootstrap-incremental.md` prompt file anymore.
 - **`kb-add/SKILL.md`**: the manual-add skill's canonical prompt. Conversationally gathers fields, persists via `node write`.
@@ -31,11 +31,11 @@ The skill source under `src/templates-source/skills/kb-<name>/SKILL.md` is the s
 
 ## Pipeline overview
 
-The KB's prompts form the knowledge-acquisition pipeline. Two extractors emit candidate nodes: the **proposal extractor** (the `proposal-extract.md` prompt, spawned as a `claude -p` subprocess by the proposal-drain hook) for live sessions, and the **bootstrap skill** (`kb-bootstrap/SKILL.md`, running in the host harness session) for existing docs. The **curator skill** (`kb-curate/SKILL.md`, also running in the host harness session) decides what becomes a file on disk. The diagram below shows the gates, filters, and decisions inside each prompt.
+The KB's prompts form the knowledge-acquisition pipeline. Two extractors emit candidate nodes: the **proposal extractor** (the `proposal-extract.md` prompt, run via the active harness's headless driver by the proposal-drain hook) for live sessions, and the **bootstrap skill** (`kb-bootstrap/SKILL.md`, running in the host harness session) for existing docs. The **curator skill** (`kb-curate/SKILL.md`, also running in the host harness session) decides what becomes a file on disk. The diagram below shows the gates, filters, and decisions inside each prompt.
 
 ```mermaid
 flowchart TB
-    subgraph proposal["Proposal extraction · proposal-extract.md v4"]
+    subgraph proposal["Proposal extraction · proposal-extract.md v1"]
         direction TB
         PI["Redacted transcript<br/>role-tagged USER / AGENT segments"]
         PG{"Session-disposition gate<br/>abandoned · exploratory<br/>unrelated · meta-only?"}
@@ -124,7 +124,7 @@ The biggest quality lever in capture. Controls what the extractor treats as wort
 
 1. **Version comment**.
 2. **What to extract** - practice/map definitions, trigger phrases.
-3. **What to skip** - typos, file reads, agent paraphrases, generic programming knowledge. Also: non-productive sessions (abandoned, exploratory, cursory, unrelated, meta-only) short-circuit to `{"practice": [], "map": []}` via the session-disposition gate at the top of the prompt; the gate fires when the session as a whole does not converge on durable knowledge.
+3. **What to skip** - typos, file reads, agent paraphrases, generic programming knowledge. Also: maintenance/lifecycle actions, project story or history (especially any reference to a plan, ticket, or issue), and incidental one-off facts dressed up as practices, via the durability filter (principles and facts, not actions or story). Also: non-productive sessions (abandoned, exploratory, cursory, unrelated, meta-only) short-circuit to `{"practice": [], "map": []}` via the session-disposition gate at the top of the prompt; the gate fires when the session as a whole does not converge on durable knowledge.
 4. **Ownership boundary** - how to split combined statements between practice and map.
 5. **Inline example** - a worked transcript with expected JSON.
 6. **Output schema** - must match `ProposalOutputSchema`.
@@ -138,7 +138,7 @@ Fixtures under `tests/fixtures/transcripts/`:
 - `routine-zero/` - a session with no teaching moments. Correct output is empty.
 - `bravo-insider/` - 4 practice + 3 map candidates. `expected.md` is the target.
 
-Mocked tests pin the schema; only real `claude -p` reveals prompt quality. Run the fixtures with the real CLI before shipping changes.
+Mocked tests pin the schema; only a real headless harness run reveals prompt quality. Run the fixtures with the real CLI before shipping changes.
 
 ### Schema
 
@@ -207,6 +207,7 @@ The skill applies actions via the deterministic `curate-dedup` and `node write` 
 - Suggesting a `suggested_resolution` value (it's ignored - the user picks via the kb-curate skill).
 - Crossing the practice/map boundary.
 - Change-oriented framing (transition narratives, migration stories, rename or removal logs): automatic drop regardless of confidence, unless a clean end-state claim can be salvaged.
+- Maintenance/lifecycle actions, project story or history (especially plan/ticket/issue references), and incidental one-off facts dressed up as practices: automatic drop, unless a durable operating principle or current-state fact can be salvaged.
 - Non-productive provenance signatures: candidates whose framing carries hedged wording, references to hypothetical entities, plan-scoped or task-scoped wording, or low-confidence-without-rationale are dropped. The curator weighs these signals together (not any single one in isolation) and treats a combined signature as evidence the candidate originated from an abandoned, exploratory, cursory, unrelated, or meta-only session that slipped the extractor's session-disposition gate.
 
 ## Bootstrap skill prompt
@@ -216,7 +217,7 @@ Controls what the kb-bootstrap skill treats as candidates from your source docs.
 ### Skill behavior
 
 1. **Discovery**: call `finddocs --from <scope> --with-hashes` to enumerate candidate markdown.
-2. **Per-doc loop**: for each surviving doc, `Read` it, decide whether it carries durable knowledge (skipping auto-generated reference, licenses, generic framework knowledge, aspirational TODOs), draft practice and map candidates inline, and persist via `node write --source-doc <relpath> --source-hash <sha256>` (which folds the hash into `bootstrap-state.json` in the same atomic transaction).
+2. **Per-doc loop**: for each surviving doc, `Read` it, decide whether it carries durable knowledge (skipping auto-generated reference, licenses, generic framework knowledge, aspirational TODOs, maintenance/lifecycle actions, project story or plan/ticket/issue references, and incidental one-off facts), draft practice and map candidates inline, and persist via `node write --source-doc <relpath> --source-hash <sha256>` (which folds the hash into `bootstrap-state.json` in the same atomic transaction).
 3. **Hash-aware skip**: before reading a doc, compare its `finddocs --with-hashes` digest against `bootstrap-state.json`. Skip on hit.
 4. **Finalize**: call `index rebuild` to regenerate `INDEX.md` and `GRAPH.md`.
 5. **Rules**: never invent facts, quote rationale verbatim, never overwrite an existing node.

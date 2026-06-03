@@ -1,8 +1,8 @@
 # Proposal Extraction Prompt
 
 <!--
-  Version: 4
-  Used by: kb-proposal-drain.cjs (via `claude -p`)
+  Version: 1
+  Used by: the kb-proposal-drain hook (via a headless harness session)
   Owner contract: produces the structured `proposals.practice` and `proposals.map` arrays
   for a session log. Must emit one JSON object on stdout as the final message.
 -->
@@ -124,6 +124,9 @@ Most of the transcript is not knowledge. Do not capture:
 - General programming knowledge (how to write a getter, what dependency injection is, how HTTP works).
 - Restatements of standard framework behavior that anyone reading the docs would know.
 - Anything that could be re-derived by reading the codebase.
+- Maintenance or lifecycle actions: version bumps, deprecations, releases, dependency updates, rebuilds, changelog edits. Record the current state, not the act that produced it.
+- Project story or history - and especially any reference to a plan, ticket, issue, work-order, or task id. That history belongs in git, not the KB.
+- Incidental facts the agent hit once while fixing a one-off problem but that read like a convention. A practice is a rule the project deliberately and repeatedly follows.
 
 The signal for capture is: **did the user have to teach the agent something the agent couldn't have known from the codebase or from general knowledge? Or did the user introduce a named thing that didn't exist in the project's vocabulary before?** Everything else is noise. When in doubt, skip.
 
@@ -143,6 +146,18 @@ Framing aid: **the rule's *scope*, not its *occasion*, decides task-specificity.
 ### Transition narratives (change-oriented framing)
 
 Even outside corrective signals, transcripts often contain change-oriented framing: "we used to do X", "this was renamed", "we removed the old service", "we migrated to Y". Treat a **transition narrative** as a transcript artifact, not as knowledge. The only retainable content in such a turn is the resulting end-state claim, extracted in present tense. If no clean end-state claim is present, drop the whole turn.
+
+### Durability filter: principles and facts, not actions or story
+
+The KB holds only **durable operating principles** and **current-state facts** the project deliberately maintains. Activities, events, and history are not knowledge, even when stated as plain fact. Drop a candidate when it is any of the following:
+
+- **Maintenance or lifecycle action.** Version bumps, deprecations, releases, dependency updates, rebuilds, changelog edits - "we deprecated the old npm package", "bumped the prompt to v5". Record the current state, never the act that produced it.
+- **Project story or history.** Narration of what was done. **Any reference to a plan, ticket, issue, work-order, or task id is a red flag** (for example "Plan 96 wire and fix serve UI interactions"): that history belongs in git, not the KB. A candidate that names or links such an artifact is almost always a drop.
+- **Incidental fact disguised as a practice.** A fact the agent happened to hit while fixing a one-off problem, dressed up as a convention - "first publish of an npm package requires a token". A real practice is a rule the project deliberately and repeatedly follows, not a circumstance encountered once.
+
+The keep test: *would this still be a deliberate operating principle, or a current structural fact, six months from now - independent of the activity that surfaced it?* If yes, keep it; if it only makes sense as a record of something that happened, drop it. Examples that pass: "e2e tests must use stable semantic selectors", "CodeMirror is code-split in the markdown editor page". Examples that fail: the three bullets above.
+
+This filter stacks with the end-state framing rule rather than replacing it. A transition narrative describes a *change* ("X became Y"); a maintenance action or story need not describe any change at all - it is simply an activity or an event. Both are out. When a candidate carries a clean durable principle or current-state fact alongside the action or story, keep only that part, rewritten as a standing rule or a present-tense fact.
 
 ---
 
@@ -270,7 +285,7 @@ Either array may be empty. Many sessions produce zero of one kind or both - that
 2. For each `[USER]:` turn, ask: is the user teaching the agent something project-specific, or stating a project convention/prohibition/rationale? If yes, that's a practice candidate.
 3. For each `[USER]:` or `[AGENT]:` turn, ask: does this introduce a named entity, feature, module, file location, or vocabulary term that someone unfamiliar with the project wouldn't know? If yes, that's a map candidate.
 4. Apply the ownership boundary: split combined statements into a practice piece and a map piece.
-5. Reject anything that fails the "could be derived from the codebase or general knowledge" test.
+5. Reject anything that fails the "could be derived from the codebase or general knowledge" test, plus anything that is a maintenance or lifecycle action, project story or history (especially plan/ticket/issue references), or an incidental one-off fact dressed up as a practice.
 6. Emit one final JSON object matching the schema above. No prose before or after the JSON.
 
 The transcript begins below.
