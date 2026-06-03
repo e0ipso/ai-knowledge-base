@@ -15,7 +15,7 @@ relates_to:
   - practice-dont-run-llm-pipelines-in-ci
 depends_on: []
 confidence: high
-summary: "Headless, hash-aware bootstrap from existing markdown docs. Spawns claude -p, batches docs in 20s, records SHA-256 in bootstrap-state.json."
+summary: "Headless, hash-aware bootstrap from existing markdown docs. Spawns the harness headless driver, batches docs in 20s, records SHA-256 in bootstrap-state.json."
 ---
 
 # `bootstrap-incremental` (CLI)
@@ -26,7 +26,7 @@ npx @e0ipso/ai-knowledge-base bootstrap-incremental --from <path> \
   [--dry-run] [--timeout <ms>]
 ```
 
-Deterministic, hash-aware bootstrap from existing markdown docs. Chunks candidate docs in batches of 20 and spawns `claude -p` to extract candidates. Records each doc's SHA-256 in `.ai/knowledge-base/.state/bootstrap-state.json`, so re-runs only reprocess docs that changed.
+Deterministic, hash-aware bootstrap from existing markdown docs. Chunks candidate docs in batches of 20 and spawns the harness's headless driver to extract candidates. Records each doc's SHA-256 in `.ai/knowledge-base/.state/bootstrap-state.json`, so re-runs only reprocess docs that changed.
 
 - `--include <glob>` / `--exclude <glob>` — scope which markdown to consider.
 - `--dry-run` — list what would be processed without calling the model.

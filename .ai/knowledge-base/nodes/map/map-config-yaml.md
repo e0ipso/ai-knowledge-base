@@ -39,7 +39,7 @@ Keys:
 
 ## Model and effort selection
 
-Three optional `{ name, effort }` objects pick the Claude model family and effort level for each `claude -p` subprocess. Both sub-keys are required when the object is present; when unset, neither flag is passed and the user's `claude` CLI default applies.
+Three optional `{ name, effort }` objects pick the model family and effort level for each headless-driver subprocess. Both sub-keys are required when the object is present; when unset, neither flag is passed and the harness CLI's default applies.
 
 ```yaml
 proposalModel: { name: haiku, effort: low }

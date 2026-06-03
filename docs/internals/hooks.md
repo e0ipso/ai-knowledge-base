@@ -20,7 +20,7 @@ The two `SessionStart` entries are independent; a failure in one doesn't block t
 
 ## Recursion guard
 
-All three hooks exit immediately if `KB_BUILDER_INTERNAL=1` is set. Two surfaces propagate this var onto the harness child they exec: the `proposal-drain` hook (when it spawns its `claude -p` extractor) and the CLI launchers (`bootstrap`, `curate`, `node add`, which exec `<harness> -p "/kb-<name>"`). Without the guard, the spawned session would fire its own SessionStart hooks and recurse. If you wrap the `claude` CLI, propagate `KB_BUILDER_INTERNAL=1` only into intentionally-internal subprocesses.
+All three hooks exit immediately if `KB_BUILDER_INTERNAL=1` is set. Two surfaces propagate this var onto the harness child they exec: the `proposal-drain` hook (when it spawns its headless extractor) and the CLI launchers (`bootstrap`, `curate`, `node add`, which exec `<harness> -p "/kb-<name>"`). Without the guard, the spawned session would fire its own SessionStart hooks and recurse. If you wrap a harness CLI, propagate `KB_BUILDER_INTERNAL=1` only into intentionally-internal subprocesses.
 
 ## `kb-capture.mjs` (capture)
 
@@ -54,7 +54,7 @@ Per `SessionStart`:
 2. Acquire the `proposal-drain` lock (PID + 30-min TTL). Stale locks reclaimed.
 3. Load the prompt (local override first, bundled fallback).
 4. Sweep `_sessions/*.md` for frontmatter with `proposal_status: pending` and process each entry.
-5. Per pending log: spawn `claude -p --output-format stream-json --verbose`, stream to `_logs/proposal/<session-id>__<ts>.jsonl`, parse the final `result`, validate against `ProposalOutputSchema`.
+5. Per pending log: spawn the active harness's headless driver in streaming-JSON mode, stream to `_logs/proposal/<session-id>__<ts>.jsonl`, parse the final `result`, validate against `ProposalOutputSchema`.
 6. On success: update frontmatter with `proposal_status: done`, populated `proposals.{practice,map}`, deduped `topics`.
 7. On failure: write `proposal_status: failed` with `proposal_error`. The failure modes here (timeout, schema mismatch, bad JSON) do not heal on retry, so the drain does not rotate them.
 

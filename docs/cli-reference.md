@@ -187,7 +187,7 @@ cliDefaultHarness: codex      # fallback when no --harness and no env detection
 
 ### Model + effort for the proposal drain (optional)
 
-The `proposal-drain` hook is the only surviving `claude -p` subprocess site after the launcher refactor: it still spawns a headless claude to convert each captured session log into a structured proposal. Its model and effort can be configured:
+The `proposal-drain` hook is the only surviving headless-subprocess site after the launcher refactor: it spawns the active harness's headless driver to convert each captured session log into a structured proposal (the Claude adapter excepted — there extraction runs inline during `/kb-curate`). Its model and effort can be configured:
 
 ```yaml
 proposalModel: { name: haiku, effort: low }

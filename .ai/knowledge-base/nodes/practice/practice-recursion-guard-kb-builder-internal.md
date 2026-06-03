@@ -21,7 +21,7 @@ summary: "The CLI launchers (bootstrap, curate, node add) and the proposal-drain
 All three KB hooks (`kb-capture.mjs`, `kb-proposal-drain.mjs`, `kb-session-start.mjs`) exit immediately when the env var `KB_BUILDER_INTERNAL=1` is set on their process. Two CLI surfaces must propagate this var:
 
 - The **CLI launchers** (`bootstrap`, `curate`, `node add`) that exec `<harness> -p "/kb-<name>"`.
-- The **proposal-drain hook** that spawns a `claude -p` subprocess to extract candidates from a captured session.
+- The **proposal-drain hook** that spawns a headless harness subprocess to extract candidates from a captured session.
 
 Without the guard, a launcher's nested harness session would fire its own SessionStart hooks (capture nudge, proposal drain) and recurse back into the CLI — unbounded.
 

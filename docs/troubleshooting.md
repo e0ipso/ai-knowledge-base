@@ -87,7 +87,7 @@ The alias is removed in the release after next. Update any scripts, CI workflows
 
 ## `bootstrap` now uses more context: what changed
 
-Previously, `bootstrap-incremental` spawned a fresh `claude -p` sub-agent per batch, so the host harness session paid almost no context cost. The current architecture runs the bootstrap skill **inside the host harness session**, so every candidate doc the skill reads counts against the host session's context window.
+Previously, `bootstrap-incremental` spawned a fresh headless sub-agent per batch, so the host harness session paid almost no context cost. The current architecture runs the bootstrap skill **inside the host harness session**, so every candidate doc the skill reads counts against the host session's context window.
 
 For small repos this is invisible. For large doc trees (a monorepo with hundreds of markdown files) this can force a host-side compaction mid-run, or in extreme cases exhaust the model's effective window.
 

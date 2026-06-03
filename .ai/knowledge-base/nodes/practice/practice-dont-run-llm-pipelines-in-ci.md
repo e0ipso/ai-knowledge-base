@@ -19,7 +19,7 @@ summary: "Both spawn the model and produce changes to nodes/ that still need hum
 
 CI's job is to validate that what's committed is well-formed, not to run the LLM pipelines.
 
-**Why:** `curate` and `bootstrap-incremental` both spawn `claude -p` and write to `nodes/`. Running them in CI would produce node changes nobody reviewed, and the changes are non-deterministic. A reasonable CI check, by contrast, only validates that what's already committed is well-formed:
+**Why:** `curate` and `bootstrap-incremental` both run an LLM pipeline that writes to `nodes/`. Running them in CI would produce node changes nobody reviewed, and the changes are non-deterministic. A reasonable CI check, by contrast, only validates that what's already committed is well-formed:
 
 ```sh
 npx @e0ipso/ai-knowledge-base doctor --verbose

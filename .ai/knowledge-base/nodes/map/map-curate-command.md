@@ -23,7 +23,7 @@ summary: "Runs the curator on processed session logs. Applies add/modify/contrad
 npx @e0ipso/ai-knowledge-base curate [--batch-size <n>] [--timeout <ms>]
 ```
 
-Spawns `claude -p` under the hood, reads every session log that has been extracted (`proposal_status: done`) but not yet curated (no `curator_processed_at`), and applies the curator's decisions directly to `nodes/`:
+Execs the active harness against the `/kb-curate` skill (`<harness> -p "/kb-curate"`), reads every session log that has been extracted (`proposal_status: done`) but not yet curated (no `curator_processed_at`), and applies the curator's decisions directly to `nodes/`:
 
 - **add** → writes `nodes/<kind>/<id>.md`. Fails loud (recorded as `add_collision`) if the file already exists.
 - **modify** → overwrites `nodes/<kind>/<target_node_id>.md`. Fails loud (recorded as `modify_missing_target`) if the target is missing.
