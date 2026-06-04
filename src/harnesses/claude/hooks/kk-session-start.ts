@@ -51,7 +51,7 @@ async function main(): Promise<void> {
   if (!existsSync(paths.installedVersionFile)) return;
 
   try {
-    process.stderr.write('📖 kk Index: Loading knowledge base…\n');
+    process.stderr.write('📖 kenkeep Index: Loading knowledge base…\n');
     const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
     const result = buildSessionStartContext({
       kkDir: paths.kkDir,
@@ -62,8 +62,8 @@ async function main(): Promise<void> {
       threshold: settings.curationThreshold,
     });
     const statusLine = result.nudged
-      ? `🚨 kk curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates — run /kk-curate`
-      : `📋 kk queue: ${result.pendingSessions} pending session log(s), ${result.candidateCount} candidate(s)`;
+      ? `🚨 kenkeep curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates — run /kk-curate`
+      : `📋 kenkeep queue: ${result.pendingSessions} pending session log(s), ${result.candidateCount} candidate(s)`;
     process.stdout.write(
       `${JSON.stringify({
         systemMessage: statusLine,

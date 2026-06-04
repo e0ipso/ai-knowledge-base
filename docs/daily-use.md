@@ -62,7 +62,7 @@ The pre-commit hook regenerates `INDEX.md` and `GRAPH.md` and stages them into t
 
 ## The SessionStart nudge
 
-SessionStart counts pending session logs and, once the queue is worth your attention, appends a one-line nudge to the injected context and prints a visible warning to stderr. It escalates to a loud `🔔 kk curation queue is overdue` heading when the queue is large or stale (defaults: `threshold=5`, `staleDays=7`; loud fires at `pending >= 10` or `pending >= 5 && oldest >= 7d`).
+SessionStart counts pending session logs and, once the queue is worth your attention, appends a one-line nudge to the injected context and prints a visible warning to stderr. It escalates to a loud `🚨 kenkeep curation queue is overdue` heading when the queue is large or stale (defaults: `threshold=5`, `staleDays=7`; loud fires at `pending >= 10` or `pending >= 5 && oldest >= 7d`).
 
 ## Curate
 

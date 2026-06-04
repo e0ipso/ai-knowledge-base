@@ -193,7 +193,7 @@ describe('doctor: missing INDEX', () => {
       // Make it truly invalid (empty -> no frontmatter).
     }
     // Replace with no frontmatter so the freshness check warns.
-    writeFileSync(indexFile, '# kk Index\n');
+    writeFileSync(indexFile, '# kenkeep Index\n');
     const doc = await runCli(sandbox, ['doctor']);
     expect(doc.stdout + doc.stderr).toContain('INDEX.md');
   });

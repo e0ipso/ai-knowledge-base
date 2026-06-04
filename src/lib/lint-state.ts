@@ -44,7 +44,7 @@ export async function runLintTick(startCwd: string, harnessTag: string): Promise
       return;
     }
 
-    process.stderr.write('🔍 kk Lint: Running knowledge base lint…\n');
+    process.stderr.write('🔍 kenkeep Lint: Running knowledge base lint…\n');
     const result = runLint({ nodesDir: paths.nodesDir });
     writeLintState(stateFile, {
       schema_version: 1,
@@ -53,7 +53,7 @@ export async function runLintTick(startCwd: string, harnessTag: string): Promise
       last_errors: result.errors.length,
       last_findings: result.findings.length,
     });
-    process.stderr.write('🧹 kk Lint: Knowledge base lint complete.\n');
+    process.stderr.write('🧹 kenkeep Lint: Knowledge base lint complete.\n');
   } catch (err) {
     process.stderr.write(
       `${PACKAGE_TAG} lint tick error (${harnessTag}): ${err instanceof Error ? err.message : String(err)}\n`

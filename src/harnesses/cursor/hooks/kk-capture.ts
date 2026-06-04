@@ -78,12 +78,12 @@ async function main(): Promise<void> {
       ...(hookEvent ? { hook_event_name: hookEvent } : {}),
       cwd: startCwd,
     };
-    process.stderr.write('📸 kk Capture: Saving session transcript…\n');
+    process.stderr.write('📸 kenkeep Capture: Saving session transcript…\n');
     await captureSession(input, {
       sessionsDir: paths.sessionsDir,
       parseTranscript: parseCursorTranscript,
     });
-    process.stderr.write('💾 kk Capture: Session transcript saved.\n');
+    process.stderr.write('💾 kenkeep Capture: Session transcript saved.\n');
   } catch (err) {
     process.stderr.write(
       `${PACKAGE_TAG} capture error: ${err instanceof Error ? err.message : String(err)}\n`

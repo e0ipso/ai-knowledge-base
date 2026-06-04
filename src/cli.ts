@@ -55,7 +55,7 @@ async function main(): Promise<void> {
 
   program
     .command('status')
-    .description('Show pending session logs and kk stats.')
+    .description('Show pending session logs and kenkeep stats.')
     .action(async () => {
       await runStatus();
     });
@@ -72,7 +72,7 @@ async function main(): Promise<void> {
   program
     .command('lint')
     .description(
-      'Run mechanical kk content health checks (dangling edges, slug/id mismatch, tag duplicates, orphans).'
+      'Run mechanical kenkeep content health checks (dangling edges, slug/id mismatch, tag duplicates, orphans).'
     )
     .option('-v, --verbose', 'list every error and finding individually', false)
     .action(async (opts: { verbose: boolean }) => {

@@ -157,7 +157,7 @@ describe('buildSessionStartContext', () => {
       stateFile: harness.stateFile,
     });
     expect(result.indexMissing).toBe(true);
-    expect(result.additionalContext).toContain('# kk Index');
+    expect(result.additionalContext).toContain('# kenkeep Index');
     expect(result.additionalContext).toContain('empty');
   });
 
@@ -170,10 +170,10 @@ describe('buildSessionStartContext', () => {
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
     });
-    expect(result.additionalContext).toContain('kk nodes are snapshots in time');
+    expect(result.additionalContext).toContain('kenkeep nodes are snapshots in time');
   });
 
-  it('emits the kk navigation directive in the additional context payload', () => {
+  it('emits the kenkeep navigation directive in the additional context payload', () => {
     seedNode(harness, 'practice', 'practice-foo');
     writeIndexFromCurrentNodes(harness);
     const result = buildSessionStartContext({
@@ -198,7 +198,7 @@ describe('buildSessionStartContext', () => {
     expect(result.indexStale).toBe(false);
     expect(result.indexMissing).toBe(false);
     expect(result.additionalContext).toContain('practice-foo');
-    expect(result.additionalContext).not.toContain('kk index is stale');
+    expect(result.additionalContext).not.toContain('kenkeep index is stale');
     expect(result.additionalContext).not.toContain('pending session log');
   });
 
@@ -214,7 +214,7 @@ describe('buildSessionStartContext', () => {
       stateFile: harness.stateFile,
     });
     expect(result.indexStale).toBe(true);
-    expect(result.additionalContext).toContain('kk index is stale');
+    expect(result.additionalContext).toContain('kenkeep index is stale');
   });
 
   it('appends a nudge when pending >= threshold and updates last_nudged_at', () => {
@@ -263,7 +263,7 @@ describe('buildSessionStartContext', () => {
       now: () => new Date('2026-05-11T20:00:00Z'),
     });
     expect(result.nudged).toBe(true);
-    expect(result.additionalContext).not.toContain('kk curation queue is overdue');
+    expect(result.additionalContext).not.toContain('kenkeep curation queue is overdue');
     expect(result.additionalContext).toContain(
       `${DEFAULT_NUDGE_THRESHOLD} pending session log(s), ${DEFAULT_NUDGE_THRESHOLD * 2} candidate proposal(s), captured today`
     );
@@ -287,7 +287,7 @@ describe('buildSessionStartContext', () => {
       now: () => new Date('2026-05-11T10:00:00Z'),
     });
     expect(result.nudged).toBe(true);
-    expect(result.additionalContext).toContain('kk curation queue is overdue');
+    expect(result.additionalContext).toContain('kenkeep curation queue is overdue');
     expect(result.additionalContext).toContain('oldest pending: 8 day(s)');
     expect(result.additionalContext).toContain(
       `${DEFAULT_NUDGE_THRESHOLD} pending session log(s), ${DEFAULT_NUDGE_THRESHOLD * 2} candidate proposal(s)`
@@ -307,7 +307,7 @@ describe('buildSessionStartContext', () => {
       now: () => new Date('2026-05-11T20:00:00Z'),
     });
     expect(result.nudged).toBe(true);
-    expect(result.additionalContext).toContain('kk curation queue is overdue');
+    expect(result.additionalContext).toContain('kenkeep curation queue is overdue');
     expect(result.additionalContext).toContain('captured today');
     expect(result.additionalContext).toContain(
       `${DEFAULT_NUDGE_THRESHOLD * 2} pending session log(s)`
@@ -332,7 +332,7 @@ describe('buildSessionStartContext', () => {
     expect(result.additionalContext).toContain(
       `${DEFAULT_NUDGE_THRESHOLD} pending session log(s), ${DEFAULT_NUDGE_THRESHOLD} candidate proposal(s)`
     );
-    expect(result.additionalContext).not.toContain('kk curation queue is overdue');
+    expect(result.additionalContext).not.toContain('kenkeep curation queue is overdue');
   });
 });
 
@@ -415,7 +415,7 @@ describe('buildSessionStartContext lint nudge', () => {
       lintStateFile,
     });
     expect(result.lintNudged).toBe(false);
-    expect(result.additionalContext).not.toMatch(/Last kk lint/);
+    expect(result.additionalContext).not.toMatch(/Last kenkeep lint/);
   });
 
   it('appends a lint summary line and sets lintNudged when counts are non-zero', () => {
@@ -439,7 +439,7 @@ describe('buildSessionStartContext lint nudge', () => {
       lintStateFile,
     });
     expect(result.lintNudged).toBe(true);
-    expect(result.additionalContext).toMatch(/Last kk lint .* 2 error\(s\), 1 finding\(s\)/);
+    expect(result.additionalContext).toMatch(/Last kenkeep lint .* 2 error\(s\), 1 finding\(s\)/);
   });
 });
 
@@ -462,6 +462,6 @@ describe('buildSessionStartContext additionalContext shape', () => {
     });
     // The injected content is the body, no YAML frontmatter.
     expect(result.additionalContext.startsWith('---')).toBe(false);
-    expect(result.additionalContext).toContain('# kk Index');
+    expect(result.additionalContext).toContain('# kenkeep Index');
   });
 });

@@ -42,7 +42,7 @@ async function main(): Promise<void> {
   if (!existsSync(paths.installedVersionFile)) return;
 
   try {
-    process.stderr.write('📖 kk Index: Loading knowledge base…\n');
+    process.stderr.write('📖 kenkeep Index: Loading knowledge base…\n');
     const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
     const result = buildSessionStartContext({
       kkDir: paths.kkDir,
@@ -55,7 +55,7 @@ async function main(): Promise<void> {
     const { statusLine, content } = buildNudgeContent(result);
     process.stdout.write(JSON.stringify({ additionalContext: content }));
     process.stderr.write(`${statusLine}\n`);
-    process.stderr.write('🧠 kk Index: Knowledge base loaded.\n');
+    process.stderr.write('🧠 kenkeep Index: Knowledge base loaded.\n');
   } catch (err) {
     process.stderr.write(
       `${PACKAGE_TAG} session-start error: ${err instanceof Error ? err.message : String(err)}\n`

@@ -78,16 +78,16 @@ export function buildSessionStartContext(ctx: SessionStartContext): SessionStart
   lines.push(indexBody.trim());
   lines.push('');
   lines.push(
-    '> kk nodes are snapshots in time. Before acting on a node that names a specific file path, function, or flag, verify it still exists in the current tree. If the referenced entity is gone, prefer the live code; flag the stale node to the user.'
+    '> kenkeep nodes are snapshots in time. Before acting on a node that names a specific file path, function, or flag, verify it still exists in the current tree. If the referenced entity is gone, prefer the live code; flag the stale node to the user.'
   );
   lines.push('');
   lines.push(
-    '> kk navigation: consult the index above first, then `grep -C 2 <term> nodes/` for candidate slugs (the `-C 2` context surfaces the `summary:` frontmatter line), and only open full node bodies for confirmed matches.'
+    '> kenkeep navigation: consult the index above first, then `grep -C 2 <term> nodes/` for candidate slugs (the `-C 2` context surfaces the `summary:` frontmatter line), and only open full node bodies for confirmed matches.'
   );
   if (indexStale) {
     lines.push('');
     lines.push(
-      `> kk index is stale, run \`npx kenkeep index rebuild\` to refresh (live hash differs from INDEX.md \`nodes_hash\`).`
+      `> kenkeep index is stale, run \`npx kenkeep index rebuild\` to refresh (live hash differs from INDEX.md \`nodes_hash\`).`
     );
   }
   if (shouldNudge) {
@@ -97,7 +97,7 @@ export function buildSessionStartContext(ctx: SessionStartContext): SessionStart
       'Run `/kk-curate` (or `npx kenkeep curate`). Curation is simple; a mid-tier model at moderate effort is sufficient and cheaper.';
     lines.push('');
     if (loud) {
-      lines.push('> 🚨 kk curation queue is overdue');
+      lines.push('> 🚨 kenkeep curation queue is overdue');
       lines.push(
         `> ${pending} pending session log(s), ${summary.candidateCount} candidate proposal(s), ${oldestPhrase}`
       );
@@ -116,7 +116,7 @@ export function buildSessionStartContext(ctx: SessionStartContext): SessionStart
     if (lintState.last_errors > 0 || lintState.last_findings > 0) {
       lines.push('');
       lines.push(
-        `> Last kk lint ${lintState.last_lint_at}: ${lintState.last_errors} error(s), ${lintState.last_findings} finding(s). Run \`npx kenkeep lint --verbose\` for details.`
+        `> Last kenkeep lint ${lintState.last_lint_at}: ${lintState.last_errors} error(s), ${lintState.last_findings} finding(s). Run \`npx kenkeep lint --verbose\` for details.`
       );
       lintNudged = true;
     }
@@ -165,7 +165,7 @@ function loadIndex(kkDir: string): LoadedIndex {
 
 function stubIndex(): string {
   return [
-    '# kk Index',
+    '# kenkeep Index',
     '',
     '_The knowledge base is empty. Capture a session (the Stop hook fires automatically) or run `npx kenkeep node add` to seed it._',
   ].join('\n');
@@ -238,13 +238,13 @@ export function countPendingSessions(sessionsDir: string): number {
 
 export function buildNudgeContent(result: SessionStartResult): { statusLine: string; content: string } {
   const statusLine = result.nudged
-    ? `🚨 kk curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates — run /kk-curate`
-    : `📋 kk queue: ${result.pendingSessions} pending session log(s), ${result.candidateCount} candidate(s)`;
+    ? `🚨 kenkeep curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates — run /kk-curate`
+    : `📋 kenkeep queue: ${result.pendingSessions} pending session log(s), ${result.candidateCount} candidate(s)`;
   let content = statusLine + '\n\n' + result.additionalContext;
   if (result.nudged) {
     const box =
       '┌──────────────────────────────────────┐\n' +
-      '│ 🚨 kk curation is overdue            │\n' +
+      '│ 🚨 kenkeep curation is overdue       │\n' +
       '│ Run /kk-curate to process them.      │\n' +
       '└──────────────────────────────────────┘\n' +
       `${result.pendingSessions} pending session(s), ${result.candidateCount} candidate(s)`;
