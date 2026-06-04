@@ -1,6 +1,6 @@
 # AGENTS.md
 
-`kenkeep` — npm CLI that captures, curates, and re-injects per-repo knowledge from AI coding sessions for Claude Code, OpenAI Codex CLI, and OpenCode. TypeScript, Node 22+, ESM, bundled via `tsup`.
+`kenkeep` — npm CLI that captures, curates, and re-injects per-repo knowledge from AI coding sessions for Claude Code, OpenAI Codex CLI, Cursor, OpenCode, and GitHub Copilot CLI. TypeScript, Node 22+, ESM, bundled via `tsup`.
 
 Authoritative product spec: [PRD.md](PRD.md). Curated project knowledge: [.ai/kenkeep/INDEX.md](.ai/kenkeep/INDEX.md) — skim it before designing a non-trivial change.
 
@@ -38,7 +38,7 @@ src/
     types.ts              # HarnessAdapter contract
     registry.ts           # central adapter registry
     detect.ts             # env-based active-harness resolver
-    claude/ codex/ cursor/ opencode/
+    claude/ codex/ cursor/ opencode/ copilot/
   lib/                    # shared utilities, schemas, paths, logging
   templates-source/       # source for the shipped templates/ tree
     skills/               # SKILL.md files shared across all harnesses (kk-bootstrap, kk-curate, kk-add)
@@ -61,8 +61,8 @@ PRD.md                    # authoritative product spec
 
 - Each harness lives under `src/harnesses/<id>/` and implements `HarnessAdapter` from [`src/harnesses/types.ts`](src/harnesses/types.ts). Register it in [`src/harnesses/registry.ts`](src/harnesses/registry.ts). See [map-harness-adapter](.ai/kenkeep/nodes/map/map-harness-adapter.md).
 - **[Adapters never reach into each other's directories.](.ai/kenkeep/nodes/practice/practice-adapters-never-cross-directories.md)** Shared logic lives in `src/lib/`, `src/commands/`, or `src/templates-source/skills/`.
-- **[No event-name translation across adapters.](.ai/kenkeep/nodes/practice/practice-no-event-translation-across-adapters.md)** `HookEvent` is opaque `string`; each adapter declares the event names its runtime emits natively (Claude: `Stop`/`SessionEnd`/`PreCompact`; Codex: `Stop` only; OpenCode: `session.idle`/`session.created`). Do not introduce a global enum.
-- Adapters with per-event shell hooks use `paths(root).hooksDir`. Adapters with a long-lived plugin module (OpenCode) use `pluginsDir`; the build pipeline auto-detects a sibling `plugins/` source dir and renames hook output to `kk-hooks/` to avoid the runtime-reserved `.opencode/hooks/`. See [map-opencode-harness](.ai/kenkeep/nodes/map/map-opencode-harness.md).
+- **[No event-name translation across adapters.](.ai/kenkeep/nodes/practice/practice-no-event-translation-across-adapters.md)** `HookEvent` is opaque `string`; each adapter declares the event names its runtime emits natively (Claude: `Stop`/`SessionEnd`/`PreCompact`; Codex: `Stop` only; Cursor: `stop`/`sessionEnd`/`preCompact`; OpenCode: `session.idle`/`session.created`; Copilot: `sessionStart`/`sessionEnd`/`agentStop`). Do not introduce a global enum.
+- Adapters with per-event shell hooks use `paths(root).hooksDir`. Adapters with a long-lived plugin module (OpenCode) use `pluginsDir`; the build pipeline auto-detects a sibling `plugins/` source dir and renames hook output to `kk-hooks/` to avoid the runtime-reserved `.opencode/hooks/`. An adapter with no plugin shim that still needs its scripts kept apart from a config-bearing `<dir>/hooks/` (Copilot's `kk.json` lives there) opts into the same `kk-hooks/` output via a `src/harnesses/<id>/.kk-hooks-output` marker file. Per-entry hook metadata the host's config schema needs (Copilot's `{ type, timeoutSec, env }`) rides on the optional `HookSpec.payload` blob, consumed only by that adapter's `hooks-config` writer. See [map-opencode-harness](.ai/kenkeep/nodes/map/map-opencode-harness.md) and [map-copilot-harness-adapter](.ai/kenkeep/nodes/map/map-copilot-harness-adapter.md).
 - New harness env detectors must be added to **both** the adapter's `detectFromEnv` **and** the `ENV_DETECTORS` heredoc in `src/templates-source/skills/kk-curate/SKILL.md`. `npm run lint:detect-harness` fails CI on drift.
 
 ### Schema versions

@@ -382,3 +382,37 @@ None beyond the standard `POST_PHASE.md` validation gates.
 Plan Summary:
 - Plan ID: 24
 - Plan File: /workspace/.ai/task-manager/plans/24--copilot-harness-plugin/plan-24--copilot-harness-plugin.md
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-06-05
+
+### Results
+
+GitHub Copilot CLI (`@github/copilot`) ships as the fifth harness adapter under `src/harnesses/copilot/`, wired into the existing install / doctor / capture / curate flow. Delivered across four phases on branch `feature/24--copilot-harness-plugin` (all 7 tasks completed):
+
+- **Abstraction polish**: `HookSpec` gained an optional opaque `payload?: Record<string, unknown>` field consumed only by the owning adapter's hook-config writer. `copilot` was added to the detect-harness `REGISTERED` allowlist in all three `kk-*` SKILL.md heredocs, kept in sync with the registry by `lint-detect-harness.mjs`.
+- **Adapter**: registry entry; `paths(root)` returning `.copilot/` (dir + hooks), `.github/skills/`, and the user-level `~/.copilot/hooks/kk.json`; `CopilotHarnessOptsSchema` (model only); a `CopilotModelChoiceSchema` discriminator added to `config.yaml`'s model-choice union; install/upgrade; doctor checks (CLI on PATH, heuristic auth, hook registration, hook scripts, skills, sentinel block); no `detectFromEnv`.
+- **Internals**: `writeCopilotHookConfig` renders the aggregated `{ version, hooks }` JSON to byte-identical user-level and in-repo files; `writeCopilotInstructionsSentinel` idempotently injects INDEX content into `.github/copilot-instructions.md` under a `<!-- kk:start --> / <!-- kk:end -->` block; four per-event hook scripts (`kk-capture`, `kk-session-start`, `kk-proposal-drain`, `kk-lint-tick`); `parseCopilotTranscript` reading `events.jsonl`; `runHeadlessCopilot` spawning `copilot -p --no-ask-user --allow-all-tools --add-dir` and parsing the embedded final-stdout JSON.
+- **Docs + KB**: PRD, README, `docs/installation.md` (new "GitHub Copilot CLI" section), `docs/how-it-works.md`, `docs/internals/architecture.md`, `CONTRIBUTING.md`, and `AGENTS.md` updated to the five-harness state; new `map-copilot-harness-adapter` KB node; `map-harness-adapter` updated; INDEX.md and GRAPH.md regenerated (56 nodes).
+
+**Validation gates** (final): `npm run lint` PASS (eslint + detect-harness drift), `npm run typecheck` PASS, `npm test` 440 passed / 0 failed across 57 files (+29 new Copilot tests). Build emits all four Copilot hook scripts to `templates/copilot/kk-hooks/`. A real `init --harnesses copilot` round-trip produced the documented file set with byte-identical user/project `kk.json`; the quad-harness install produced byte-identical skill trees across `.claude/`, `.agents/`, `.opencode/`, and `.github/skills/`.
+
+### Noteworthy Events
+
+- **Project rename drift in the plan text.** The plan was authored against the old `ai-knowledge-base` naming (`kb-*.mjs`, `KB_BUILDER_INTERNAL`, `.ai/knowledge-base/`, `extractFinalJson`, transcript `content` field). The live codebase is `kenkeep` with `kk-*.cjs`, `KENKEEP_BUILDER_INTERNAL`, `.ai/kenkeep/`, `extractJsonPayload`, and a `text` transcript field. Implementation followed the actual codebase conventions, not the stale plan strings. The aggregated hook file is `kk.json` and scripts are `.cjs` (the project compiles hooks to CommonJS).
+- **Task 1 / Task 2 lint coupling.** `lint-detect-harness.mjs` derives the heredoc allowlist invariant from the registry imports, so adding `copilot` to the SKILL.md heredoc requires `copilot` in the registry simultaneously. The `HookSpec.payload` widening (Task 1's standalone, gate-green deliverable) landed in Phase 1; the coupled heredoc allowlist edit landed with the registry in Phase 2 to keep every phase's lint gate green. Drift detection was verified by injection (removing `copilot` from the heredoc fails the lint; reverting restores it).
+- **`kk-hooks/` build trigger generalized.** The existing build renamed hook output to `kk-hooks/` only for adapters with a `plugins/` dir (OpenCode). Copilot has no plugin but needs its scripts separated from the `kk.json` config artifact under `.copilot/hooks/`. A `src/harnesses/copilot/.kk-hooks-output` marker file now also triggers the rename in both `tsup.config.ts` and `scripts/build-templates.mjs` (Copilot-forced, minimal generalization).
+- **`captured_by` uses the shared enum.** The plan's Task 3 text suggested `captured_by: copilot-session-end`, but the `CaptureTrigger` schema is the fixed enum `stop|session_end|pre_compact|manual`. Copilot `sessionEnd` maps to `session_end` and `agentStop` to `stop`, consistent with every other adapter.
+- **Stale Self-Validation expectation (hint vs env priority).** Plan Self-Validation step 3 expects `CLAUDECODE=1 --hint copilot` to resolve to `claude` (env wins). The codebase's `resolveWithHint` is intentionally hint-first (Plan 23 design, asserted by `tests/harnesses/detect.test.ts` "hint wins over env"); the heredoc mirrors it. `--hint copilot` correctly resolves to `copilot`. No code change made: changing priority would break the documented design and the lint's mirroring invariant.
+- **`docs/cli-reference.md` already deleted.** The orchestrator's prior work removed `docs/cli-reference.md` from the repo before this plan ran. Task 6's `--harness copilot` documentation landed in `docs/installation.md` instead. The adapter-interface KB node is named `map-harness-adapter` (not the plan's `map-adapter-interface`).
+- **Feature branch carried pre-existing changes.** The working tree already held the orchestrator's archive moves for plans 22/23/35 and unrelated doc edits. The feature branch was created carrying those along; only plan-24 files were staged into the four per-phase commits.
+- **Commit hooks.** The repo's commit-msg hook enforces 50/72 and rejects AI-attribution trailers, so commits omit the Co-Authored-By line and use wrapped messages.
+
+### Necessary follow-ups
+
+- The practice node `practice-hook-behavior-changes-must-be-applied-to-all-four-harness-adapters` still says "four" in its title and id; it is now five. Left untouched because it is a curated practice node owned by the KB curation flow, outside this plan's named scope. Recommend updating via the normal curation path.
+- `preCompact` capture remains unwired for Copilot (documented in the plan as a v1 deferral, consistent with Codex/OpenCode).
+- Live progress streaming is unavailable for Copilot (no intermediate stream events); `onMessage` receives one synthetic message at completion. Revisit if Copilot adds `--json` output.
+- Doctor's Copilot auth check is heuristic (token env var or `~/.copilot/settings.json`); it cannot fully validate auth without spawning `copilot`. Documented in `installation.md`.
