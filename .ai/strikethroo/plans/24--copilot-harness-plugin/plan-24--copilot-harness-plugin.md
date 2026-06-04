@@ -365,10 +365,10 @@ graph TD
 - ✔️ Task 004: Implement the Copilot events.jsonl transcript parser (completed; defensive type/role scan, chunk concatenation by parentId, truncated-line tolerance)
 - ✔️ Task 005: Implement the Copilot headless runner using `copilot -p` (completed; buffers final stdout and parses the embedded JSON via the shared `extractJsonPayload`)
 
-### Phase 4: Docs and KB alignment
+### Phase 4: Docs and KB alignment ✅
 **Parallel Tasks:**
-- Task 006: Align project docs (PRD, README, docs/, CONTRIBUTING) with Copilot support (depends on: 002, 003, 005)
-- Task 007: Add map-copilot-harness-adapter KB node and update map-adapter-interface (depends on: 002, 003, 004, 005)
+- ✔️ Task 006: Align project docs (PRD, README, docs/, CONTRIBUTING) with Copilot support (completed; `docs/cli-reference.md` had already been deleted from the repo before this plan ran, so the `--harness copilot` reference landed in `docs/installation.md` instead)
+- ✔️ Task 007: Add map-copilot-harness-adapter KB node and update map-harness-adapter (completed; the project's adapter-interface node is named `map-harness-adapter`, not `map-adapter-interface`; INDEX.md and GRAPH.md regenerated to 56 nodes)
 
 ### Post-phase Actions
 None beyond the standard `POST_PHASE.md` validation gates.

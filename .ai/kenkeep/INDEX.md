@@ -1,11 +1,11 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:9f228ffb6a2775ded72e55d07c417b00a6acc0322228ca9f18ee83a53d139e5a'
-node_count: 55
+nodes_hash: 'sha256:6e865166a183ad6af6d63fa7817b7182451fbf391dfd53ec211cd02fa9e6b442'
+node_count: 56
 ---
-# kk Index
+# kenkeep Index
 
-_55 nodes • ~18656 estimated tokens_
+_56 nodes • ~19762 estimated tokens_
 
 
 ## Conventions (how we build)
@@ -39,29 +39,30 @@ _55 nodes • ~18656 estimated tokens_
 
 ## Components (what exists)
 - **curate (CLI command + /kk-curate skill)** [`nodes/map/map-curate-command.md`] #cli #curate #skill
-- **Harness adapter** [`nodes/map/map-harness-adapter.md`] #harness #adapter #claude #codex #cursor #opencode #architecture
+- **Harness adapter** [`nodes/map/map-harness-adapter.md`] #harness #adapter #claude #codex #cursor #opencode #copilot #architecture
 - **INDEX.md** [`nodes/map/map-index-md.md`] #index #deterministic #sessionstart
 - **kk-proposal-drain (extraction hook)** [`nodes/map/map-proposal-drain-hook.md`] #hooks #extraction #llm #async #claude #billing
 - **bootstrap-incremental (CLI)** [`nodes/map/map-bootstrap-incremental-command.md`] #cli #bootstrap #deterministic
 - **Conflict files (conflicts/<run-id>-<n>.md)** [`nodes/map/map-conflict-files.md`] #conflicts #curator #schema
 - **/kk-bootstrap skill** [`nodes/map/map-kk-bootstrap-skill.md`] #skill #bootstrap #agent
 - **Curator action (add / modify / contradict / drop)** [`nodes/map/map-curator-action.md`] #schema #curator #action
+- **Cursor harness adapter** [`nodes/map/map-cursor-harness-adapter.md`] #harness #cursor #hooks
 - **GRAPH.md** [`nodes/map/map-graph-md.md`] #graph #deterministic
 - **kk-session-start.mjs (consume hook)** [`nodes/map/map-session-start-hook.md`] #hooks #consume #sessionstart #index
 - **Node frontmatter schema** [`nodes/map/map-node-frontmatter.md`] #schema #frontmatter #nodes
 - **Claude Code harness adapter** [`nodes/map/map-claude-harness.md`] #harness #claude #hooks
-- **Cursor harness adapter** [`nodes/map/map-cursor-harness-adapter.md`] #harness #cursor #hooks
-- **kk-capture.mjs (capture hook)** [`nodes/map/map-capture-hook.md`] #hooks #capture
-- **.state/bootstrap-state.json (per-doc hash cache)** [`nodes/map/map-bootstrap-state-file.md`] #bootstrap #hash #state #schema
 - **Codex CLI harness adapter** [`nodes/map/map-codex-harness.md`] #harness #codex #hooks
+- **kk-capture.mjs (capture hook)** [`nodes/map/map-capture-hook.md`] #hooks #capture
+- **OpenCode harness adapter** [`nodes/map/map-opencode-harness.md`] #harness #opencode #hooks #plugin
+- **.state/bootstrap-state.json (per-doc hash cache)** [`nodes/map/map-bootstrap-state-file.md`] #bootstrap #hash #state #schema
 - **config.yaml (project settings)** [`nodes/map/map-config-yaml.md`] #config #settings #model
 - **nodes/ directory and the two kinds** [`nodes/map/map-nodes-directory.md`] #nodes #practice #map #frontmatter #schema
-- **OpenCode harness adapter** [`nodes/map/map-opencode-harness.md`] #harness #opencode #hooks #plugin
 - **Session log (_sessions/*.md)** [`nodes/map/map-session-log.md`] #session #capture #state #schema
 - **.ai/kenkeep/ directory layout** [`nodes/map/map-kenkeep-directory.md`] #layout #state #directory
 - **nodes_hash algorithm** [`nodes/map/map-nodes-hash.md`] #hash #deterministic #sha256
 - **Proposal candidate schema** [`nodes/map/map-proposal-candidate-schema.md`] #schema #proposal #candidate
 - **.state/state.json (lock + nudge state)** [`nodes/map/map-state-file.md`] #state #lock #schema
+- **Copilot harness adapter** [`nodes/map/map-copilot-harness-adapter.md`] #harness #copilot #hooks #adapter
 - **kenkeep npm package** [`nodes/map/map-kenkeep-package.md`] #overview #package #npm
 - **curate CLI conflict-resolution output message** [`nodes/map/map-curate-cli-conflict-resolution-output-message.md`] #cli #curate #conflicts #output
 - **Hook build pipeline: TS sources to deployed .cjs bundles** [`nodes/map/map-hook-build-pipeline-ts-to-cjs.md`] #build #hooks #tsup #templates #cjs
@@ -69,11 +70,12 @@ _55 nodes • ~18656 estimated tokens_
 
 ## By topic
 
-- **#hooks (12):** kk-proposal-drain (extraction hook), kk-session-start.mjs (consume hook), Claude Code harness adapter, Cursor harness adapter, kk-capture.mjs (capture hook), CLI launchers must set KENKEEP_BUILDER_INTERNAL=1 on the harness child, Codex CLI harness adapter, OpenCode harness adapter, Cursor sessionStart additional_context is silently dropped, Hook behavior changes must be applied to all four harness adapters, Hook build pipeline: TS sources to deployed .cjs bundles, Hook status messages include kk prefix after emoji
-- **#harness (10):** Harness adapter, Claude Code harness adapter, Cursor harness adapter, Codex CLI harness adapter, OpenCode harness adapter, Don't translate event names across harness adapters, Pass --harness explicitly outside an active harness session, Cursor sessionStart additional_context is silently dropped, Document model recommendations with harness-agnostic framing, Hook behavior changes must be applied to all four harness adapters
+- **#hooks (13):** kk-proposal-drain (extraction hook), Cursor harness adapter, kk-session-start.mjs (consume hook), Claude Code harness adapter, Codex CLI harness adapter, kk-capture.mjs (capture hook), OpenCode harness adapter, CLI launchers must set KENKEEP_BUILDER_INTERNAL=1 on the harness child, Copilot harness adapter, Cursor sessionStart additional_context is silently dropped, Hook behavior changes must be applied to all four harness adapters, Hook build pipeline: TS sources to deployed .cjs bundles, Hook status messages include kk prefix after emoji
+- **#harness (11):** Harness adapter, Cursor harness adapter, Claude Code harness adapter, Codex CLI harness adapter, OpenCode harness adapter, Copilot harness adapter, Don't translate event names across harness adapters, Pass --harness explicitly outside an active harness session, Cursor sessionStart additional_context is silently dropped, Document model recommendations with harness-agnostic framing, Hook behavior changes must be applied to all four harness adapters
 - **#schema (9):** Conflict files (conflicts/<run-id>-<n>.md), Curator action (add / modify / contradict / drop), Node frontmatter schema, .state/bootstrap-state.json (per-doc hash cache), nodes/ directory and the two kinds, Session log (_sessions/*.md), Proposal candidate schema, .state/state.json (lock + nudge state), Strict schema-version bump policy: no migrators
 - **#bootstrap (6):** bootstrap-incremental (CLI), /kk-bootstrap skill, .state/bootstrap-state.json (per-doc hash cache), Bootstrap never overwrites existing nodes, Bootstrap is supervised and judgmental, not exhaustive, Default bootstrap nodes to confidence: medium
 - **#cli (6):** curate (CLI command + /kk-curate skill), bootstrap-incremental (CLI), Pass --harness explicitly outside an active harness session, Curate CLI conflict output names the three resolution outcomes, curate CLI conflict-resolution output message, Inside the kenkeep source repo, run the CLI from dist/, not via npx
+- **#adapter (4):** Harness adapter, Copilot harness adapter, Don't translate event names across harness adapters, Adapters never reach into each other's directories
 - **#conflicts (4):** Conflict files (conflicts/<run-id>-<n>.md), Curator never auto-resolves contradictions, Curate CLI conflict output names the three resolution outcomes, curate CLI conflict-resolution output message
 - **#curator (4):** Conflict files (conflicts/<run-id>-<n>.md), Curator action (add / modify / contradict / drop), Curator never auto-resolves contradictions, Curator drops non-productive and change-oriented candidates
 - **#cursor (4):** Harness adapter, Cursor harness adapter, Pass --harness explicitly outside an active harness session, Cursor sessionStart additional_context is silently dropped
@@ -81,7 +83,6 @@ _55 nodes • ~18656 estimated tokens_
 - **#index (4):** INDEX.md, kk-session-start.mjs (consume hook), init and upgrade inject a static kk index pointer into AGENTS.md, updateAgentsMd - kk index pointer injection into AGENTS.md
 - **#nodes (4):** Node frontmatter schema, nodes/ directory and the two kinds, Bootstrap never overwrites existing nodes, Node naming: id, filename, and kind must agree
 - **#state (4):** .state/bootstrap-state.json (per-doc hash cache), Session log (_sessions/*.md), .ai/kenkeep/ directory layout, .state/state.json (lock + nudge state)
-- **#adapter (3):** Harness adapter, Don't translate event names across harness adapters, Adapters never reach into each other's directories
 - **#architecture (3):** Harness adapter, Adapters never reach into each other's directories, Hook behavior changes must be applied to all four harness adapters
 - **#claude (3):** Harness adapter, kk-proposal-drain (extraction hook), Claude Code harness adapter
 - **#codex (3):** Harness adapter, Codex CLI harness adapter, Pass --harness explicitly outside an active harness session
@@ -91,6 +92,7 @@ _55 nodes • ~18656 estimated tokens_
 - **#agents-md (2):** init and upgrade inject a static kk index pointer into AGENTS.md, updateAgentsMd - kk index pointer injection into AGENTS.md
 - **#calibration (2):** Curator drops non-productive and change-oriented candidates, Default bootstrap nodes to confidence: medium
 - **#capture (2):** kk-capture.mjs (capture hook), Session log (_sessions/*.md)
+- **#copilot (2):** Harness adapter, Copilot harness adapter
 - **#curate (2):** curate (CLI command + /kk-curate skill), curate CLI conflict-resolution output message
 - **#frontmatter (2):** Node frontmatter schema, nodes/ directory and the two kinds
 - **#git (2):** Conventional Commits drive semantic-release, Review node changes via git

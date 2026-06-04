@@ -28,7 +28,7 @@ src/
 - **Deterministic primitives**: `init`, `doctor`, `status`, `lint`, `finddocs`, `node write`, `curate-dedup`, `index rebuild`, `logs prune`. No LLM. Pure Node helpers; skills compose them, CI/scripts may call them directly.
 - **Launchers**: `bootstrap`, `curate`, `node add`. Thin wrappers that exec `<harness> -p "/kk-<name>"` with `KENKEEP_BUILDER_INTERNAL=1` set on the child. The LLM call happens in the host harness session, not in a subprocess spawned by this CLI.
 
-The only surviving headless-subprocess site after the launcher refactor is the **proposal-drain hook**, which spawns the active harness's headless driver (`codex exec`, `agent -p`, `opencode run`, …) per captured session log to extract candidates. The Claude adapter is the exception: its drain hook is a no-op, and extraction runs inline during `/kk-curate` instead, to avoid double-billing the user's plan. Its model and effort can be configured via `proposalModel: { name, effort }` in `config.yaml`. The `curatorModel` and `bootstrapModel` knobs are gone. Those pipelines now run under whatever model the user's host harness session is using.
+The only surviving headless-subprocess site after the launcher refactor is the **proposal-drain hook**, which spawns the active harness's headless driver (`codex exec`, `agent -p`, `opencode run`, `copilot -p`, …) per captured session log to extract candidates. The Claude adapter is the exception: its drain hook is a no-op, and extraction runs inline during `/kk-curate` instead, to avoid double-billing the user's plan. Its model and effort can be configured via `proposalModel: { name, effort }` in `config.yaml`. The `curatorModel` and `bootstrapModel` knobs are gone. Those pipelines now run under whatever model the user's host harness session is using.
 
 ## Pipelines
 
@@ -131,7 +131,7 @@ Adding an adapter: implement the methods, dispatch from `src/commands/init.ts`.
 | Change curate | `src/templates-source/skills/kk-curate/SKILL.md` (dedup primitive logic in `src/commands/curate-dedup.ts`) |
 | Change bootstrap | `src/templates-source/skills/kk-bootstrap/SKILL.md` (discovery primitive in `src/commands/finddocs.ts`, write primitive in `src/commands/node-write.ts`) |
 | Change manual node add | `src/templates-source/skills/kk-add/SKILL.md` |
-| New CLI subcommand | `src/commands/<name>.ts` + wire in `src/cli.ts` + doc in `cli-reference.md` |
+| New CLI subcommand | `src/commands/<name>.ts` + wire in `src/cli.ts` |
 | New hook | `src/hooks/<name>.ts` + `tsup.config.ts` + register in `init.ts` |
 | New state file | Schema in `src/lib/schemas.ts`; add to gitignore block |
 | New adapter | Implement `src/harnesses/types.ts`; dispatch from `src/commands/init.ts` |

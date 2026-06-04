@@ -1,11 +1,11 @@
 ---
 schema_version: 1
-nodes_hash: 'sha256:9f228ffb6a2775ded72e55d07c417b00a6acc0322228ca9f18ee83a53d139e5a'
-node_count: 55
+nodes_hash: 'sha256:6e865166a183ad6af6d63fa7817b7182451fbf391dfd53ec211cd02fa9e6b442'
+node_count: 56
 ---
-# kk Graph
+# kenkeep Graph
 
-Total nodes: 55
+Total nodes: 56
 
 ## map-bootstrap-incremental-command
 
@@ -63,6 +63,14 @@ Total nodes: 55
 - **relates_to:** practice-curator-never-auto-resolves-contradictions, map-curator-action
 - **derived_from:** docs/internals/schemas.md, docs/how-it-works.md, docs/troubleshooting.md
 
+## map-copilot-harness-adapter
+
+- **kind:** map
+- **title:** Copilot harness adapter
+- **tags:** harness, copilot, hooks, adapter
+- **relates_to:** map-harness-adapter, map-codex-harness, map-opencode-harness, map-cursor-harness-adapter
+- **derived_from:** docs/installation.md, docs/how-it-works.md, https://github.com/github/copilot-cli, https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-hooks-reference
+
 ## map-curate-cli-conflict-resolution-output-message
 
 - **kind:** map
@@ -106,8 +114,8 @@ Total nodes: 55
 
 - **kind:** map
 - **title:** Harness adapter
-- **tags:** harness, adapter, claude, codex, cursor, opencode, architecture
-- **relates_to:** map-claude-harness, map-codex-harness, map-cursor-harness-adapter, map-opencode-harness, practice-explicit-harness-flag-outside-claude
+- **tags:** harness, adapter, claude, codex, cursor, opencode, copilot, architecture
+- **relates_to:** map-claude-harness, map-codex-harness, map-cursor-harness-adapter, map-opencode-harness, map-copilot-harness-adapter, practice-explicit-harness-flag-outside-claude
 - **derived_from:** README.md, docs/installation.md, docs/internals/architecture.md, CONTRIBUTING.md
 
 ## map-hook-build-pipeline-ts-to-cjs
