@@ -9,7 +9,7 @@ Three things happen on a loop. You only ever drive one of them by hand, and even
 
 ```mermaid
 flowchart LR
-    A[AI session ends] --> B[Capture<br/>auto, redacted]
+    A[AI session ends] --> B[Capture<br/>auto]
     B --> C[Extract candidates<br/>auto, background]
     C --> D[Curate<br/>nudged, autonomous<br/>writes to nodes/]
     D --> E[Review<br/>git diff / commit / restore]
@@ -20,9 +20,11 @@ flowchart LR
 
 ## 1. Capture (automatic)
 
-When an AI session ends, a hook reads the transcript, runs it through [secretlint](https://github.com/secretlint/secretlint) (with the recommended preset) to redact secrets, and writes it to `.ai/kenkeep/_sessions/`. Then a background extractor turns that transcript into structured _candidates_ (small bits of practice or vocabulary worth remembering).
+When an AI session ends, a hook reads the transcript and writes it to `.ai/kenkeep/_sessions/`. Then a background extractor turns that transcript into structured _candidates_ (small bits of practice or vocabulary worth remembering).
 
 You don't run this. It just happens.
+
+> **Secrets are your responsibility.** kenkeep does not scan or redact captured transcripts. Anything in the session — including secrets — is written to `.ai/kenkeep/_sessions/` (gitignored by default). If you want secret scanning, wire it up yourself; see [Installation → Secret scanning on commit](installation.md#optional-commit-time-hardening).
 
 Per-harness wiring details (which events fire, where hooks live) are in [Installation](installation.md). Curation and review behave identically across all four harnesses.
 

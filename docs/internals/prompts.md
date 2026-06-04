@@ -15,7 +15,7 @@ Bump the top-of-file `Version: N` comment on every behavior change; logs record 
 
 ## Where each prompt lives
 
-- **`proposal-extract.md`** (v1 in the bundled template): drives the async proposal-drain hook to convert a redacted transcript into structured practice and map candidates. Run by `kk-proposal-drain` via the active harness's headless driver.
+- **`proposal-extract.md`** (v1 in the bundled template): drives the async proposal-drain hook to convert a captured transcript into structured practice and map candidates. Run by `kk-proposal-drain` via the active harness's headless driver.
 - **`kk-curate/SKILL.md`**: the curate skill's canonical prompt. Reads pending session logs, drafts add/modify/contradict/drop actions in-session, hands the merged set to `curate-dedup`, walks contradictions with the user. There is no separate `curator.md` prompt file anymore. The curator logic that used to be spawned as a sub-agent is now the skill prompt.
 - **`kk-bootstrap/SKILL.md`**: the bootstrap skill's canonical prompt. Enumerates source markdown via `finddocs`, drafts node bodies inline, persists via `node write`. There is no separate `bootstrap-incremental.md` prompt file anymore.
 - **`kk-add/SKILL.md`**: the manual-add skill's canonical prompt. Conversationally gathers fields, persists via `node write`.
@@ -37,7 +37,7 @@ The knowledge base's prompts form the knowledge-acquisition pipeline. Two extrac
 flowchart TB
     subgraph proposal["Proposal extraction · proposal-extract.md v1"]
         direction TB
-        PI["Redacted transcript<br/>role-tagged USER / AGENT segments"]
+        PI["Captured transcript<br/>role-tagged USER / AGENT segments"]
         PG{"Session-disposition gate<br/>abandoned · exploratory<br/>unrelated · meta-only?"}
         PEMPTY["Empty proposal<br/>practice=[], map=[]"]
         PP1["Practice pass<br/>USER turns + self-review-apply<br/>(incl. corrective patterns)"]
@@ -129,7 +129,7 @@ The biggest quality lever in capture. Controls what the extractor treats as wort
 5. **Inline example** - a worked transcript with expected JSON.
 6. **Output schema** - must match `ProposalOutputSchema`.
 
-The drain replaces `[TRANSCRIPT PLACEHOLDER, substituted at runtime]` with the redacted slice. If the placeholder is removed, the transcript is appended at the end.
+The drain replaces `[TRANSCRIPT PLACEHOLDER, substituted at runtime]` with the captured slice. If the placeholder is removed, the transcript is appended at the end.
 
 ### Calibration
 
@@ -265,4 +265,4 @@ To re-run a single batch: clear `curator_processed_at` and `curator_run_id` from
 
 ### Privacy
 
-Proposal logs contain the **redacted** transcript. Secrets secretlint caught are redacted; secrets it missed could appear. Treat `_logs/` with the same care as `_sessions/`. Both gitignored by default.
+Proposal logs contain the **raw** transcript. kenkeep does not scan or redact for secrets, so anything in the session appears verbatim. Treat `_logs/` with the same care as `_sessions/`. Both gitignored by default.

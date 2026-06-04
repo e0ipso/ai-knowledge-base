@@ -35,7 +35,7 @@ The only surviving headless-subprocess site after the launcher refactor is the *
 ```mermaid
 flowchart TB
     subgraph capture[Capture]
-        H1[Stop / SessionEnd / PreCompact] --> KB1[kk-capture.mjs<br/>sync, secretlint redact]
+        H1[Stop / SessionEnd / PreCompact] --> KB1[kk-capture.mjs<br/>sync]
         KB1 --> SL[_sessions/&lt;log&gt;.md<br/>pending]
     end
 
@@ -46,7 +46,7 @@ flowchart TB
     end
 
     subgraph curate[Curate]
-        UC[/kk-curate slash command<br/>or curate launcher] --> KB3[kk-curate skill<br/>in host harness session]
+        UC["/kk-curate slash command<br/>or curate launcher"] --> KB3[kk-curate skill<br/>in host harness session]
         SLD --> KB3
         KB3 -->|node write| NODES[(nodes/&lt;kind&gt;/&lt;slug&gt;.md)]
         KB3 -->|curate-dedup| PC[conflicts/&lt;id&gt;.md]
@@ -55,7 +55,7 @@ flowchart TB
 
     subgraph review[Review]
         NODES --> RV[git diff<br/>git commit / git restore]
-        PC --> SK[/kk-curate skill<br/>resolves with user/]
+        PC --> SK["/kk-curate skill<br/>resolves with user"]
         SK --> NODES
         RV --> COMMIT[(committed nodes)]
     end

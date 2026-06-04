@@ -54,7 +54,7 @@ The shared SKILL.md does not carry per-tool `allowed-tools` frontmatter. To pre-
 
 ## Optional: commit-time hardening
 
-`kk-capture.mjs` redacts secrets in captured transcripts via secretlint. It does **not** protect commits. The two pieces teams most often add by hand:
+kenkeep does **not** scan or redact captured transcripts, and does nothing to protect commits — secret hygiene is entirely yours. The two pieces teams most often add by hand:
 
 ### Secret scanning on commit
 

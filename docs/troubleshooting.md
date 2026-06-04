@@ -12,7 +12,6 @@ Start with `npx kenkeep doctor --verbose`.
 `.ai/kenkeep/_sessions/` stays empty.
 
 - **Hooks aren't registered.** Check `.claude/settings.json` for the knowledge base hook entries. Re-run `init --upgrade` if missing.
-- **secretlint failed to load.** Capture refuses to write when the bundled secret scanner can't initialize. Re-install `kenkeep` and confirm `node -e "import('@secretlint/core')"` resolves.
 - **A wrapper script around `claude` leaked the internal flag** (`KENKEEP_BUILDER_INTERNAL=1`) into a normal session.
 
 ## A hook seems to be silently doing nothing

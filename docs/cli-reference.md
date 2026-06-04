@@ -163,7 +163,7 @@ Prints queued captures, pending session logs, pending curator conflicts, node co
 
 ### `doctor [--verbose]`
 
-Verifies hook installation, secret-scan availability, and schema validity.
+Verifies hook installation, knowledge-base scaffold integrity, and node frontmatter/schema validity.
 
 ### `init [--harnesses <list>] [--upgrade]`
 

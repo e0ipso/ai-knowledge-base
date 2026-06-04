@@ -108,7 +108,6 @@ proposal_status: pending | done | failed | skipped
 proposal_completed_at: <ISO> | null
 proposal_error: <string> | null
 proposal_log: _logs/proposal/<id>__<ts>.jsonl | null
-secret_scan_status: clean | redacted | blocked | skipped
 topics: [string, ...]
 proposals:
   practice: [<ProposalCandidate>, ...]

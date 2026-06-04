@@ -25,7 +25,7 @@ npx kenkeep doctor
 
 ## 1. Platform smoke
 
-For each OS, set up a clean sandbox and trigger one `Stop` capture. Confirm `_sessions/` contains one new file with `secret_scan_status: clean` and `proposal_status: pending`.
+For each OS, set up a clean sandbox and trigger one `Stop` capture. Confirm `_sessions/` contains one new file with `proposal_status: pending`.
 
 - [ ] macOS (latest)
 - [ ] Linux (Ubuntu 22.04+)
@@ -41,21 +41,9 @@ The hook contract is ≤1s wall-clock.
 - [ ] Resulting `_sessions/<log>.md` contains the **full transcript slice**, not a summary.
 - [ ] If the deadline fires, the next `Stop`/`SessionEnd` still produces a log covering the missed window.
 
-Diagnostic: `time node .claude/hooks/kk-capture.mjs < /dev/null` should be under 200ms cold. Over 1s usually means secretlint is loading from a slow filesystem, or the consumer hasn't run `npm install`.
+Diagnostic: `time node .claude/hooks/kk-capture.mjs < /dev/null` should be under 200ms cold. Over 1s usually means a slow filesystem, or the consumer hasn't run `npm install`.
 
-## 3. Secretlint per platform
-
-After `npm install`:
-
-- [ ] macOS / Linux / WSL2: `node_modules/@secretlint/core` exists. `doctor` reports secretlint resolvable.
-- [ ] Native Windows: same, since secretlint is a pure-JS Node package with no platform-specific binaries.
-
-Redaction:
-
-- [ ] Add a fake secret (e.g. `GITHUB_TOKEN=ghp_1234567890abcdefghijklmnopqrstuvwxyz`) in a session. Trigger `Stop`.
-- [ ] The log shows `secret_scan_status: redacted` and the secret replaced by `[REDACTED:<rule-id>]`.
-
-## 4. End-to-end happy path
+## 3. End-to-end happy path
 
 Quality judgment.
 
@@ -69,7 +57,7 @@ Quality judgment.
 
 If curator output is clearly noise, bump the proposal prompt's `Version:` and tighten "what to skip".
 
-## 5. `init --upgrade` against an older install
+## 4. `init --upgrade` against an older install
 
 1. [ ] Install the last published version. Commit.
 2. [ ] Edit `proposal-extract.md` (add a sentinel) and add a custom key to `config.yaml`.
@@ -82,29 +70,29 @@ If curator output is clearly noise, bump the proposal prompt's `Version:` and ti
    - [ ] `installed-version` shows the new version.
 6. [ ] `doctor` exits 0, no version mismatch.
 
-## 6. `logs prune` on real logs
+## 5. `logs prune` on real logs
 
-- [ ] After §4, both `_logs/proposal/` and `_logs/curator/` have 1-3 JSONL files.
+- [ ] After §3, both `_logs/proposal/` and `_logs/curator/` have 1-3 JSONL files.
 - [ ] Backdate one: `touch -d "60 days ago" <file>`.
 - [ ] `logs prune` deletes the backdated file and reports `pruned 1 files`. Recent files survive.
 - [ ] Set `logsRetentionDays: 0` in `config.yaml`, rerun: every `*.jsonl` under `_logs/` is deleted.
 - [ ] Set `logsRetentionDays: 365`, rerun on an already-pruned tree: reports `pruned 0 files`, no error.
 
-## 7. `/kk-bootstrap`
+## 6. `/kk-bootstrap`
 
 - [ ] In a sandbox with a small public repo (README + architecture.md), `init` and open Claude Code.
 - [ ] Run `/kk-bootstrap`. Agent reads source docs, writes nodes directly under `nodes/<kind>/`, reports a summary including any collisions skipped.
 - [ ] Walk `git diff nodes/` (or use a tool like [self-review](https://github.com/e0ipso/self-review)). `git commit` the ones you want; `git restore <path>` the rest.
 - [ ] No node carries a literal secret or stale TODO from the source docs.
 
-## 8. `bootstrap` discovery and hash-aware re-run
+## 7. `bootstrap` discovery and hash-aware re-run
 
 - [ ] In a repo with 50+ markdown files (>200k chars), run `finddocs` to preview discovery. The output is one `+ <relpath>` line per surviving file; confirm the count matches your expectation given `.kkignore`.
 - [ ] Run `bootstrap --from <subset>` against 3-5 docs. Inspect `bootstrap-state.json`. Each processed doc has an entry with `content_sha256` and `produced_nodes`.
 - [ ] Re-run `bootstrap --from <subset>`. The skill should report that every doc was hash-skipped.
 - [ ] Edit one file. Re-run. Only that file is reprocessed.
 
-## 9. Single-author skill sessions (no cross-process lock)
+## 8. Single-author skill sessions (no cross-process lock)
 
 Curate and bootstrap no longer take a `state.json` lock. They are single-author by design.
 
@@ -112,18 +100,17 @@ Curate and bootstrap no longer take a `state.json` lock. They are single-author 
 - [ ] Worst case is some sessions reprocess on the next `curate` run. Confirm: re-run `curate`, verify the unstamped sessions get processed.
 - [ ] The proposal-drain hook still takes its own `proposal-drain` lock (independent surface). Trigger two `SessionStart` events in quick succession against the same repo; the second drain skips while the first holds the lock and reclaims it after the 30-min TTL on the next run.
 
-## 10. Settings file
+## 9. Settings file
 
 - [ ] With no `config.yaml`, `curate` uses built-in defaults (`curationThreshold: 5`, `logsRetentionDays: 30`, `lintEveryNSessions: 50`).
 - [ ] Add project `.ai/kenkeep/config.yaml` with `curationThreshold: 3`. Re-run honors 3.
 - [ ] Add an unknown key (e.g. `foo: bar`). `curate` exits with an error naming the file.
 
-## 11. Doctor exit codes
+## 10. Doctor exit codes
 
 Reset between scenarios.
 
 - [ ] Delete `installed-version`. Doctor errors, exit 1.
-- [ ] Delete `.secretlintrc.json`. Doctor reports the commit-time scan as missing, exit 0 with a warning.
 - [ ] Hand-edit a node to add fake `derived_from: nonexistent.md`. Warning, exit 0.
 - [ ] Hand-edit a node's `summary` after a curate run. INDEX stale warning, exit 0.
 - [ ] Install v(N-1), drop v(N) binary without upgrading. Version-mismatch warning, exit 0.

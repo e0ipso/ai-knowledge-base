@@ -27,8 +27,9 @@ All three hooks exit immediately if `KENKEEP_BUILDER_INTERNAL=1` is set. Two sur
 1. Read hook input from stdin.
 2. Validate `session_id` via `assertValidSessionId` (strict UUID v4 shape). On bad input, throw with a named error message; the catch handler writes it to stderr.
 3. Parse the transcript (`user`/`assistant` text, role-tagged).
-4. Run secretlint (with the recommended preset); replace findings with `[REDACTED:<ruleId>]`. If secretlint fails to load or times out, capture aborts.
-5. Write `_sessions/<YYYYMMDD-HHmm-<sessionId>>.md` with frontmatter and the redacted slice. A re-fire for the same `session_id` (multi-turn sessions, PreCompact after Stop) reuses the existing file via `findSessionLogBySessionId`, so the session-log count stays at one per session.
+4. Write `_sessions/<YYYYMMDD-HHmm-<sessionId>>.md` with frontmatter and the transcript slice. A re-fire for the same `session_id` (multi-turn sessions, PreCompact after Stop) reuses the existing file via `findSessionLogBySessionId`, so the session-log count stays at one per session.
+
+kenkeep does not scan or redact the transcript; secrets present in the session are written verbatim. Secret hygiene is the consumer's responsibility (see [Installation → commit-time hardening](../installation.md#optional-commit-time-hardening)).
 
 The only difference between the three triggers is the `captured_by` field (`stop`, `session_end`, `pre_compact`).
 
@@ -43,7 +44,6 @@ Never invokes the LLM. 1s deadline. A missed deadline exits silently; the next t
 | `session_id` not a UUID v4 | Write the error to stderr; no session log. |
 | `transcript_path` missing | Exit silently. |
 | Transcript empty | Exit silently. |
-| Secretlint fails to load or crashes | Log to stderr, no session log written. |
 | 1s deadline exceeded | Exit silently; next trigger retries. |
 
 ## `kk-proposal-drain.mjs` (extraction)
