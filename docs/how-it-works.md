@@ -24,7 +24,10 @@ When an AI session ends, a hook reads the transcript and writes it to `.ai/kenke
 
 You don't run this. It just happens.
 
-> **Secrets are your responsibility.** kenkeep does not scan or redact captured transcripts. Anything in the session — including secrets — is written to `.ai/kenkeep/_sessions/` (gitignored by default). If you want secret scanning, wire it up yourself; see [Installation → Secret scanning on commit](installation.md#optional-commit-time-hardening).
+{% capture secrets_callout %}
+kenkeep does not scan or redact captured transcripts. Anything in the session — including secrets — is written to `.ai/kenkeep/_sessions/` (gitignored by default). If you want secret scanning, wire it up yourself; see [Installation → Secret scanning on commit](installation.md#optional-commit-time-hardening).
+{% endcapture %}
+{% include callout.html variant="warning" title="Secrets are your responsibility" content=secrets_callout %}
 
 Per-harness wiring details (which events fire, where hooks live) are in [Installation](installation.md). Curation and review behave identically across all four harnesses.
 

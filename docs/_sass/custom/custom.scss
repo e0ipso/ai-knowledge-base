@@ -218,3 +218,125 @@ code {
   line-height: 0;
   font-size: 1rem;
 }
+
+// ---- Callouts (ported from the dalia-ui <Callout> component) ----
+// Variants: tip / note / prereq / warning. Warm palette only — no traffic-light
+// red. Markup is emitted by _includes/callout.html. The `note` variant reuses
+// scheme surface/ink vars so it themes for free; the dalia-pink and amber tints
+// have no scheme var, so they branch on $color-scheme (custom.scss compiles once
+// per scheme, so each build picks up the right literals).
+// Defaults are the LIGHT values, declared at file scope so they exist globally.
+// The dark build overrides them with !global — Ruby Sass (this site's compiler)
+// scopes assignments made *inside* a control directive locally otherwise, so a
+// plain @if/@else block would leave these undefined at the rules below.
+$callout-accent-bg: hsl(335, 55%, 92%);
+$callout-accent-ink: hsl(335, 55%, 22%);
+$callout-accent-border: hsl(335, 55%, 65%);
+$callout-warning-bg: hsl(40, 70%, 94%);
+$callout-warning-ink: hsl(28, 50%, 22%);
+$callout-warning-icon: hsl(32, 70%, 45%);
+$callout-warning-border: hsl(32, 70%, 50%);
+@if $color-scheme == dark {
+  $callout-accent-bg: hsl(335, 32%, 18%) !global;
+  $callout-accent-ink: hsl(335, 45%, 88%) !global;
+  $callout-accent-border: hsl(335, 55%, 60%) !global;
+  $callout-warning-bg: hsl(38, 38%, 16%) !global;
+  $callout-warning-ink: hsl(40, 55%, 85%) !global;
+  $callout-warning-icon: hsl(38, 80%, 66%) !global;
+  $callout-warning-border: hsl(38, 68%, 55%) !global;
+}
+
+.callout {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.75rem;
+  align-items: start;
+  margin: 1.25rem 0;
+  padding: 1.125rem 1.25rem;
+  border-radius: 0.75rem;
+}
+.callout__icon {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+}
+.callout__icon svg {
+  display: block;
+  width: 22px;
+  height: 22px;
+}
+.callout__body {
+  min-width: 0;
+}
+.callout__title {
+  margin: 0 0 0.375rem;
+  font-family: "Outfit", system-ui, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.callout__content {
+  margin: 0;
+}
+.callout__content > :first-child {
+  margin-top: 0;
+}
+.callout__content > :last-child {
+  margin-bottom: 0;
+}
+
+// tip — solid dalia tint, no left rule
+.callout--tip {
+  background: $callout-accent-bg;
+  color: $callout-accent-ink;
+}
+.callout--tip .callout__icon,
+.callout--tip .callout__title {
+  color: $link-color;
+}
+
+// note — neutral cream-mid surface with an ink left rule (themes via scheme vars)
+.callout--note {
+  background: $sidebar-color;
+  color: $body-text-color;
+  box-shadow: inset 3px 0 0 $search-result-preview-color;
+}
+.callout--note .callout__icon {
+  color: $nav-child-link-color;
+}
+.callout--note .callout__title {
+  color: $body-heading-color;
+}
+
+// prereq — dalia tint with a dalia left rule
+.callout--prereq {
+  background: $callout-accent-bg;
+  color: $callout-accent-ink;
+  box-shadow: inset 3px 0 0 $callout-accent-border;
+}
+.callout--prereq .callout__icon,
+.callout--prereq .callout__title {
+  color: $link-color;
+}
+
+// warning — warm amber with an amber left rule (NOT traffic-light red)
+.callout--warning {
+  background: $callout-warning-bg;
+  color: $callout-warning-ink;
+  box-shadow: inset 3px 0 0 $callout-warning-border;
+}
+.callout--warning .callout__icon {
+  color: $callout-warning-icon;
+}
+.callout--warning .callout__title {
+  color: $callout-warning-ink;
+}
+
+// Links inside callouts: keep them legible against the tinted surfaces.
+.callout a {
+  color: inherit;
+  text-decoration: underline;
+}

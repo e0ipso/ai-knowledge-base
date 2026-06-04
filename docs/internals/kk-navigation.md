@@ -6,7 +6,10 @@ nav_order: 6
 
 # Knowledge base navigation directive
 
-> **Project-internal.** This page documents intent for `kenkeep` maintainers. It is not shipped to consumer repos, is not part of any template, and has no runtime effect. Editing it does not change agent behavior. The enforcement surface is [`src/lib/session-start.ts`](https://github.com/e0ipso/kenkeep/blob/main/src/lib/session-start.ts); change the directive there.
+{% capture project_internal %}
+This page documents intent for `kenkeep` maintainers. It is not shipped to consumer repos, is not part of any template, and has no runtime effect. Editing it does not change agent behavior. The enforcement surface is [`src/lib/session-start.ts`](https://github.com/e0ipso/kenkeep/blob/main/src/lib/session-start.ts); change the directive there.
+{% endcapture %}
+{% include callout.html variant="note" title="Project-internal" content=project_internal %}
 
 ## The 3-layer model
 
