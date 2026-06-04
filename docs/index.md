@@ -6,6 +6,10 @@ nav_order: 1
 
 # kenkeep
 
+<p align="center">
+  <img src="{{ '/assets/images/kenkeep-hero.png' | relative_url }}" alt="kenkeep: AI coding sessions are curated into a reviewed, git-tracked knowledge library" />
+</p>
+
 A **team-shared, git-native knowledge base** for AI coding sessions on [Claude Code](https://docs.claude.com/en/docs/claude-code), [Codex CLI](https://developers.openai.com/codex/cli/), [Cursor](https://cursor.com/docs), and [OpenCode](https://opencode.ai/). Knowledge lives in your repo as plain markdown, not in a per-user database on one developer's laptop, so it propagates to teammates through `git pull` and is **reviewable like code** in PR diffs and commit history.
 
 No daemons. No services. No external runtimes. Just Node + git.
