@@ -13,12 +13,20 @@ export type HookEvent = string;
 /**
  * Canonical hook registration record. `scriptPath` is harness-relative
  * (e.g. `kk-capture.cjs` for Claude under `.claude/hooks/`).
+ *
+ * `payload` is an opaque per-adapter blob. Shared code (install, doctor,
+ * registry) never reads it; only the owning adapter's `hooks-config`
+ * writer consumes its own payload shape. It exists so an adapter whose
+ * host hook-config schema needs per-entry metadata (Copilot's
+ * `{ type, timeoutSec, env, cwd }` array entries) can keep that metadata
+ * declarative on the spec rather than hard-coded in the writer.
  */
 export interface HookSpec {
   event: HookEvent;
   scriptPath: string;
   matcher?: string;
   async?: boolean;
+  payload?: Record<string, unknown>;
 }
 
 /**
