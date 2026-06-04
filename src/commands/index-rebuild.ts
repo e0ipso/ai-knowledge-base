@@ -32,17 +32,17 @@ export async function runIndexRebuild(opts: IndexRebuildOptions = {}): Promise<n
 
   if (!existsSync(paths.installedVersionFile)) {
     log.error(
-      'ai-knowledge-base is not initialized in this repo. Run `npx @e0ipso/ai-knowledge-base init --harnesses claude`.'
+      'kenkeep is not initialized in this repo. Run `npx kenkeep init --harnesses claude`.'
     );
     return 1;
   }
 
-  mkdirSync(paths.kbDir, { recursive: true });
+  mkdirSync(paths.kkDir, { recursive: true });
   // Validate the project config (throws on malformed YAML or schema violations).
   resolveSettings({ projectFile: paths.projectConfigFile });
 
-  const indexFile = join(paths.kbDir, 'INDEX.md');
-  const graphFile = join(paths.kbDir, 'GRAPH.md');
+  const indexFile = join(paths.kkDir, 'INDEX.md');
+  const graphFile = join(paths.kkDir, 'GRAPH.md');
 
   // Strict validation up front: surface any malformed node files before the
   // short-circuit below so a stale-but-broken tree (e.g. previous run wrote

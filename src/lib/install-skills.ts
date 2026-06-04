@@ -6,7 +6,7 @@ import { join } from 'node:path';
  * given destination directory. The same bytes land in every configured
  * harness's native skills location; harness-specific `--harness` values
  * are resolved at runtime by the heredoc helper embedded in each
- * SKILL.md body (`/tmp/kb-detect-harness.mjs`).
+ * SKILL.md body (`/tmp/kk-detect-harness.mjs`).
  *
  * Called by every adapter's install/upgrade flow. No-ops when the
  * source tree is missing (e.g. during partial dev builds).

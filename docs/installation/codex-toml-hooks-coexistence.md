@@ -14,26 +14,26 @@ nav_order: 1
 [[hooks.Stop]]
 [[hooks.Stop.hooks]]
 type = "command"
-command = "node ./.codex/hooks/kb-capture.mjs"
+command = "node ./.codex/hooks/kk-capture.mjs"
 timeout = 30
 
 [[hooks.Stop]]
 [[hooks.Stop.hooks]]
 type = "command"
-command = "node ./.codex/hooks/kb-lint-tick.mjs"
+command = "node ./.codex/hooks/kk-lint-tick.mjs"
 timeout = 30
 
 [[hooks.SessionStart]]
 [[hooks.SessionStart.hooks]]
 type = "command"
-command = "node ./.codex/hooks/kb-session-start.mjs"
+command = "node ./.codex/hooks/kk-session-start.mjs"
 timeout = 30
 
 [[hooks.SessionStart]]
 [[hooks.SessionStart.hooks]]
 type = "command"
-command = "node ./.codex/hooks/kb-proposal-drain.mjs"
+command = "node ./.codex/hooks/kk-proposal-drain.mjs"
 timeout = 30
 ```
 
-`init --upgrade` keeps refreshing the hook scripts under `.codex/hooks/`; only the registration location is yours to maintain. To uninstall later, drop any line whose `command` starts with `node ./.codex/hooks/kb-`.
+`init --upgrade` keeps refreshing the hook scripts under `.codex/hooks/`; only the registration location is yours to maintain. To uninstall later, drop any line whose `command` starts with `node ./.codex/hooks/kk-`.

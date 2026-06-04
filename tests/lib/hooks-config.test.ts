@@ -9,7 +9,7 @@ describe('writeClaudeHookConfig', () => {
   let settingsFile: string;
 
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'kb-hooks-config-'));
+    root = mkdtempSync(join(tmpdir(), 'kk-hooks-config-'));
     settingsFile = join(root, '.claude/settings.json');
   });
 
@@ -18,7 +18,7 @@ describe('writeClaudeHookConfig', () => {
   it('creates .claude/settings.json with supplied hooks when no file exists', async () => {
     expect(existsSync(settingsFile)).toBe(false);
     await writeClaudeHookConfig(root, [
-      { event: 'Stop', scriptPath: '.claude/hooks/kb-capture.cjs' },
+      { event: 'Stop', scriptPath: '.claude/hooks/kk-capture.cjs' },
     ]);
     expect(existsSync(settingsFile)).toBe(true);
     const parsed = JSON.parse(readFileSync(settingsFile, 'utf8'));
@@ -27,7 +27,7 @@ describe('writeClaudeHookConfig', () => {
         hooks: [
           {
             type: 'command',
-            command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/kb-capture.cjs"',
+            command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/kk-capture.cjs"',
           },
         ],
       },
@@ -38,16 +38,16 @@ describe('writeClaudeHookConfig', () => {
     mkdirSync(join(root, '.claude'), { recursive: true });
     writeFileSync(settingsFile, '{}');
     await writeClaudeHookConfig(root, [
-      { event: 'SessionEnd', scriptPath: '.claude/hooks/kb-capture.cjs' },
+      { event: 'SessionEnd', scriptPath: '.claude/hooks/kk-capture.cjs' },
     ]);
     const parsed = JSON.parse(readFileSync(settingsFile, 'utf8'));
     expect(parsed.hooks.SessionEnd).toHaveLength(1);
     expect(parsed.hooks.SessionEnd[0].hooks[0].command).toBe(
-      'node "$CLAUDE_PROJECT_DIR/.claude/hooks/kb-capture.cjs"'
+      'node "$CLAUDE_PROJECT_DIR/.claude/hooks/kk-capture.cjs"'
     );
   });
 
-  it('preserves foreign hooks (commands without the .claude/hooks/kb- prefix)', async () => {
+  it('preserves foreign hooks (commands without the .claude/hooks/kk- prefix)', async () => {
     mkdirSync(join(root, '.claude'), { recursive: true });
     writeFileSync(
       settingsFile,
@@ -68,7 +68,7 @@ describe('writeClaudeHookConfig', () => {
     );
 
     await writeClaudeHookConfig(root, [
-      { event: 'Stop', scriptPath: '.claude/hooks/kb-capture.cjs' },
+      { event: 'Stop', scriptPath: '.claude/hooks/kk-capture.cjs' },
     ]);
 
     const parsed = JSON.parse(readFileSync(settingsFile, 'utf8'));
@@ -76,10 +76,10 @@ describe('writeClaudeHookConfig', () => {
       e.hooks.map(h => h.command)
     );
     expect(commands).toContain('node ./scripts/user-stop.mjs');
-    expect(commands).toContain('node "$CLAUDE_PROJECT_DIR/.claude/hooks/kb-capture.cjs"');
+    expect(commands).toContain('node "$CLAUDE_PROJECT_DIR/.claude/hooks/kk-capture.cjs"');
   });
 
-  it('scrubs previously-owned kb- hooks before rewriting', async () => {
+  it('scrubs previously-owned kk- hooks before rewriting', async () => {
     mkdirSync(join(root, '.claude'), { recursive: true });
     writeFileSync(
       settingsFile,
@@ -90,7 +90,7 @@ describe('writeClaudeHookConfig', () => {
               hooks: [
                 {
                   type: 'command',
-                  command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/kb-old-name.mjs"',
+                  command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/kk-old-name.mjs"',
                 },
               ],
             },
@@ -108,19 +108,19 @@ describe('writeClaudeHookConfig', () => {
     );
 
     await writeClaudeHookConfig(root, [
-      { event: 'Stop', scriptPath: '.claude/hooks/kb-capture.cjs' },
+      { event: 'Stop', scriptPath: '.claude/hooks/kk-capture.cjs' },
     ]);
 
     const parsed = JSON.parse(readFileSync(settingsFile, 'utf8'));
     const commands = parsed.hooks.Stop.flatMap((e: { hooks: Array<{ command: string }> }) =>
       e.hooks.map(h => h.command)
     );
-    expect(commands).not.toContain('node "$CLAUDE_PROJECT_DIR/.claude/hooks/kb-old-name.mjs"');
+    expect(commands).not.toContain('node "$CLAUDE_PROJECT_DIR/.claude/hooks/kk-old-name.mjs"');
     expect(commands).toContain('node ./scripts/user-stop.mjs');
-    expect(commands).toContain('node "$CLAUDE_PROJECT_DIR/.claude/hooks/kb-capture.cjs"');
+    expect(commands).toContain('node "$CLAUDE_PROJECT_DIR/.claude/hooks/kk-capture.cjs"');
   });
 
-  it('removes an event entry whose only hooks were kb- owned (before re-adding)', async () => {
+  it('removes an event entry whose only hooks were kk- owned (before re-adding)', async () => {
     mkdirSync(join(root, '.claude'), { recursive: true });
     writeFileSync(
       settingsFile,
@@ -131,7 +131,7 @@ describe('writeClaudeHookConfig', () => {
               hooks: [
                 {
                   type: 'command',
-                  command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/kb-old.mjs"',
+                  command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/kk-old.mjs"',
                 },
               ],
             },
@@ -141,7 +141,7 @@ describe('writeClaudeHookConfig', () => {
               hooks: [
                 {
                   type: 'command',
-                  command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/kb-capture.cjs"',
+                  command: 'node "$CLAUDE_PROJECT_DIR/.claude/hooks/kk-capture.cjs"',
                 },
               ],
             },
@@ -151,10 +151,10 @@ describe('writeClaudeHookConfig', () => {
     );
 
     // Supply only a Stop hook; PreCompact and SessionEnd should be cleared
-    // because their only entries were kb-owned and no new hooks for them are
+    // because their only entries were kk-owned and no new hooks for them are
     // requested.
     await writeClaudeHookConfig(root, [
-      { event: 'Stop', scriptPath: '.claude/hooks/kb-capture.cjs' },
+      { event: 'Stop', scriptPath: '.claude/hooks/kk-capture.cjs' },
     ]);
 
     const parsed = JSON.parse(readFileSync(settingsFile, 'utf8'));
@@ -165,8 +165,8 @@ describe('writeClaudeHookConfig', () => {
 
   it('emits async: true only when the spec sets it', async () => {
     await writeClaudeHookConfig(root, [
-      { event: 'SessionStart', scriptPath: '.claude/hooks/kb-session-start.cjs' },
-      { event: 'SessionStart', scriptPath: '.claude/hooks/kb-proposal-drain.cjs', async: true },
+      { event: 'SessionStart', scriptPath: '.claude/hooks/kk-session-start.cjs' },
+      { event: 'SessionStart', scriptPath: '.claude/hooks/kk-proposal-drain.cjs', async: true },
     ]);
 
     const parsed = JSON.parse(readFileSync(settingsFile, 'utf8'));
@@ -175,10 +175,10 @@ describe('writeClaudeHookConfig', () => {
     }>;
     const sessionStart = entries
       .flatMap(e => e.hooks)
-      .find(h => h.command.includes('kb-session-start.cjs'));
+      .find(h => h.command.includes('kk-session-start.cjs'));
     const drain = entries
       .flatMap(e => e.hooks)
-      .find(h => h.command.includes('kb-proposal-drain.cjs'));
+      .find(h => h.command.includes('kk-proposal-drain.cjs'));
     expect(sessionStart).toBeDefined();
     expect(drain).toBeDefined();
     expect(Object.prototype.hasOwnProperty.call(sessionStart, 'async')).toBe(false);
@@ -189,7 +189,7 @@ describe('writeClaudeHookConfig', () => {
     await writeClaudeHookConfig(root, [
       {
         event: 'UserPromptSubmit',
-        scriptPath: '.claude/hooks/kb-filter.cjs',
+        scriptPath: '.claude/hooks/kk-filter.cjs',
         matcher: '**/*.md',
       },
     ]);
@@ -201,7 +201,7 @@ describe('writeClaudeHookConfig', () => {
     mkdirSync(join(root, '.claude'), { recursive: true });
     writeFileSync(settingsFile, '{ not json');
     await expect(
-      writeClaudeHookConfig(root, [{ event: 'Stop', scriptPath: '.claude/hooks/kb-capture.cjs' }])
+      writeClaudeHookConfig(root, [{ event: 'Stop', scriptPath: '.claude/hooks/kk-capture.cjs' }])
     ).rejects.toThrow(/Could not parse existing/);
   });
 });

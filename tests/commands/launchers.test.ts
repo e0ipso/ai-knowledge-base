@@ -15,7 +15,7 @@ import { launchSkill } from '../../src/lib/launch-skill.js';
  * actually spawned and the test process is never terminated.
  *
  * The contract we are pinning down: the launcher exec's `<harness-binary>
- * -p "/kb-<skill> …"` with `KB_BUILDER_INTERNAL=1` set on the child env
+ * -p "/kk-<skill> …"` with `KENKEEP_BUILDER_INTERNAL=1` set on the child env
  * and `stdio: 'inherit'`. Plus the deprecation alias must write a
  * `[deprecated]` notice to stderr before launching.
  */
@@ -57,16 +57,16 @@ function makeFakeSpawn(): { spawnFn: typeof import('node:child_process').spawn; 
  * the absolute sandbox path; caller is responsible for `process.chdir`.
  */
 function makeRepoSandbox(): string {
-  const root = mkdtempSync(join(tmpdir(), 'kb-launcher-'));
+  const root = mkdtempSync(join(tmpdir(), 'kk-launcher-'));
   mkdirSync(join(root, '.git'), { recursive: true });
-  mkdirSync(join(root, '.ai/knowledge-base/.state'), { recursive: true });
+  mkdirSync(join(root, '.ai/kenkeep/.state'), { recursive: true });
   // installed-version is not required for the launcher (it never reads it),
   // but write a minimal one to keep tests stable if upstream tightens checks.
   writeFileSync(
-    join(root, '.ai/knowledge-base/.state/installed-version'),
+    join(root, '.ai/kenkeep/.state/installed-version'),
     JSON.stringify({
       schema_version: 1,
-      package: '@e0ipso/ai-knowledge-base',
+      package: 'kenkeep',
       version: '0.0.0-test',
       installed_at: '2026-05-12T10:00:00Z',
       assistants: ['claude'],
@@ -90,13 +90,13 @@ describe('launchSkill', () => {
     rmSync(sandbox, { recursive: true, force: true });
   });
 
-  it('spawns <binary> -p "/kb-<skill>" with KB_BUILDER_INTERNAL=1 and exits with the child code', () => {
+  it('spawns <binary> -p "/kk-<skill>" with KENKEEP_BUILDER_INTERNAL=1 and exits with the child code', () => {
     const { spawnFn, captured } = makeFakeSpawn();
     const exitFn = vi.fn((_code: number) => {
       return undefined as never;
     });
     launchSkill({
-      skill: 'kb-bootstrap',
+      skill: 'kk-bootstrap',
       passedArgs: '--from docs',
       harness: 'claude',
       spawnFn,
@@ -107,12 +107,12 @@ describe('launchSkill', () => {
     // Per the harness adapter table.
     expect(call.args.binary).toBe('claude');
     // The slash command is a single argv element after `-p`.
-    expect(call.args.args).toEqual(['-p', '/kb-bootstrap --from docs']);
+    expect(call.args.args).toEqual(['-p', '/kk-bootstrap --from docs']);
     // stdio inherited so Ctrl-C / TTY prompts flow naturally.
     expect(call.args.options['stdio']).toBe('inherit');
     // Recursion guard env var present and process.env preserved.
     const env = call.args.options['env'] as Record<string, string>;
-    expect(env['KB_BUILDER_INTERNAL']).toBe('1');
+    expect(env['KENKEEP_BUILDER_INTERNAL']).toBe('1');
     expect(env['PATH']).toBeDefined();
 
     // Child exits 0 → launcher process.exit(0).
@@ -123,8 +123,8 @@ describe('launchSkill', () => {
   it('omits the slash-command tail entirely when no passedArgs are given', () => {
     const { spawnFn, captured } = makeFakeSpawn();
     const exitFn = vi.fn((_code: number) => undefined as never);
-    launchSkill({ skill: 'kb-curate', harness: 'codex', spawnFn, exitFn });
-    expect(captured[0]!.args.args).toEqual(['-p', '/kb-curate']);
+    launchSkill({ skill: 'kk-curate', harness: 'codex', spawnFn, exitFn });
+    expect(captured[0]!.args.args).toEqual(['-p', '/kk-curate']);
     expect(captured[0]!.args.binary).toBe('codex');
   });
 
@@ -138,7 +138,7 @@ describe('launchSkill', () => {
     for (const [harness, expectedBinary] of cases) {
       const { spawnFn, captured } = makeFakeSpawn();
       const exitFn = vi.fn((_code: number) => undefined as never);
-      launchSkill({ skill: 'kb-add', harness, spawnFn, exitFn });
+      launchSkill({ skill: 'kk-add', harness, spawnFn, exitFn });
       expect(captured[0]!.args.binary, `harness ${harness}`).toBe(expectedBinary);
     }
   });
@@ -146,7 +146,7 @@ describe('launchSkill', () => {
   it('exits 1 when the child closes with a null code', () => {
     const { spawnFn, captured } = makeFakeSpawn();
     const exitFn = vi.fn((_code: number) => undefined as never);
-    launchSkill({ skill: 'kb-bootstrap', harness: 'claude', spawnFn, exitFn });
+    launchSkill({ skill: 'kk-bootstrap', harness: 'claude', spawnFn, exitFn });
     captured[0]!.emit(null);
     expect(exitFn).toHaveBeenCalledWith(1);
   });

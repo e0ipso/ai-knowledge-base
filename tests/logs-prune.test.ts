@@ -11,7 +11,7 @@ describe('pruneLogs', () => {
   let logsDir: string;
 
   beforeEach(() => {
-    sandbox = mkdtempSync(join(tmpdir(), 'kb-logs-prune-'));
+    sandbox = mkdtempSync(join(tmpdir(), 'kk-logs-prune-'));
     logsDir = join(sandbox, '_logs');
     mkdirSync(join(logsDir, 'proposal'), { recursive: true });
   });

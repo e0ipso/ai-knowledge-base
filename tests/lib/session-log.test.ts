@@ -45,7 +45,7 @@ describe('buildSessionLogFilename', () => {
 
 describe('findSessionLogBySessionId', () => {
   it('returns the filename whose suffix matches the full sessionId', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'kb-find-sess-'));
+    const dir = mkdtempSync(join(tmpdir(), 'kk-find-sess-'));
     try {
       mkdirSync(dir, { recursive: true });
       const target = `20260511-1234-${SAMPLE_V4}.md`;
@@ -58,7 +58,7 @@ describe('findSessionLogBySessionId', () => {
   });
 
   it('returns null when the directory does not exist', () => {
-    expect(findSessionLogBySessionId(join(tmpdir(), 'kb-find-missing-xyz'), SAMPLE_V4)).toBeNull();
+    expect(findSessionLogBySessionId(join(tmpdir(), 'kk-find-missing-xyz'), SAMPLE_V4)).toBeNull();
   });
 });
 

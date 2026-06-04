@@ -9,7 +9,7 @@ describe('state.json round-trip', () => {
   let file: string;
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'kb-state-'));
+    dir = mkdtempSync(join(tmpdir(), 'kk-state-'));
     file = join(dir, '.state', 'state.json');
   });
 

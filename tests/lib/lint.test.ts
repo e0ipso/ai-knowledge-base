@@ -13,8 +13,8 @@ interface Harness {
 }
 
 function makeHarness(): Harness {
-  const root = mkdtempSync(join(tmpdir(), 'kb-lint-'));
-  const nodesDir = join(root, '.ai/knowledge-base/nodes');
+  const root = mkdtempSync(join(tmpdir(), 'kk-lint-'));
+  const nodesDir = join(root, '.ai/kenkeep/nodes');
   mkdirSync(join(nodesDir, 'practice'), { recursive: true });
   mkdirSync(join(nodesDir, 'map'), { recursive: true });
   return { root, nodesDir };

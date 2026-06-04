@@ -13,9 +13,9 @@ src/
 ├── cli.ts                       # Commander entry
 ├── commands/                    # User-facing CLI implementations
 ├── hooks/                       # Compiled-to-.mjs hook scripts
-│   ├── kb-capture.ts            # capture     (Stop/SessionEnd/PreCompact)
-│   ├── kb-proposal-drain.ts     # extraction  (SessionStart, async)
-│   └── kb-session-start.ts      # consume     (SessionStart, sync)
+│   ├── kk-capture.ts            # capture     (Stop/SessionEnd/PreCompact)
+│   ├── kk-proposal-drain.ts     # extraction  (SessionStart, async)
+│   └── kk-session-start.ts      # consume     (SessionStart, sync)
 ├── lib/                         # Reusable building blocks
 ├── adapters/                    # Adapter interface
 └── templates-source/            # Files copied into consumer repos
@@ -26,27 +26,27 @@ src/
 ## Two CLI shapes
 
 - **Deterministic primitives**: `init`, `doctor`, `status`, `lint`, `finddocs`, `node write`, `curate-dedup`, `index rebuild`, `logs prune`. No LLM. Pure Node helpers; skills compose them, CI/scripts may call them directly.
-- **Launchers**: `bootstrap`, `curate`, `node add`. Thin wrappers that exec `<harness> -p "/kb-<name>"` with `KB_BUILDER_INTERNAL=1` set on the child. The LLM call happens in the host harness session, not in a subprocess spawned by this CLI.
+- **Launchers**: `bootstrap`, `curate`, `node add`. Thin wrappers that exec `<harness> -p "/kk-<name>"` with `KENKEEP_BUILDER_INTERNAL=1` set on the child. The LLM call happens in the host harness session, not in a subprocess spawned by this CLI.
 
-The only surviving headless-subprocess site after the launcher refactor is the **proposal-drain hook**, which spawns the active harness's headless driver (`codex exec`, `agent -p`, `opencode run`, …) per captured session log to extract candidates. The Claude adapter is the exception: its drain hook is a no-op, and extraction runs inline during `/kb-curate` instead, to avoid double-billing the user's plan. Its model and effort can be configured via `proposalModel: { name, effort }` in `config.yaml`. The `curatorModel` and `bootstrapModel` knobs are gone. Those pipelines now run under whatever model the user's host harness session is using.
+The only surviving headless-subprocess site after the launcher refactor is the **proposal-drain hook**, which spawns the active harness's headless driver (`codex exec`, `agent -p`, `opencode run`, …) per captured session log to extract candidates. The Claude adapter is the exception: its drain hook is a no-op, and extraction runs inline during `/kk-curate` instead, to avoid double-billing the user's plan. Its model and effort can be configured via `proposalModel: { name, effort }` in `config.yaml`. The `curatorModel` and `bootstrapModel` knobs are gone. Those pipelines now run under whatever model the user's host harness session is using.
 
 ## Pipelines
 
 ```mermaid
 flowchart TB
     subgraph capture[Capture]
-        H1[Stop / SessionEnd / PreCompact] --> KB1[kb-capture.mjs<br/>sync, secretlint redact]
+        H1[Stop / SessionEnd / PreCompact] --> KB1[kk-capture.mjs<br/>sync, secretlint redact]
         KB1 --> SL[_sessions/&lt;log&gt;.md<br/>pending]
     end
 
     subgraph extract[Extract candidates]
-        SS1[SessionStart] --> KB2[kb-proposal-drain.mjs<br/>async, headless harness]
+        SS1[SessionStart] --> KB2[kk-proposal-drain.mjs<br/>async, headless harness]
         SL --> KB2
         KB2 --> SLD[_sessions/&lt;log&gt;.md<br/>done + candidates]
     end
 
     subgraph curate[Curate]
-        UC[/kb-curate slash command<br/>or curate launcher] --> KB3[kb-curate skill<br/>in host harness session]
+        UC[/kk-curate slash command<br/>or curate launcher] --> KB3[kk-curate skill<br/>in host harness session]
         SLD --> KB3
         KB3 -->|node write| NODES[(nodes/&lt;kind&gt;/&lt;slug&gt;.md)]
         KB3 -->|curate-dedup| PC[conflicts/&lt;id&gt;.md]
@@ -55,13 +55,13 @@ flowchart TB
 
     subgraph review[Review]
         NODES --> RV[git diff<br/>git commit / git restore]
-        PC --> SK[/kb-curate skill<br/>resolves with user/]
+        PC --> SK[/kk-curate skill<br/>resolves with user/]
         SK --> NODES
         RV --> COMMIT[(committed nodes)]
     end
 
     subgraph consume[Consume]
-        SS2[SessionStart] --> KB4[kb-session-start.mjs<br/>sync]
+        SS2[SessionStart] --> KB4[kk-session-start.mjs<br/>sync]
         IDX --> KB4
         KB4 --> CTX[additionalContext → harness]
     end
@@ -78,7 +78,7 @@ flowchart TB
 | `.state/installed-version` | init | Package version + selected harnesses. Committed. |
 | `.state/state.json` | drain, curator, bootstrap, consume | Lock + `last_nudged_at`. Gitignored. |
 | `.state/bootstrap-state.json` | bootstrap | Doc SHA-256 cache. Gitignored. |
-| `conflicts/<run-id>-<n>.md` | curator (write), kb-curate skill (resolve), status (read) | Curator-detected contradictions, one markdown file per conflict. Frontmatter carries `status: pending`; resolution is via `git restore` (Reject / Accept-after-apply) or `git commit` (Keep as record). |
+| `conflicts/<run-id>-<n>.md` | curator (write), kk-curate skill (resolve), status (read) | Curator-detected contradictions, one markdown file per conflict. Frontmatter carries `status: pending`; resolution is via `git restore` (Reject / Accept-after-apply) or `git commit` (Keep as record). |
 | `.config/prompts/*` | init | Local prompt overrides. Committed. |
 
 ## Locking
@@ -128,9 +128,9 @@ Adding an adapter: implement the methods, dispatch from `src/commands/init.ts`.
 | Goal | Path |
 |---|---|
 | Change extraction | `src/templates-source/prompts/proposal-extract.md` |
-| Change curate | `src/templates-source/skills/kb-curate/SKILL.md` (dedup primitive logic in `src/commands/curate-dedup.ts`) |
-| Change bootstrap | `src/templates-source/skills/kb-bootstrap/SKILL.md` (discovery primitive in `src/commands/finddocs.ts`, write primitive in `src/commands/node-write.ts`) |
-| Change manual node add | `src/templates-source/skills/kb-add/SKILL.md` |
+| Change curate | `src/templates-source/skills/kk-curate/SKILL.md` (dedup primitive logic in `src/commands/curate-dedup.ts`) |
+| Change bootstrap | `src/templates-source/skills/kk-bootstrap/SKILL.md` (discovery primitive in `src/commands/finddocs.ts`, write primitive in `src/commands/node-write.ts`) |
+| Change manual node add | `src/templates-source/skills/kk-add/SKILL.md` |
 | New CLI subcommand | `src/commands/<name>.ts` + wire in `src/cli.ts` + doc in `cli-reference.md` |
 | New hook | `src/hooks/<name>.ts` + `tsup.config.ts` + register in `init.ts` |
 | New state file | Schema in `src/lib/schemas.ts`; add to gitignore block |

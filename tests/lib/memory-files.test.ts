@@ -14,7 +14,7 @@ interface Sandbox {
 }
 
 function makeSandbox(): Sandbox {
-  const root = mkdtempSync(join(tmpdir(), 'kb-memory-files-'));
+  const root = mkdtempSync(join(tmpdir(), 'kk-memory-files-'));
   const paths = repoPaths(root);
   mkdirSync(paths.stateDir, { recursive: true });
   const memoryDir = join(root, 'memories');
@@ -167,7 +167,7 @@ describe('discoverHarnessMemoryFiles', () => {
 
 describe('loadMemoryLedger', () => {
   it('returns an empty ledger when the file does not exist', () => {
-    const root = mkdtempSync(join(tmpdir(), 'kb-memory-ledger-'));
+    const root = mkdtempSync(join(tmpdir(), 'kk-memory-ledger-'));
     const paths = repoPaths(root);
     mkdirSync(paths.stateDir, { recursive: true });
     const ledger = loadMemoryLedger(paths);

@@ -101,11 +101,11 @@ The `bravo_seo.schema_emitter` map node is `confidence: medium` because the user
 
 ## Curator follow-up checks against existing-kb.md
 
-When this proposal output flows into the curator with the four existing nodes from the fixture KB, the curator should:
+When this proposal output flows into the curator with the four existing nodes from the fixture knowledge base, the curator should:
 
 1. **Practice DI node:** proposal says "constructor injection." Existing `practice-controller-dependency-injection` covers it. Either **modify** (the new candidate adds the explicit "see CardFeedController" pointer and is consistent with the existing node, but doesn't add real new content) or **drop** (essentially the same). Lean drop.
 
-2. **Practice analytics dispatcher node:** existing `practice-analytics-direct-ga` says "use vanilla GA." Direct contradiction. **contradict**. The new node says "use the dispatcher (we moved off GA)" and the existing node says "use GA directly." Cannot both be true. The kb-curate skill resolves the conflict in-session by asking the user to either replace (the old node file is deleted and a new node is written; the new node's id may match the deleted one) or reject (no change).
+2. **Practice analytics dispatcher node:** existing `practice-analytics-direct-ga` says "use vanilla GA." Direct contradiction. **contradict**. The new node says "use the dispatcher (we moved off GA)" and the existing node says "use GA directly." Cannot both be true. The kk-curate skill resolves the conflict in-session by asking the user to either replace (the old node file is deleted and a new node is written; the new node's id may match the deleted one) or reject (no change).
 
 3. **Practice personalized cache tags node:** existing `practice-cache-tags-default` says "use default cache tags." The new candidate is an *exception* for personalized content, not a contradiction: the default rule still holds for non-personalized routes. **add** with `relates_to: [practice-cache-tags-default]`. The curator should NOT contradict the existing node.
 

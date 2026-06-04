@@ -49,7 +49,7 @@ export async function runHeadlessCursor<T>(
 
   const env: NodeJS.ProcessEnv = {
     ...(opts.env ?? process.env),
-    KB_BUILDER_INTERNAL: '1',
+    KENKEEP_BUILDER_INTERNAL: '1',
   };
 
   let logStream: ReturnType<typeof createWriteStream> | null = null;

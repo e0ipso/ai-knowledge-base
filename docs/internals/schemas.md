@@ -6,7 +6,7 @@ nav_order: 3
 
 # Schemas
 
-Every YAML frontmatter and JSON state file is validated by a Zod schema at read time. The schemas in [`src/lib/schemas.ts`](https://github.com/e0ipso/ai-knowledge-base/blob/main/src/lib/schemas.ts) are the source of truth; when this page disagrees with the code, the code wins.
+Every YAML frontmatter and JSON state file is validated by a Zod schema at read time. The schemas in [`src/lib/schemas.ts`](https://github.com/e0ipso/kenkeep/blob/main/src/lib/schemas.ts) are the source of truth; when this page disagrees with the code, the code wins.
 
 All shapes carry `schema_version: 1`. A schema mismatch is a parse failure; the file is silently dropped.
 
@@ -52,17 +52,17 @@ The proposal prompt splits combined statements: "use `bravo_analytics.dispatcher
 
 ### Conflict resolution
 
-When the curator emits a `contradict` action, the `/kb-curate` skill walks each pending file under `.ai/knowledge-base/conflicts/` with the user. The menu is three-way and git-driven:
+When the curator emits a `contradict` action, the `/kk-curate` skill walks each pending file under `.ai/kenkeep/conflicts/` with the user. The menu is three-way and git-driven:
 
 | Choice | On-disk effect | Side effects |
 |---|---|---|
 | Accept | Skill rewrites `nodes/<kind>/<target_node_id>.md` from the proposed body. | Contributor `git restore`s the conflict file to discard it. |
 | Reject | None. The existing node file is untouched. | Contributor `git restore`s the conflict file to discard it. |
-| Keep as record | None to the node tree. | Contributor `git commit`s the conflict file; it stays in `.ai/knowledge-base/conflicts/` as durable history for future curate runs to read. |
+| Keep as record | None to the node tree. | Contributor `git commit`s the conflict file; it stays in `.ai/kenkeep/conflicts/` as durable history for future curate runs to read. |
 
 ## Conflict files (`conflicts/<run-id>-<n>.md`)
 
-The curator records `contradict` actions as one markdown file per conflict under `.ai/knowledge-base/conflicts/`, instead of writing conflicting nodes to disk. The file shape is set inline by the curate wrapper (`src/lib/curate.ts`); there is no Zod schema for the file (it is reviewed and resolved by humans, not parsed for state).
+The curator records `contradict` actions as one markdown file per conflict under `.ai/kenkeep/conflicts/`, instead of writing conflicting nodes to disk. The file shape is set inline by the curate wrapper (`src/lib/curate.ts`); there is no Zod schema for the file (it is reviewed and resolved by humans, not parsed for state).
 
 ```markdown
 ---
@@ -85,7 +85,7 @@ proposed_title: "..."
 <the proposed node body as the curator would have written it to nodes/>
 ```
 
-The `/kb-curate` skill reads every file with `status: pending` after the curator subprocess exits, walks each with the user, and lets the user advance the file via `git restore` (Reject and Accept-after-applying) or `git commit` (Keep as record). `ai-knowledge-base status` reports the pending count.
+The `/kk-curate` skill reads every file with `status: pending` after the curator subprocess exits, walks each with the user, and lets the user advance the file via `git restore` (Reject and Accept-after-applying) or `git commit` (Keep as record). `kenkeep status` reports the pending count.
 
 ## Curator failure reports
 
@@ -212,8 +212,8 @@ Records the SHA-256 of every doc the bootstrap pipelines have processed. Hash hi
 
 | Field | Meaning |
 |---|---|
-| `last_full_bootstrap_at` | Last `/kb-bootstrap` run. Never set by the CLI. |
-| `last_incremental_at` | Last `bootstrap` run (via the launcher or the kb-bootstrap skill) that processed ≥1 doc. Field name retained from the pre-rename era for backward compatibility. |
+| `last_full_bootstrap_at` | Last `/kk-bootstrap` run. Never set by the CLI. |
+| `last_incremental_at` | Last `bootstrap` run (via the launcher or the kk-bootstrap skill) that processed ≥1 doc. Field name retained from the pre-rename era for backward compatibility. |
 | `docs[].content_sha256` | SHA-256 of file contents at processing time. |
 | `docs[].last_processed_at` | Timestamp of last processing. Not updated on hash hits. |
 | `docs[].produced_nodes` | `<kind>/<filename>.md` paths (relative to `nodes/`) written from this doc. Informational. |
@@ -222,7 +222,7 @@ Lifecycle:
 
 - **First run**: file is created with `docs: {}`.
 - **Hash hit**: doc is skipped; `last_processed_at` is not updated.
-- **Hash miss**: doc is read by the kb-bootstrap skill. On success, the kb-bootstrap skill calls `node write --source-doc <relpath> --source-hash <sha256>` which folds the entry into this file as part of the same atomic write. On failure, no entry is added so a re-run retries.
+- **Hash miss**: doc is read by the kk-bootstrap skill. On success, the kk-bootstrap skill calls `node write --source-doc <relpath> --source-hash <sha256>` which folds the entry into this file as part of the same atomic write. On failure, no entry is added so a re-run retries.
 - **Preview discovery without writing**: run `finddocs [--from <scope>] [--with-hashes]`. Read-only, never touches `bootstrap-state.json`.
 - **Force re-bootstrap**: delete the file.
 

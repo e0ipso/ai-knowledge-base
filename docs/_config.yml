@@ -1,7 +1,7 @@
-title: '@e0ipso/ai-knowledge-base'
+title: 'kenkeep'
 description: A team-shared, git-native knowledge base for AI coding sessions. No daemons, no services — just Node and git.
 url: https://mateuaguilo.com
-baseurl: '/ai-knowledge-base'
+baseurl: '/kenkeep'
 
 # Just the Docs theme configuration
 remote_theme: just-the-docs/just-the-docs
@@ -21,9 +21,9 @@ nav_sort: case_sensitive
 # Repository link in header
 aux_links:
   'View on GitHub':
-    - 'https://github.com/e0ipso/ai-knowledge-base'
+    - 'https://github.com/e0ipso/kenkeep'
   'npm':
-    - 'https://www.npmjs.com/package/@e0ipso/ai-knowledge-base'
+    - 'https://www.npmjs.com/package/kenkeep'
 
 # Make aux links open in a new tab
 aux_links_new_tab: true

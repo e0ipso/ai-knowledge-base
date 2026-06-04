@@ -15,12 +15,12 @@ const exec = promisify(execFile);
 
 /**
  * Builds a tmp repo with a small fixture: a tracked markdown file, a file
- * excluded by `.gitignore`, a file excluded by `.kbignore`, plus the usual
+ * excluded by `.gitignore`, a file excluded by `.kkignore`, plus the usual
  * walker short-circuits (`.git/`, `node_modules/`). Returns the absolute
  * sandbox path.
  */
 function makeFixture(): string {
-  const sandbox = makeSandbox('kb-finddocs-');
+  const sandbox = makeSandbox('kk-finddocs-');
   // Static-skip directories the walker should never descend into.
   mkdirSync(join(sandbox, '.git'), { recursive: true });
   writeFileSync(join(sandbox, '.git', 'HEAD.md'), '# do not include');
@@ -32,8 +32,8 @@ function makeFixture(): string {
   mkdirSync(join(sandbox, 'private'), { recursive: true });
   writeFileSync(join(sandbox, 'private', 'secret.md'), '# secret');
 
-  // `.kbignore` excludes a specific file at the root.
-  writeFileSync(join(sandbox, '.kbignore'), 'ignored.md\n');
+  // `.kkignore` excludes a specific file at the root.
+  writeFileSync(join(sandbox, '.kkignore'), 'ignored.md\n');
   writeFileSync(join(sandbox, 'ignored.md'), '# ignored by kb');
 
   // The survivors:
@@ -61,10 +61,10 @@ describe('finddocs CLI command', () => {
       // files. This is the contract we want to preserve: the CLI primitive
       // is just a textual front end on the library walker.
       const gitignore = loadIgnoreFile(join(sandbox, '.gitignore'));
-      const kbignore = loadIgnoreFile(join(sandbox, '.kbignore'));
+      const kkignore = loadIgnoreFile(join(sandbox, '.kkignore'));
       const opts: DiscoverOptions = { repoRoot: sandbox };
       if (gitignore) opts.gitignore = gitignore;
-      if (kbignore) opts.kbignore = kbignore;
+      if (kkignore) opts.kkignore = kkignore;
       const expected = discoverMarkdownFiles(opts).files;
 
       const emittedLines = result.stdout.split('\n').filter(l => l.length > 0);
@@ -129,14 +129,14 @@ describe('finddocs CLI command', () => {
   });
 
   describe('--help', () => {
-    it('mentions .kbignore so users discover the ignore mechanism', async () => {
+    it('mentions .kkignore so users discover the ignore mechanism', async () => {
       // Run the built CLI directly so commander's `--help` exit code is
       // exercised end-to-end (it exits 0 after printing).
       const { stdout, stderr } = await exec('node', [cliPath, 'finddocs', '--help'], {
         env: { ...process.env, NO_COLOR: '1' },
       });
       const combined = stdout + stderr;
-      expect(combined).toContain('.kbignore');
+      expect(combined).toContain('.kkignore');
     });
   });
 });

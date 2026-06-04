@@ -231,7 +231,7 @@ export interface FailureReport {
 }
 
 /**
- * Settings shipped in the project-level `.ai/knowledge-base/config.yaml`
+ * Settings shipped in the project-level `.ai/kenkeep/config.yaml`
  * (committed). Every field is optional in the on-disk file; `resolveSettings()`
  * layers the documented defaults under project-level overrides. The
  * `schema_version` field is the only required key when a file is present.
@@ -255,7 +255,7 @@ export const SettingsSchema = z
     bootstrapModel: ModelChoiceSchema.optional(),
     /**
      * Default harness for plain-shell CLI invocations (e.g.
-     * `npx ai-knowledge-base curate` from a terminal that is not inside
+     * `npx kenkeep curate` from a terminal that is not inside
      * any assistant session). Skills and hooks always auto-resolve via
      * env detection (`CLAUDECODE=1`, `CLAUDE_PROJECT_DIR`, …) and do
      * NOT consult this setting — only the bare CLI fallback path does.
@@ -281,7 +281,7 @@ export type BootstrapState = z.infer<typeof BootstrapStateSchema>;
 /**
  * Per-user ledger for harness auto-memory ingestion. Keyed by `file://` IRI,
  * value is the last-seen content hash plus the run that recorded it. Lives
- * under `.ai/knowledge-base/.state/memory-ledger.json` (gitignored). Born at
+ * under `.ai/kenkeep/.state/memory-ledger.json` (gitignored). Born at
  * `schema_version: 1`; malformed files are rebuilt from empty, never migrated.
  */
 export const MemoryLedgerSchema = z.object({

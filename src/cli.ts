@@ -19,7 +19,7 @@ import { packageVersion } from './lib/version.js';
 async function main(): Promise<void> {
   const program = new Command();
   program
-    .name('ai-knowledge-base')
+    .name('kenkeep')
     .description('Build and maintain a per-repo knowledge base from AI coding sessions.')
     .version(packageVersion())
     .option(
@@ -55,7 +55,7 @@ async function main(): Promise<void> {
 
   program
     .command('status')
-    .description('Show pending session logs and KB stats.')
+    .description('Show pending session logs and kk stats.')
     .action(async () => {
       await runStatus();
     });
@@ -72,7 +72,7 @@ async function main(): Promise<void> {
   program
     .command('lint')
     .description(
-      'Run mechanical KB content health checks (dangling edges, slug/id mismatch, tag duplicates, orphans).'
+      'Run mechanical kk content health checks (dangling edges, slug/id mismatch, tag duplicates, orphans).'
     )
     .option('-v, --verbose', 'list every error and finding individually', false)
     .action(async (opts: { verbose: boolean }) => {
@@ -83,7 +83,7 @@ async function main(): Promise<void> {
   program
     .command('curate')
     .description(
-      'Launch the kb-curate skill in the active harness (execs `<harness> -p "/kb-curate"`).'
+      'Launch the kk-curate skill in the active harness (execs `<harness> -p "/kk-curate"`).'
     )
     .action(() => {
       const launchOpts: Parameters<typeof runCurateLauncher>[0] = {};
@@ -127,7 +127,7 @@ async function main(): Promise<void> {
   program
     .command('bootstrap')
     .description(
-      'Launch the kb-bootstrap skill in the active harness (execs `<harness> -p "/kb-bootstrap …"`). Scope is controlled by .kbignore plus an optional --from <scope>.'
+      'Launch the kk-bootstrap skill in the active harness (execs `<harness> -p "/kk-bootstrap …"`). Scope is controlled by .kkignore plus an optional --from <scope>.'
     )
     .option(
       '--from <scope>',
@@ -148,7 +148,7 @@ async function main(): Promise<void> {
   program
     .command('bootstrap-incremental')
     .description(
-      '[deprecated] Alias for `bootstrap`; will be removed in the next release. Use `ai-knowledge-base bootstrap` instead.'
+      '[deprecated] Alias for `bootstrap`; will be removed in the next release. Use `kenkeep bootstrap` instead.'
     )
     .option(
       '--from <scope>',
@@ -156,7 +156,7 @@ async function main(): Promise<void> {
     )
     .action((opts: { from?: string }) => {
       process.stderr.write(
-        "[deprecated] use 'ai-knowledge-base bootstrap' instead of 'bootstrap-incremental'\n"
+        "[deprecated] use 'kenkeep bootstrap' instead of 'bootstrap-incremental'\n"
       );
       const launchOpts: Parameters<typeof runBootstrapLauncher>[0] = {};
       if (opts.from !== undefined) launchOpts.from = opts.from;
@@ -165,11 +165,11 @@ async function main(): Promise<void> {
       runBootstrapLauncher(launchOpts);
     });
 
-  const nodeGroup = program.command('node').description('Manage knowledge-base nodes.');
+  const nodeGroup = program.command('node').description('Manage kenkeep nodes.');
   nodeGroup
     .command('add')
     .description(
-      'Launch the kb-add skill in the active harness (execs `<harness> -p "/kb-add"`). The skill collects kind/title/summary/body/tags interactively and persists via the `node write` primitive.'
+      'Launch the kk-add skill in the active harness (execs `<harness> -p "/kk-add"`). The skill collects kind/title/summary/body/tags interactively and persists via the `node write` primitive.'
     )
     .action(() => {
       const launchOpts: Parameters<typeof runNodeAddLauncher>[0] = {};
@@ -240,7 +240,7 @@ async function main(): Promise<void> {
   logsGroup
     .command('prune')
     .description(
-      'Delete JSONL log files under .ai/knowledge-base/_logs/ older than settings.logsRetentionDays (default 30 days).'
+      'Delete JSONL log files under .ai/kenkeep/_logs/ older than settings.logsRetentionDays (default 30 days).'
     )
     .action(async () => {
       const code = await runLogsPrune();
@@ -268,7 +268,7 @@ async function main(): Promise<void> {
   program
     .command('finddocs')
     .description(
-      'Deterministically enumerate candidate markdown files for the KB, applying .gitignore, .kbignore, and the built-in static-skip list. Read-only; emits one `+ <relpath>` line per survivor.'
+      'Deterministically enumerate candidate markdown files for the kk, applying .gitignore, .kkignore, and the built-in static-skip list. Read-only; emits one `+ <relpath>` line per survivor.'
     )
     .option(
       '--from <scope>',

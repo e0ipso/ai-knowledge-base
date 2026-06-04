@@ -6,10 +6,10 @@ import type { HookSpec } from '../types.js';
  * translation to Claude PascalCase).
  */
 export const cursorHookSpecs: readonly HookSpec[] = [
-  { event: 'stop', scriptPath: 'kb-capture.cjs' },
-  { event: 'sessionEnd', scriptPath: 'kb-capture.cjs' },
-  { event: 'sessionEnd', scriptPath: 'kb-lint-tick.cjs' },
-  { event: 'preCompact', scriptPath: 'kb-capture.cjs' },
-  { event: 'sessionStart', scriptPath: 'kb-session-start.cjs' },
-  { event: 'sessionStart', scriptPath: 'kb-proposal-drain.cjs' },
+  { event: 'stop', scriptPath: 'kk-capture.cjs' },
+  { event: 'sessionEnd', scriptPath: 'kk-capture.cjs' },
+  { event: 'sessionEnd', scriptPath: 'kk-lint-tick.cjs' },
+  { event: 'preCompact', scriptPath: 'kk-capture.cjs' },
+  { event: 'sessionStart', scriptPath: 'kk-session-start.cjs' },
+  { event: 'sessionStart', scriptPath: 'kk-proposal-drain.cjs' },
 ];

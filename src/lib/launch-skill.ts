@@ -4,12 +4,12 @@ import { findRepoRoot, repoPaths } from '../lib/paths.js';
 import { resolveSettings } from '../lib/settings.js';
 
 /**
- * Identity of one of the three KB skills the CLI launcher commands can
- * dispatch into the host harness. The string after `kb-` is what gets
- * suffixed onto the `/kb-…` slash command (`/kb-bootstrap`, `/kb-curate`,
- * `/kb-add`).
+ * Identity of one of the three kk skills the CLI launcher commands can
+ * dispatch into the host harness. The string after `kk-` is what gets
+ * suffixed onto the `/kk-…` slash command (`/kk-bootstrap`, `/kk-curate`,
+ * `/kk-add`).
  */
-export type LauncherSkill = 'kb-bootstrap' | 'kb-curate' | 'kb-add';
+export type LauncherSkill = 'kk-bootstrap' | 'kk-curate' | 'kk-add';
 
 export interface LaunchSkillOptions {
   /** Slash-command skill to invoke in the harness. */
@@ -47,10 +47,10 @@ export interface LaunchSkillOptions {
  * prompts, and the harness's rich output flow naturally). Exits the
  * current process with the child's exit code on close.
  *
- * `KB_BUILDER_INTERNAL=1` is set on the child's env so the spawned
+ * `KENKEEP_BUILDER_INTERNAL=1` is set on the child's env so the spawned
  * harness session's own SessionStart hook does not re-issue our pending
  * sessions nudge — that would cause an immediate recursion if the user
- * is already inside a host KB session.
+ * is already inside a host kk session.
  */
 export function launchSkill(opts: LaunchSkillOptions): void {
   const root = findRepoRoot();
@@ -71,7 +71,7 @@ export function launchSkill(opts: LaunchSkillOptions): void {
 
   const child = spawnImpl(binary, args, {
     stdio: 'inherit',
-    env: { ...process.env, KB_BUILDER_INTERNAL: '1' },
+    env: { ...process.env, KENKEEP_BUILDER_INTERNAL: '1' },
   });
 
   child.on('close', code => {

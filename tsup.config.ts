@@ -10,9 +10,9 @@ import { defineConfig } from 'tsup';
  *   1. **Per-event hook scripts** discovered at `src/harnesses/<id>/hooks/*.ts`.
  *      For adapters whose host runtime owns `<dir>/hooks/` (OpenCode reserves
  *      `.opencode/hooks/` for its own use), the output is renamed to
- *      `kb-hooks/<name>.cjs` to keep the private dispatch tree separate. The
+ *      `kk-hooks/<name>.cjs` to keep the private dispatch tree separate. The
  *      rename is triggered by the presence of a sibling `plugins/` directory:
- *      that signals the adapter ships a plugin shim and needs `kb-hooks/`
+ *      that signals the adapter ships a plugin shim and needs `kk-hooks/`
  *      under its native root (see Plan 23 for the convention).
  *   2. **Plugin modules** discovered at `src/harnesses/<id>/plugins/*.ts` and
  *      emitted to `dist/plugins/<id>/<name>.mjs` for the build-templates
@@ -23,8 +23,8 @@ import { defineConfig } from 'tsup';
 type DiscoveredEntries = {
   hookEntries: Record<string, string>;
   pluginEntries: Record<string, string>;
-  /** Adapter ids whose hook output is renamed to `kb-hooks/`. */
-  kbHooksOutputAdapters: Set<string>;
+  /** Adapter ids whose hook output is renamed to `kk-hooks/`. */
+  kkHooksOutputAdapters: Set<string>;
 };
 
 function dirExists(p: string): boolean {
@@ -38,13 +38,13 @@ function dirExists(p: string): boolean {
 function discoverEntries(): DiscoveredEntries {
   const hookEntries: Record<string, string> = {};
   const pluginEntries: Record<string, string> = {};
-  const kbHooksOutputAdapters = new Set<string>();
+  const kkHooksOutputAdapters = new Set<string>();
   const harnessesDir = 'src/harnesses';
   let harnessIds: string[];
   try {
     harnessIds = readdirSync(harnessesDir);
   } catch {
-    return { hookEntries, pluginEntries, kbHooksOutputAdapters };
+    return { hookEntries, pluginEntries, kkHooksOutputAdapters };
   }
   for (const id of harnessIds) {
     const adapterDir = join(harnessesDir, id);
@@ -52,7 +52,7 @@ function discoverEntries(): DiscoveredEntries {
     const hooksDir = join(adapterDir, 'hooks');
     const pluginsDir = join(adapterDir, 'plugins');
     const hasPlugins = dirExists(pluginsDir);
-    if (hasPlugins) kbHooksOutputAdapters.add(id);
+    if (hasPlugins) kkHooksOutputAdapters.add(id);
     if (dirExists(hooksDir)) {
       for (const name of readdirSync(hooksDir)) {
         if (!name.endsWith('.ts')) continue;
@@ -72,7 +72,7 @@ function discoverEntries(): DiscoveredEntries {
       }
     }
   }
-  return { hookEntries, pluginEntries, kbHooksOutputAdapters };
+  return { hookEntries, pluginEntries, kkHooksOutputAdapters };
 }
 
 const discovered = discoverEntries();
@@ -135,7 +135,7 @@ if (Object.keys(discovered.pluginEntries).length > 0) {
     // identify our plugin file against unrelated user plugins. The
     // leading comment in the TS source gets stripped during tsup's
     // ESM transform; this banner survives.
-    banner: { js: '// @e0ipso/ai-knowledge-base plugin' },
+    banner: { js: '// kenkeep plugin' },
   } as (typeof configs)[number]);
 }
 

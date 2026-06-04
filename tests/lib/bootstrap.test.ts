@@ -21,7 +21,7 @@ interface Harness {
 }
 
 function makeHarness(): Harness {
-  const root = mkdtempSync(join(tmpdir(), 'kb-bootstrap-'));
+  const root = mkdtempSync(join(tmpdir(), 'kk-bootstrap-'));
   const sourceDir = join(root, 'docs');
   const paths = repoPaths(root);
   const stateFile = join(paths.stateDir, 'state.json');
@@ -30,10 +30,10 @@ function makeHarness(): Harness {
   mkdirSync(paths.nodesDir, { recursive: true });
   mkdirSync(paths.logsDir, { recursive: true });
   mkdirSync(paths.stateDir, { recursive: true });
-  // The real `init` command writes a `.kbignore` excluding `.ai/` so the
+  // The real `init` command writes a `.kkignore` excluding `.ai/` so the
   // bootstrap walk does not re-ingest its own node files. Mirror that
   // setup here so discovery tests reflect realistic use.
-  writeFileSync(join(root, '.kbignore'), '.ai/\n');
+  writeFileSync(join(root, '.kkignore'), '.ai/\n');
   return {
     root,
     sourceDir,
@@ -69,7 +69,7 @@ describe('discoverMarkdownFiles', () => {
   });
 
   it('reports scannedBeforeFilter as the post-descent, pre-filter walker count', () => {
-    // STATIC_SKIPS / .gitignore / .kbignore *file* filtering is post-walk;
+    // STATIC_SKIPS / .gitignore / .kkignore *file* filtering is post-walk;
     // the pre-filter count should include LICENSE.md (a static skip) but
     // exclude .git/ and node_modules/ which never get descended.
     writeFileSync(join(harness.root, 'intro.md'), 'i');
@@ -129,49 +129,49 @@ describe('discoverMarkdownFiles', () => {
     expect(got.files).toEqual(['docs/keep.md']);
   });
 
-  it('respects .kbignore directory excludes', () => {
+  it('respects .kkignore directory excludes', () => {
     writeFileSync(join(harness.sourceDir, 'keep.md'), 'k');
     mkdirSync(join(harness.root, 'vendor'), { recursive: true });
     writeFileSync(join(harness.root, 'vendor', 'lib.md'), 'l');
     const got = discoverMarkdownFiles({
       repoRoot: harness.root,
-      kbignore: ignore().add('vendor/'),
+      kkignore: ignore().add('vendor/'),
     });
     expect(got.files).toEqual(['docs/keep.md']);
   });
 
-  it('honours .kbignore un-ignoring a file under a non-excluded parent', () => {
+  it('honours .kkignore un-ignoring a file under a non-excluded parent', () => {
     // Pattern: ignore everything, then re-admit docs/ and docs/AGENTS.md.
     writeFileSync(join(harness.sourceDir, 'AGENTS.md'), 'a');
     writeFileSync(join(harness.sourceDir, 'other.md'), 'o');
     writeFileSync(join(harness.root, 'intro.md'), 'i');
     const got = discoverMarkdownFiles({
       repoRoot: harness.root,
-      kbignore: ignore().add('*\n!docs/\n!docs/AGENTS.md'),
+      kkignore: ignore().add('*\n!docs/\n!docs/AGENTS.md'),
     });
     expect(got.files).toEqual(['docs/AGENTS.md']);
   });
 
-  it('composes .gitignore ∪ .kbignore (either blocks)', () => {
+  it('composes .gitignore ∪ .kkignore (either blocks)', () => {
     writeFileSync(join(harness.sourceDir, 'keep.md'), 'k');
     writeFileSync(join(harness.sourceDir, 'gitignored.md'), 'g');
-    writeFileSync(join(harness.sourceDir, 'kbignored.md'), 'b');
+    writeFileSync(join(harness.sourceDir, 'kkignored.md'), 'b');
     const got = discoverMarkdownFiles({
       repoRoot: harness.root,
       gitignore: ignore().add('docs/gitignored.md'),
-      kbignore: ignore().add('docs/kbignored.md'),
+      kkignore: ignore().add('docs/kkignored.md'),
     });
     expect(got.files).toEqual(['docs/keep.md']);
   });
 
-  it('short-circuits descent for .kbignore-excluded directories (perf)', () => {
+  it('short-circuits descent for .kkignore-excluded directories (perf)', () => {
     writeFileSync(join(harness.root, 'intro.md'), 'i');
     mkdirSync(join(harness.root, 'huge'), { recursive: true });
     writeFileSync(join(harness.root, 'huge', 'a.md'), 'a');
     writeFileSync(join(harness.root, 'huge', 'b.md'), 'b');
     const got = discoverMarkdownFiles({
       repoRoot: harness.root,
-      kbignore: ignore().add('huge/'),
+      kkignore: ignore().add('huge/'),
     });
     expect(got.files).toEqual(['intro.md']);
     // Critically: the walker did NOT descend into huge/, so those .md
@@ -192,9 +192,9 @@ describe('discoverMarkdownFiles', () => {
     expect(got.scannedBeforeFilter).toBe(1);
   });
 
-  it('does not auto-skip harness instruction directories (lib alone, no .kbignore stub)', () => {
+  it('does not auto-skip harness instruction directories (lib alone, no .kkignore stub)', () => {
     // The lib's discovery does NOT know about harness skills/commands dirs.
-    // The default `.kbignore` stub written by `init` is what excludes them;
+    // The default `.kkignore` stub written by `init` is what excludes them;
     // the lib alone is harness-agnostic.
     writeFileSync(join(harness.root, 'intro.md'), 'i');
     mkdirSync(join(harness.root, '.claude', 'skills', 'foo'), { recursive: true });

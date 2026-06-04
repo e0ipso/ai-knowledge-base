@@ -34,12 +34,12 @@ describe('init --upgrade', () => {
   it('refreshes hooks but preserves a customized config.yaml', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
 
-    const configFile = join(sandbox, '.ai/knowledge-base/config.yaml');
+    const configFile = join(sandbox, '.ai/kenkeep/config.yaml');
     const customized = 'schema_version: 1\ncurationThreshold: 42\n';
     writeFileSync(configFile, customized);
 
     // Mark installed-version older so upgrade applies.
-    const versionFile = join(sandbox, '.ai/knowledge-base/.state/installed-version');
+    const versionFile = join(sandbox, '.ai/kenkeep/.state/installed-version');
     const installed = JSON.parse(readFileSync(versionFile, 'utf8'));
     installed.version = '0.0.0-test-old';
     writeFileSync(versionFile, JSON.stringify(installed, null, 2) + '\n');
@@ -52,17 +52,17 @@ describe('init --upgrade', () => {
     expect(readFileSync(configFile, 'utf8')).toBe(customized);
 
     // Hooks present.
-    expect(existsSync(join(sandbox, '.claude/hooks/kb-capture.cjs'))).toBe(true);
+    expect(existsSync(join(sandbox, '.claude/hooks/kk-capture.cjs'))).toBe(true);
 
     // installed-version bumped to current.
     const after = JSON.parse(readFileSync(versionFile, 'utf8'));
     expect(after.version).not.toBe('0.0.0-test-old');
   });
 
-  it('overwrites a stale kb-curate skill with the shared detect-harness body on upgrade', async () => {
+  it('overwrites a stale kk-curate skill with the shared detect-harness body on upgrade', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
 
-    const versionFile = join(sandbox, '.ai/knowledge-base/.state/installed-version');
+    const versionFile = join(sandbox, '.ai/kenkeep/.state/installed-version');
     const installed = JSON.parse(readFileSync(versionFile, 'utf8'));
     installed.version = '0.0.0-test-old';
     writeFileSync(versionFile, JSON.stringify(installed, null, 2) + '\n');
@@ -70,17 +70,17 @@ describe('init --upgrade', () => {
     // Pre-populate the installed skill with stale content (the older
     // per-harness skill once carried `allowed-tools`; the shared body
     // does not). Upgrade must overwrite the file with the shared bytes.
-    const skillFile = join(sandbox, '.claude/skills/kb-curate/SKILL.md');
+    const skillFile = join(sandbox, '.claude/skills/kk-curate/SKILL.md');
     writeFileSync(
       skillFile,
-      '---\nname: kb-curate\nallowed-tools: Bash(rm:*), Read, Edit, Write\n---\nold\n'
+      '---\nname: kk-curate\nallowed-tools: Bash(rm:*), Read, Edit, Write\n---\nold\n'
     );
 
     const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
     expect(result.exitCode).toBe(0);
 
     const skill = readFileSync(skillFile, 'utf8');
-    expect(skill).toContain('/tmp/kb-detect-harness.mjs');
+    expect(skill).toContain('/tmp/kk-detect-harness.mjs');
     expect(skill).toContain('--harness "$HARNESS"');
     expect(skill).not.toContain('Bash(rm:*)');
     expect(skill).not.toMatch(/^allowed-tools:/m);
@@ -89,10 +89,10 @@ describe('init --upgrade', () => {
   it('preserves a customized local prompt override', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
 
-    const promptFile = join(sandbox, '.ai/knowledge-base/.config/prompts/proposal-extract.md');
+    const promptFile = join(sandbox, '.ai/kenkeep/.config/prompts/proposal-extract.md');
     writeFileSync(promptFile, '# my local override\n');
 
-    const versionFile = join(sandbox, '.ai/knowledge-base/.state/installed-version');
+    const versionFile = join(sandbox, '.ai/kenkeep/.state/installed-version');
     const installed = JSON.parse(readFileSync(versionFile, 'utf8'));
     installed.version = '0.0.0-test-old';
     writeFileSync(versionFile, JSON.stringify(installed, null, 2) + '\n');
@@ -105,10 +105,10 @@ describe('init --upgrade', () => {
   it('re-copies a missing prompt during upgrade', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
 
-    const promptFile = join(sandbox, '.ai/knowledge-base/.config/prompts/proposal-extract.md');
+    const promptFile = join(sandbox, '.ai/kenkeep/.config/prompts/proposal-extract.md');
     rmSync(promptFile);
 
-    const versionFile = join(sandbox, '.ai/knowledge-base/.state/installed-version');
+    const versionFile = join(sandbox, '.ai/kenkeep/.state/installed-version');
     const installed = JSON.parse(readFileSync(versionFile, 'utf8'));
     installed.version = '0.0.0-test-old';
     writeFileSync(versionFile, JSON.stringify(installed, null, 2) + '\n');
@@ -121,8 +121,8 @@ describe('init --upgrade', () => {
   it('preserves byte-for-byte edits to config.yaml and a prompt across repeated upgrades', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
 
-    const configFile = join(sandbox, '.ai/knowledge-base/config.yaml');
-    const promptFile = join(sandbox, '.ai/knowledge-base/.config/prompts/proposal-extract.md');
+    const configFile = join(sandbox, '.ai/kenkeep/config.yaml');
+    const promptFile = join(sandbox, '.ai/kenkeep/.config/prompts/proposal-extract.md');
 
     const editedConfig = readFileSync(configFile, 'utf8') + '# local edit\n';
     writeFileSync(configFile, editedConfig);
@@ -143,10 +143,10 @@ describe('init --upgrade', () => {
 
   it('creates config.yaml on upgrade when missing', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    const configFile = join(sandbox, '.ai/knowledge-base/config.yaml');
+    const configFile = join(sandbox, '.ai/kenkeep/config.yaml');
     rmSync(configFile);
 
-    const versionFile = join(sandbox, '.ai/knowledge-base/.state/installed-version');
+    const versionFile = join(sandbox, '.ai/kenkeep/.state/installed-version');
     const installed = JSON.parse(readFileSync(versionFile, 'utf8'));
     installed.version = '0.0.0-test-old';
     writeFileSync(versionFile, JSON.stringify(installed, null, 2) + '\n');
@@ -170,7 +170,7 @@ describe('doctor: installed-version currency', () => {
 
   it('warns when installed-version is older than the package', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    const versionFile = join(sandbox, '.ai/knowledge-base/.state/installed-version');
+    const versionFile = join(sandbox, '.ai/kenkeep/.state/installed-version');
     const installed = JSON.parse(readFileSync(versionFile, 'utf8'));
     installed.version = '0.0.0-test-old';
     writeFileSync(versionFile, JSON.stringify(installed, null, 2) + '\n');

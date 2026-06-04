@@ -13,7 +13,7 @@ describe('writeCodexHooks', () => {
   let hooksFile: string;
 
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'kb-codex-hooks-'));
+    root = mkdtempSync(join(tmpdir(), 'kk-codex-hooks-'));
     hooksFile = join(root, '.codex/hooks.json');
   });
 
@@ -22,9 +22,9 @@ describe('writeCodexHooks', () => {
   it('creates .codex/hooks.json with the canonical shape on a fresh repo', async () => {
     expect(existsSync(hooksFile)).toBe(false);
     await writeCodexHooks(root, [
-      { event: 'Stop', scriptPath: '.codex/hooks/kb-capture.cjs' },
-      { event: 'SessionStart', scriptPath: '.codex/hooks/kb-session-start.cjs' },
-      { event: 'SessionStart', scriptPath: '.codex/hooks/kb-proposal-drain.cjs', async: true },
+      { event: 'Stop', scriptPath: '.codex/hooks/kk-capture.cjs' },
+      { event: 'SessionStart', scriptPath: '.codex/hooks/kk-session-start.cjs' },
+      { event: 'SessionStart', scriptPath: '.codex/hooks/kk-proposal-drain.cjs', async: true },
     ]);
     expect(existsSync(hooksFile)).toBe(true);
     const parsed = JSON.parse(readFileSync(hooksFile, 'utf8'));
@@ -33,7 +33,7 @@ describe('writeCodexHooks', () => {
         hooks: [
           {
             type: 'command',
-            command: 'node ./.codex/hooks/kb-capture.cjs',
+            command: 'node ./.codex/hooks/kk-capture.cjs',
             timeout: 30,
           },
         ],
@@ -41,17 +41,17 @@ describe('writeCodexHooks', () => {
     ]);
     expect(parsed.hooks.SessionStart).toHaveLength(2);
     expect(parsed.hooks.SessionStart[0].hooks[0].command).toBe(
-      'node ./.codex/hooks/kb-session-start.cjs'
+      'node ./.codex/hooks/kk-session-start.cjs'
     );
     expect(parsed.hooks.SessionStart[1].hooks[0].command).toBe(
-      'node ./.codex/hooks/kb-proposal-drain.cjs'
+      'node ./.codex/hooks/kk-proposal-drain.cjs'
     );
   });
 
   it('is idempotent: rewriting the same specs produces the same file content', async () => {
     const specs = [
-      { event: 'Stop' as const, scriptPath: '.codex/hooks/kb-capture.cjs' },
-      { event: 'SessionStart' as const, scriptPath: '.codex/hooks/kb-session-start.cjs' },
+      { event: 'Stop' as const, scriptPath: '.codex/hooks/kk-capture.cjs' },
+      { event: 'SessionStart' as const, scriptPath: '.codex/hooks/kk-session-start.cjs' },
     ];
     await writeCodexHooks(root, specs);
     const first = readFileSync(hooksFile, 'utf8');
@@ -81,17 +81,17 @@ describe('writeCodexHooks', () => {
       })
     );
 
-    await writeCodexHooks(root, [{ event: 'Stop', scriptPath: '.codex/hooks/kb-capture.cjs' }]);
+    await writeCodexHooks(root, [{ event: 'Stop', scriptPath: '.codex/hooks/kk-capture.cjs' }]);
 
     const parsed = JSON.parse(readFileSync(hooksFile, 'utf8'));
     const commands = parsed.hooks.Stop.flatMap((e: { hooks: Array<{ command: string }> }) =>
       e.hooks.map(h => h.command)
     );
     expect(commands).toContain('node ./scripts/user-stop.mjs');
-    expect(commands).toContain('node ./.codex/hooks/kb-capture.cjs');
+    expect(commands).toContain('node ./.codex/hooks/kk-capture.cjs');
   });
 
-  it('scrubs previously-owned kb- hooks before rewriting', async () => {
+  it('scrubs previously-owned kk- hooks before rewriting', async () => {
     mkdirSync(join(root, '.codex'), { recursive: true });
     writeFileSync(
       hooksFile,
@@ -102,7 +102,7 @@ describe('writeCodexHooks', () => {
               hooks: [
                 {
                   type: 'command',
-                  command: 'node ./.codex/hooks/kb-old-name.mjs',
+                  command: 'node ./.codex/hooks/kk-old-name.mjs',
                   timeout: 30,
                 },
               ],
@@ -120,15 +120,15 @@ describe('writeCodexHooks', () => {
       })
     );
 
-    await writeCodexHooks(root, [{ event: 'Stop', scriptPath: '.codex/hooks/kb-capture.cjs' }]);
+    await writeCodexHooks(root, [{ event: 'Stop', scriptPath: '.codex/hooks/kk-capture.cjs' }]);
 
     const parsed = JSON.parse(readFileSync(hooksFile, 'utf8'));
     const commands = parsed.hooks.Stop.flatMap((e: { hooks: Array<{ command: string }> }) =>
       e.hooks.map(h => h.command)
     );
-    expect(commands).not.toContain('node ./.codex/hooks/kb-old-name.mjs');
+    expect(commands).not.toContain('node ./.codex/hooks/kk-old-name.mjs');
     expect(commands).toContain('node ./scripts/user-stop.mjs');
-    expect(commands).toContain('node ./.codex/hooks/kb-capture.cjs');
+    expect(commands).toContain('node ./.codex/hooks/kk-capture.cjs');
   });
 
   it('refuses to write when .codex/config.toml defines a [hooks] table', async () => {
@@ -140,7 +140,7 @@ describe('writeCodexHooks', () => {
 
     let caught: Error | null = null;
     try {
-      await writeCodexHooks(root, [{ event: 'Stop', scriptPath: '.codex/hooks/kb-capture.cjs' }]);
+      await writeCodexHooks(root, [{ event: 'Stop', scriptPath: '.codex/hooks/kk-capture.cjs' }]);
     } catch (err) {
       caught = err as Error;
     }
@@ -148,14 +148,14 @@ describe('writeCodexHooks', () => {
     expect(caught!.message).toContain('Refusing to write .codex/hooks.json');
     expect(caught!.message).toContain('.codex/config.toml already defines [hooks]');
     expect(caught!.message).toContain(
-      'https://github.com/e0ipso/ai-knowledge-base/blob/main/docs/installation/codex-toml-hooks-coexistence.md'
+      'https://github.com/e0ipso/kenkeep/blob/main/docs/installation/codex-toml-hooks-coexistence.md'
     );
   });
 
   it('does not trip the TOML guard when .codex/config.toml exists but has no [hooks] table', async () => {
     mkdirSync(join(root, '.codex'), { recursive: true });
     writeFileSync(join(root, '.codex/config.toml'), 'model = "gpt-5-codex"\n');
-    await writeCodexHooks(root, [{ event: 'Stop', scriptPath: '.codex/hooks/kb-capture.cjs' }]);
+    await writeCodexHooks(root, [{ event: 'Stop', scriptPath: '.codex/hooks/kk-capture.cjs' }]);
     expect(existsSync(hooksFile)).toBe(true);
   });
 
@@ -163,7 +163,7 @@ describe('writeCodexHooks', () => {
     mkdirSync(join(root, '.codex'), { recursive: true });
     writeFileSync(hooksFile, '{ not json');
     await expect(
-      writeCodexHooks(root, [{ event: 'Stop', scriptPath: '.codex/hooks/kb-capture.cjs' }])
+      writeCodexHooks(root, [{ event: 'Stop', scriptPath: '.codex/hooks/kk-capture.cjs' }])
     ).rejects.toThrow(/Could not parse existing/);
   });
 

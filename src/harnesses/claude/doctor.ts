@@ -8,7 +8,7 @@ import { CLAUDE_HOOK_SPECS } from './hook-spec.js';
 import { claudePaths } from './install.js';
 
 const exec = promisify(execFile);
-const EXPECTED_SKILLS = ['kb-add', 'kb-bootstrap', 'kb-curate'];
+const EXPECTED_SKILLS = ['kk-add', 'kk-bootstrap', 'kk-curate'];
 
 export async function claudeDoctorChecks(paths: RepoPaths): Promise<NamedDoctorCheck[]> {
   const locs = claudePaths(paths.root);
@@ -34,7 +34,7 @@ async function checkClaudeCli(): Promise<DoctorCheckResult> {
 function checkClaudeHooks(settingsFile: string, hooksDir: string): DoctorCheckResult {
   if (!existsSync(settingsFile)) {
     return errCheck(
-      'no .claude/settings.json. Run `npx @e0ipso/ai-knowledge-base init --harnesses claude --upgrade`.'
+      'no .claude/settings.json. Run `npx kenkeep init --harnesses claude --upgrade`.'
     );
   }
   let settings: { hooks?: Record<string, Array<{ hooks: Array<{ command?: string }> }>> };
@@ -60,20 +60,20 @@ function checkClaudeHooks(settingsFile: string, hooksDir: string): DoctorCheckRe
   if (missingRegs.length > 0) parts.push(`missing registrations: ${missingRegs.join(', ')}`);
   if (missingFiles.size > 0) parts.push(`missing scripts: ${[...missingFiles].join(', ')}`);
   return errCheck(
-    `${parts.join('; ')}. Re-run \`npx @e0ipso/ai-knowledge-base init --harnesses claude --upgrade\`.`
+    `${parts.join('; ')}. Re-run \`npx kenkeep init --harnesses claude --upgrade\`.`
   );
 }
 
 function checkClaudeSkills(skillsDir: string): DoctorCheckResult {
   if (!existsSync(skillsDir)) {
     return errCheck(
-      'no .claude/skills/ directory. Re-run `npx @e0ipso/ai-knowledge-base init --harnesses claude --upgrade`.'
+      'no .claude/skills/ directory. Re-run `npx kenkeep init --harnesses claude --upgrade`.'
     );
   }
   const missing = EXPECTED_SKILLS.filter(name => !existsSync(join(skillsDir, name, 'SKILL.md')));
   return missing.length === 0
     ? ok(EXPECTED_SKILLS.join(', '))
     : errCheck(
-        `missing SKILL.md for: ${missing.join(', ')}. Re-run \`npx @e0ipso/ai-knowledge-base init --upgrade\`.`
+        `missing SKILL.md for: ${missing.join(', ')}. Re-run \`npx kenkeep init --upgrade\`.`
       );
 }

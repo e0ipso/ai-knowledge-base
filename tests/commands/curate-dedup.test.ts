@@ -32,7 +32,7 @@ interface Sandbox {
 }
 
 function makeSandbox(): Sandbox {
-  const root = mkdtempSync(join(tmpdir(), 'kb-curate-dedup-'));
+  const root = mkdtempSync(join(tmpdir(), 'kk-curate-dedup-'));
   const sessionsDir = join(root, '_sessions');
   const conflictsDir = join(root, 'conflicts');
   mkdirSync(sessionsDir, { recursive: true });

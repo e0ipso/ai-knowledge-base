@@ -39,7 +39,7 @@ async function runCli(
  * is amended in the launched env so the launcher exec's the fake.
  */
 function makeSandbox(): { root: string; binDir: string } {
-  const root = mkdtempSync(join(tmpdir(), 'kb-cli-depr-'));
+  const root = mkdtempSync(join(tmpdir(), 'kk-cli-depr-'));
   mkdirSync(join(root, '.git'), { recursive: true });
   const binDir = join(root, 'bin');
   mkdirSync(binDir, { recursive: true });
@@ -73,7 +73,7 @@ describe('bootstrap-incremental deprecation alias', () => {
     expect(result.exitCode).toBe(0);
     expect(result.stderr).toMatch(/\[deprecated\]/i);
     expect(result.stderr).toContain('bootstrap-incremental');
-    expect(result.stderr).toContain("'ai-knowledge-base bootstrap'");
+    expect(result.stderr).toContain("'kenkeep bootstrap'");
   });
 
   it('mentions "deprecated" in `bootstrap-incremental --help`', async () => {

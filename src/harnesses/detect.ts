@@ -17,7 +17,7 @@ export function detectHarnessFromEnv(env: NodeJS.ProcessEnv = process.env): Harn
 
 /**
  * Hint-aware resolution chain shared between the CLI and the
- * `/tmp/kb-detect-harness.mjs` skill helper. Priority:
+ * `/tmp/kk-detect-harness.mjs` skill helper. Priority:
  *
  *   1. `hint`, when supplied and registered. An unknown hint falls through
  *      silently so a typo does not silently select the wrong adapter; the
@@ -33,7 +33,7 @@ export function detectHarnessFromEnv(env: NodeJS.ProcessEnv = process.env): Harn
  * `CLAUDECODE=1` might leak in from the parent shell).
  *
  * The TS implementation here is mirrored by the heredoc in
- * `src/templates-source/skills/kb-curate/SKILL.md`. CI guards drift
+ * `src/templates-source/skills/kk-curate/SKILL.md`. CI guards drift
  * between the two via `scripts/lint-detect-harness.mjs`.
  */
 export function resolveWithHint(
@@ -51,7 +51,7 @@ export function resolveWithHint(
   }
   throw new Error(
     `Could not resolve active harness. Pass --hint <id> or set ` +
-      `cliDefaultHarness in .ai/knowledge-base/config.yaml. ` +
+      `cliDefaultHarness in .ai/kenkeep/config.yaml. ` +
       `Available: ${listHarnessIds().join(', ') || '(none)'}.`
   );
 }
@@ -88,7 +88,7 @@ export interface ResolveActiveHarnessOpts {
  *      inside a harness session that exports a known env var (Claude
  *      sets `CLAUDECODE=1` and `CLAUDE_PROJECT_DIR`).
  *   3. **`cliDefaultHarness` from config.yaml.** Plain-shell CLI
- *      invocations (e.g. `npx ai-knowledge-base curate` typed in a
+ *      invocations (e.g. `npx kenkeep curate` typed in a
  *      terminal) fall through to this setting.
  *   4. **First registered harness.** Final fallback so the CLI keeps
  *      working in a brand-new repo without `cliDefaultHarness` set.

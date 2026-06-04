@@ -43,7 +43,7 @@ interface CodexEvent extends HeadlessStreamMessage {
  * The final agent message's `text` field is parsed as JSON after the
  * child exits.
  *
- * The recursion guard env var (`KB_BUILDER_INTERNAL=1`) is always set on
+ * The recursion guard env var (`KENKEEP_BUILDER_INTERNAL=1`) is always set on
  * the child so that capture and drain hooks fired from the spawned process
  * exit silently.
  *
@@ -78,7 +78,7 @@ export async function runHeadlessCodex<T>(
 
   const env: NodeJS.ProcessEnv = {
     ...(opts.env ?? process.env),
-    KB_BUILDER_INTERNAL: '1',
+    KENKEEP_BUILDER_INTERNAL: '1',
   };
 
   let logStream: ReturnType<typeof createWriteStream> | null = null;

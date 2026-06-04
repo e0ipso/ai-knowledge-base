@@ -126,7 +126,7 @@ export function generateIndex(nodesDir: string): GeneratedIndex {
 
   const tagBlock = renderTagIndex(nodes, inDegree);
 
-  const header = `# KB Index\n\n_${nodeCount} nodes • ~${estimatedTokens} estimated tokens_\n`;
+  const header = `# kk Index\n\n_${nodeCount} nodes • ~${estimatedTokens} estimated tokens_\n`;
   const body = renderBody(header, sections, tagBlock);
 
   const fm = IndexFrontmatterSchema.parse({
@@ -166,7 +166,7 @@ export function generateGraph(nodesDir: string): GeneratedGraph {
   nodes.sort((a, b) => a.frontmatter.id.localeCompare(b.frontmatter.id));
   const hash = computeNodesHash(nodesDir);
 
-  const lines: string[] = [`# KB Graph`, ''];
+  const lines: string[] = [`# kk Graph`, ''];
   if (nodes.length === 0) {
     lines.push('_No nodes yet._');
   } else {

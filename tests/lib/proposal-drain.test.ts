@@ -23,7 +23,7 @@ interface Harness {
 }
 
 function makeHarness(): Harness {
-  const root = mkdtempSync(join(tmpdir(), 'kb-drain-'));
+  const root = mkdtempSync(join(tmpdir(), 'kk-drain-'));
   const paths = repoPaths(root);
   const stateFile = join(paths.stateDir, 'state.json');
   mkdirSync(paths.sessionsDir, { recursive: true });

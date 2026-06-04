@@ -5,9 +5,9 @@ nav_order: 5
 
 # CLI reference
 
-The `ai-knowledge-base` binary is available after install (or run via `npx`). The CLI is now split into two kinds of commands:
+The `kenkeep` binary is available after install (or run via `npx`). The CLI is now split into two kinds of commands:
 
-- **Launchers** (`bootstrap`, `curate`, `node add`) exec the matching skill in the active harness (`<harness> -p "/kb-<name>"`). The LLM runs in the host harness session, with the user's own model and prompt cache. No internal sub-agent fan-out.
+- **Launchers** (`bootstrap`, `curate`, `node add`) exec the matching skill in the active harness (`<harness> -p "/kk-<name>"`). The LLM runs in the host harness session, with the user's own model and prompt cache. No internal sub-agent fan-out.
 - **Primitives** (`finddocs`, `node write`, `curate-dedup`, `index rebuild`, `lint`, `status`, `doctor`, `init`, `logs prune`) are deterministic, no-LLM helpers. Skills call them from prompts; users can call them directly from a shell or CI.
 
 ## `--harness <id>` (global)
@@ -15,22 +15,22 @@ The `ai-knowledge-base` binary is available after install (or run via `npx`). Th
 Selects the adapter (`claude`, `codex`, `cursor`, `opencode`). Inherited by every subcommand. Auto-detected via `CLAUDECODE=1` (Claude) and `CURSOR_VERSION` (Cursor). Codex and OpenCode have no env var, so pass `--harness` explicitly or set `cliDefaultHarness` in `config.yaml`.
 
 ```sh
-npx @e0ipso/ai-knowledge-base --harness codex doctor
+npx kenkeep --harness codex doctor
 ```
 
 ## Launchers
 
-Each launcher is a thin wrapper. Its only job is to exec the host harness in `-p` mode against the matching slash-command, with `KB_BUILDER_INTERNAL=1` set on the child so the spawned session's SessionStart hooks (capture, nudge) don't re-fire inside the nested context. One harness invocation per user invocation; the LLM call happens once, in the host harness.
+Each launcher is a thin wrapper. Its only job is to exec the host harness in `-p` mode against the matching slash-command, with `KENKEEP_BUILDER_INTERNAL=1` set on the child so the spawned session's SessionStart hooks (capture, nudge) don't re-fire inside the nested context. One harness invocation per user invocation; the LLM call happens once, in the host harness.
 
 ### `bootstrap [--from <scope>]`
 
 ```
-npx @e0ipso/ai-knowledge-base bootstrap [--from <scope>]
+npx kenkeep bootstrap [--from <scope>]
 ```
 
-Execs `<harness> -p "/kb-bootstrap [--from <scope>]"`. The kb-bootstrap skill enumerates candidate docs via `finddocs`, reads them with the host's `Read` tool, drafts node bodies inline, persists via `node write` (which also folds the per-file SHA-256 entry into `bootstrap-state.json`), and finishes with `index rebuild`.
+Execs `<harness> -p "/kk-bootstrap [--from <scope>]"`. The kk-bootstrap skill enumerates candidate docs via `finddocs`, reads them with the host's `Read` tool, drafts node bodies inline, persists via `node write` (which also folds the per-file SHA-256 entry into `bootstrap-state.json`), and finishes with `index rebuild`.
 
-Scope is controlled by `.kbignore` at the repo root, plus the optional `--from <scope>` to narrow to a subdirectory. Existing nodes are never overwritten.
+Scope is controlled by `.kkignore` at the repo root, plus the optional `--from <scope>` to narrow to a subdirectory. Existing nodes are never overwritten.
 
 Exit codes: whatever the host harness returns. The launcher itself only fails on missing harness binary (exit 1).
 
@@ -41,20 +41,20 @@ Exit codes: whatever the host harness returns. The launcher itself only fails on
 ### `curate`
 
 ```
-npx @e0ipso/ai-knowledge-base curate
+npx kenkeep curate
 ```
 
-Execs `<harness> -p "/kb-curate"`. The kb-curate skill reads pending session logs in `captured_at` order, drafts curator proposals in-session, pipes the merged proposal set to `curate-dedup` for the deterministic dedup + conflict-id + stamp transaction, then runs `index rebuild`.
+Execs `<harness> -p "/kk-curate"`. The kk-curate skill reads pending session logs in `captured_at` order, drafts curator proposals in-session, pipes the merged proposal set to `curate-dedup` for the deterministic dedup + conflict-id + stamp transaction, then runs `index rebuild`.
 
 Do not run two `curate` invocations against the same repo concurrently. There is no cross-process lock, and the second invocation's `state.json`/session-stamp updates may silently lose to the first. See [Daily use → Curate](daily-use.md#curate).
 
 ### `node add`
 
 ```
-npx @e0ipso/ai-knowledge-base node add
+npx kenkeep node add
 ```
 
-Execs `<harness> -p "/kb-add"`. The kb-add skill collects `kind`, `title`, `summary`, `body`, and `tags` conversationally, then persists via `node write`.
+Execs `<harness> -p "/kk-add"`. The kk-add skill collects `kind`, `title`, `summary`, `body`, and `tags` conversationally, then persists via `node write`.
 
 ## Primitives
 
@@ -62,10 +62,10 @@ These commands never call the LLM and never spawn a harness. Skills compose them
 
 ### `finddocs [--from <scope>] [--with-hashes]`
 
-Deterministically enumerate candidate markdown files for the KB. Applies `.gitignore`, `.kbignore`, and the built-in static-skip list. Read-only.
+Deterministically enumerate candidate markdown files for the knowledge base. Applies `.gitignore`, `.kkignore`, and the built-in static-skip list. Read-only.
 
 ```
-Usage: ai-knowledge-base finddocs [options]
+Usage: kenkeep finddocs [options]
 
 Options:
   --from <scope>  narrow discovery to a subdirectory of the repo root
@@ -78,12 +78,12 @@ Output: one line per surviving file, prefixed with `+ `, repo-root-relative. Wit
 Example:
 
 ```sh
-npx @e0ipso/ai-knowledge-base finddocs --from docs
+npx kenkeep finddocs --from docs
 # + docs/cli-reference.md
 # + docs/daily-use.md
 # + docs/how-it-works.md
 
-npx @e0ipso/ai-knowledge-base finddocs --with-hashes
+npx kenkeep finddocs --with-hashes
 # + README.md	3f7c…
 ```
 
@@ -94,7 +94,7 @@ Exit codes: `0` always (an empty result still exits 0). Bad `--from` argument ex
 Headless primitive: atomically write a single node to `nodes/<kind>/<id>.md` with Zod-validated frontmatter and slug-collision resolution. Body read from stdin (default) or `--from <path>`. Prints the resolved `id` to stdout.
 
 ```
-Usage: ai-knowledge-base node write [options] <kind> <slug>
+Usage: kenkeep node write [options] <kind> <slug>
 
 Arguments:
   kind                    node kind: practice or map
@@ -118,7 +118,7 @@ Slug collisions are resolved by `ensureUniqueId` (`<id>-2`, `<id>-3`, …). The 
 Example (bootstrap skill, condensed):
 
 ```sh
-echo "$BODY" | npx @e0ipso/ai-knowledge-base node write practice no-deep-imports \
+echo "$BODY" | npx kenkeep node write practice no-deep-imports \
   --title "Avoid deep relative imports" \
   --summary "Use the package alias instead of ../../../" \
   --tags "imports,style" \
@@ -133,7 +133,7 @@ Exit codes: `0` on success, non-zero on Zod validation failure, slug-collision-a
 Deterministic curator-dedup primitive: validates a proposals JSON (from `--input <path>` or stdin against `CuratorOutputSchema`), dedups, mints `${runId}-${n}` conflict ids, writes conflict files under `conflicts/`, and stamps consumed session logs with `curator_processed_at` / `curator_run_id`. Pure Node, no LLM.
 
 ```
-Usage: ai-knowledge-base curate-dedup [options]
+Usage: kenkeep curate-dedup [options]
 
 Options:
   --input <path>          path to proposals JSON (CuratorOutputSchema); reads stdin when omitted
@@ -155,7 +155,7 @@ Regenerate `INDEX.md` and `GRAPH.md` from the current `nodes/` tree. Determinist
 
 ### `lint [--verbose]`
 
-Mechanical KB content health checks: dangling edges, slug/id mismatch, tag duplicates, orphans. Exit 1 on errors, 0 on findings.
+Mechanical knowledge base content health checks: dangling edges, slug/id mismatch, tag duplicates, orphans. Exit 1 on errors, 0 on findings.
 
 ### `status`
 
@@ -167,13 +167,13 @@ Verifies hook installation, secret-scan availability, and schema validity.
 
 ### `init [--harnesses <list>] [--upgrade]`
 
-First-time setup. Writes the KB scaffold, per-harness hooks/skills, and a managed `.gitignore` block. `--upgrade` refreshes templates while preserving `config.yaml` and local prompt overrides.
+First-time setup. Writes the knowledge base scaffold, per-harness hooks/skills, and a managed `.gitignore` block. `--upgrade` refreshes templates while preserving `config.yaml` and local prompt overrides.
 
 ### `logs prune`
 
 Deletes `_logs/**/*.jsonl` older than `logsRetentionDays` (default 30).
 
-## Project settings: `.ai/knowledge-base/config.yaml`
+## Project settings: `.ai/kenkeep/config.yaml`
 
 Committed, strict (unknown keys are a hard error):
 
@@ -187,7 +187,7 @@ cliDefaultHarness: codex      # fallback when no --harness and no env detection
 
 ### Model + effort for the proposal drain (optional)
 
-The `proposal-drain` hook is the only surviving headless-subprocess site after the launcher refactor: it spawns the active harness's headless driver to convert each captured session log into a structured proposal (the Claude adapter excepted — there extraction runs inline during `/kb-curate`). Its model and effort can be configured:
+The `proposal-drain` hook is the only surviving headless-subprocess site after the launcher refactor: it spawns the active harness's headless driver to convert each captured session log into a structured proposal (the Claude adapter excepted — there extraction runs inline during `/kk-curate`). Its model and effort can be configured:
 
 ```yaml
 proposalModel: { name: haiku, effort: low }
@@ -203,10 +203,10 @@ The launchers above are the recommended entry points for headless / CI use. From
 
 | Slash command | Launcher equivalent | What it does |
 |---|---|---|
-| `/kb-add` | `node add` | Conversationally gather node fields, then persist via `node write`. |
-| `/kb-curate` | `curate` | Read pending session logs, draft proposals, hand the merged set to `curate-dedup`, run `index rebuild`. |
-| `/kb-bootstrap [path]` | `bootstrap --from <path>` | Enumerate docs via `finddocs`, read each, draft nodes, persist via `node write`, run `index rebuild`. |
+| `/kk-add` | `node add` | Conversationally gather node fields, then persist via `node write`. |
+| `/kk-curate` | `curate` | Read pending session logs, draft proposals, hand the merged set to `curate-dedup`, run `index rebuild`. |
+| `/kk-bootstrap [path]` | `bootstrap --from <path>` | Enumerate docs via `finddocs`, read each, draft nodes, persist via `node write`, run `index rebuild`. |
 
 Skills and launchers run the same logic. The slash-command path keeps the work inside your existing harness context (no extra process spawn); the launcher path is meant for shell / CI use.
 
-Skill authors writing their own KB skills should not hardcode `--harness`. See [Internals → Adapters](internals/architecture.md#adapter-interface) for the detect-harness recipe.
+Skill authors writing their own knowledge base skills should not hardcode `--harness`. See [Internals → Adapters](internals/architecture.md#adapter-interface) for the detect-harness recipe.

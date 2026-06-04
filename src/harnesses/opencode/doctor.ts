@@ -8,8 +8,8 @@ import { openCodeHookSpecs } from './hook-spec.js';
 import { openCodePaths } from './install.js';
 
 const exec = promisify(execFile);
-const EXPECTED_SKILLS = ['kb-add', 'kb-bootstrap', 'kb-curate'];
-export const OPENCODE_PLUGIN_MARKER = '// @e0ipso/ai-knowledge-base plugin';
+const EXPECTED_SKILLS = ['kk-add', 'kk-bootstrap', 'kk-curate'];
+export const OPENCODE_PLUGIN_MARKER = '// kenkeep plugin';
 
 export async function openCodeDoctorChecks(paths: RepoPaths): Promise<NamedDoctorCheck[]> {
   const locs = openCodePaths(paths.root);
@@ -17,8 +17,8 @@ export async function openCodeDoctorChecks(paths: RepoPaths): Promise<NamedDocto
     { name: 'opencode CLI on PATH', result: await checkOpenCodeCli() },
     { name: 'OpenCode plugin installed', result: checkPlugin(locs.pluginFile) },
     {
-      name: 'OpenCode kb-hooks installed',
-      result: checkKbHooks(locs.kbHooksDir),
+      name: 'OpenCode kk-hooks installed',
+      result: checkKbHooks(locs.kkHooksDir),
     },
     { name: 'OpenCode skills installed', result: checkSkills(locs.skillsDir) },
   ];
@@ -39,7 +39,7 @@ async function checkOpenCodeCli(): Promise<DoctorCheckResult> {
 function checkPlugin(pluginFile: string): DoctorCheckResult {
   if (!existsSync(pluginFile)) {
     return errCheck(
-      'no .opencode/plugins/kb.mjs. Run `npx @e0ipso/ai-knowledge-base init --harnesses opencode --upgrade`.'
+      'no .opencode/plugins/kb.mjs. Run `npx kenkeep init --harnesses opencode --upgrade`.'
     );
   }
   let contents: string;
@@ -51,39 +51,39 @@ function checkPlugin(pluginFile: string): DoctorCheckResult {
   if (!contents.includes(OPENCODE_PLUGIN_MARKER)) {
     return errCheck(
       `plugin file does not carry the package marker (expected leading comment ${OPENCODE_PLUGIN_MARKER}). ` +
-        `Re-run \`npx @e0ipso/ai-knowledge-base init --harnesses opencode --upgrade\`.`
+        `Re-run \`npx kenkeep init --harnesses opencode --upgrade\`.`
     );
   }
   return ok('plugin marker present');
 }
 
-function checkKbHooks(kbHooksDir: string): DoctorCheckResult {
-  if (!existsSync(kbHooksDir)) {
+function checkKbHooks(kkHooksDir: string): DoctorCheckResult {
+  if (!existsSync(kkHooksDir)) {
     return errCheck(
-      'no .opencode/kb-hooks/. Re-run `npx @e0ipso/ai-knowledge-base init --harnesses opencode --upgrade`.'
+      'no .opencode/kk-hooks/. Re-run `npx kenkeep init --harnesses opencode --upgrade`.'
     );
   }
   const expected = new Set(openCodeHookSpecs.map(s => s.scriptPath));
-  const missing = [...expected].filter(name => !existsSync(join(kbHooksDir, name)));
+  const missing = [...expected].filter(name => !existsSync(join(kkHooksDir, name)));
   if (missing.length === 0) {
     return ok([...expected].sort().join(', '));
   }
   return errCheck(
     `missing scripts: ${missing.join(', ')}. ` +
-      `Re-run \`npx @e0ipso/ai-knowledge-base init --harnesses opencode --upgrade\`.`
+      `Re-run \`npx kenkeep init --harnesses opencode --upgrade\`.`
   );
 }
 
 function checkSkills(skillsDir: string): DoctorCheckResult {
   if (!existsSync(skillsDir)) {
     return errCheck(
-      'no .opencode/skills/ directory. Re-run `npx @e0ipso/ai-knowledge-base init --harnesses opencode --upgrade`.'
+      'no .opencode/skills/ directory. Re-run `npx kenkeep init --harnesses opencode --upgrade`.'
     );
   }
   const missing = EXPECTED_SKILLS.filter(name => !existsSync(join(skillsDir, name, 'SKILL.md')));
   return missing.length === 0
     ? ok(EXPECTED_SKILLS.join(', '))
     : errCheck(
-        `missing SKILL.md for: ${missing.join(', ')}. Re-run \`npx @e0ipso/ai-knowledge-base init --upgrade\`.`
+        `missing SKILL.md for: ${missing.join(', ')}. Re-run \`npx kenkeep init --upgrade\`.`
       );
 }

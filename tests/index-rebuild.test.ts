@@ -9,7 +9,7 @@ import { cleanSandbox, makeSandbox, runCli } from './helpers.js';
 const exec = promisify(execFile);
 
 function writeNode(sandbox: string, kind: 'practice' | 'map', id: string): void {
-  const dir = join(sandbox, '.ai/knowledge-base/nodes', kind);
+  const dir = join(sandbox, '.ai/kenkeep/nodes', kind);
   mkdirSync(dir, { recursive: true });
   const fm = {
     schema_version: 1,
@@ -37,15 +37,15 @@ describe('index rebuild', () => {
   it('regenerates INDEX.md and GRAPH.md from the current nodes tree', async () => {
     writeNode(sandbox, 'practice', 'practice-foo');
     writeNode(sandbox, 'map', 'map-bar');
-    const before = readFileSync(join(sandbox, '.ai/knowledge-base/INDEX.md'), 'utf8');
+    const before = readFileSync(join(sandbox, '.ai/kenkeep/INDEX.md'), 'utf8');
     const result = await runCli(sandbox, ['index', 'rebuild']);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Regenerated INDEX.md and GRAPH.md from 2 node(s)');
-    const after = readFileSync(join(sandbox, '.ai/knowledge-base/INDEX.md'), 'utf8');
+    const after = readFileSync(join(sandbox, '.ai/kenkeep/INDEX.md'), 'utf8');
     expect(after).not.toBe(before);
     expect(after).toContain('practice-foo');
     expect(after).toContain('map-bar');
-    const graph = readFileSync(join(sandbox, '.ai/knowledge-base/GRAPH.md'), 'utf8');
+    const graph = readFileSync(join(sandbox, '.ai/kenkeep/GRAPH.md'), 'utf8');
     expect(graph).toContain('## practice-foo');
     expect(graph).toContain('## map-bar');
   });
@@ -71,7 +71,7 @@ describe('index rebuild', () => {
     }
     const result = await runCli(sandbox, ['index', 'rebuild']);
     expect(result.exitCode).toBe(0);
-    const body = readFileSync(join(sandbox, '.ai/knowledge-base/INDEX.md'), 'utf8');
+    const body = readFileSync(join(sandbox, '.ai/kenkeep/INDEX.md'), 'utf8');
     expect(body).not.toContain('additional nodes hidden by token budget');
     for (const title of titles) expect(body).toContain(title);
   });
@@ -96,12 +96,12 @@ describe('index rebuild', () => {
     expect(result.exitCode).toBe(0);
     const { stdout } = await exec('git', ['diff', '--cached', '--name-only'], { cwd: sandbox });
     const staged = stdout.trim().split('\n');
-    expect(staged).toContain('.ai/knowledge-base/INDEX.md');
-    expect(staged).toContain('.ai/knowledge-base/GRAPH.md');
+    expect(staged).toContain('.ai/kenkeep/INDEX.md');
+    expect(staged).toContain('.ai/kenkeep/GRAPH.md');
   });
 
   it('refuses to rebuild when a node has invalid frontmatter', async () => {
-    const dir = join(sandbox, '.ai/knowledge-base/nodes/practice');
+    const dir = join(sandbox, '.ai/kenkeep/nodes/practice');
     mkdirSync(dir, { recursive: true });
     const badPath = join(dir, 'practice-missing-summary.md');
     // Missing required `summary` triggers schema validation failure.
@@ -122,7 +122,7 @@ describe('index rebuild', () => {
         'body',
       ].join('\n')
     );
-    const indexPath = join(sandbox, '.ai/knowledge-base/INDEX.md');
+    const indexPath = join(sandbox, '.ai/kenkeep/INDEX.md');
     const before = readFileSync(indexPath, 'utf8');
 
     const result = await runCli(sandbox, ['index', 'rebuild']);
@@ -187,13 +187,13 @@ describe('doctor: missing INDEX', () => {
   afterEach(() => cleanSandbox(sandbox));
 
   it('warns when INDEX.md was deleted', async () => {
-    const indexFile = join(sandbox, '.ai/knowledge-base/INDEX.md');
+    const indexFile = join(sandbox, '.ai/kenkeep/INDEX.md');
     if (existsSync(indexFile)) {
       writeFileSync(indexFile, '');
       // Make it truly invalid (empty -> no frontmatter).
     }
     // Replace with no frontmatter so the freshness check warns.
-    writeFileSync(indexFile, '# KB Index\n');
+    writeFileSync(indexFile, '# kk Index\n');
     const doc = await runCli(sandbox, ['doctor']);
     expect(doc.stdout + doc.stderr).toContain('INDEX.md');
   });

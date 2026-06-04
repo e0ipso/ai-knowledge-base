@@ -6,32 +6,32 @@ nav_order: 4
 
 # Customizing prompts
 
-The KB's LLM work runs in two places:
+The knowledge base's LLM work runs in two places:
 
-1. The **proposal-drain hook** spawns the active harness's headless driver to convert each captured session log into a structured proposal (on the Claude adapter it is a no-op — extraction runs inline during `/kb-curate`). It loads its prompt from a local override path, falling back to the bundled template. Edit the file under `.ai/knowledge-base/.config/prompts/proposal-extract.md` to customize, delete it to revert.
-2. The **kb-bootstrap, kb-curate, and kb-add skills** run inside the host harness session (launched via `<harness> -p "/kb-<name>"` or invoked directly from a session). Their prompts live with the skill, not in a separate prompt file: edit `.claude/skills/kb-<name>/SKILL.md` (and the equivalent under `.codex/`, `.cursor/`, `.opencode/`) to customize.
+1. The **proposal-drain hook** spawns the active harness's headless driver to convert each captured session log into a structured proposal (on the Claude adapter it is a no-op — extraction runs inline during `/kk-curate`). It loads its prompt from a local override path, falling back to the bundled template. Edit the file under `.ai/kenkeep/.config/prompts/proposal-extract.md` to customize, delete it to revert.
+2. The **kk-bootstrap, kk-curate, and kk-add skills** run inside the host harness session (launched via `<harness> -p "/kk-<name>"` or invoked directly from a session). Their prompts live with the skill, not in a separate prompt file: edit `.claude/skills/kk-<name>/SKILL.md` (and the equivalent under `.codex/`, `.cursor/`, `.opencode/`) to customize.
 
 Bump the top-of-file `Version: N` comment on every behavior change; logs record the prompt content so historic decisions stay auditable.
 
 ## Where each prompt lives
 
-- **`proposal-extract.md`** (v1 in the bundled template): drives the async proposal-drain hook to convert a redacted transcript into structured practice and map candidates. Run by `kb-proposal-drain` via the active harness's headless driver.
-- **`kb-curate/SKILL.md`**: the curate skill's canonical prompt. Reads pending session logs, drafts add/modify/contradict/drop actions in-session, hands the merged set to `curate-dedup`, walks contradictions with the user. There is no separate `curator.md` prompt file anymore. The curator logic that used to be spawned as a sub-agent is now the skill prompt.
-- **`kb-bootstrap/SKILL.md`**: the bootstrap skill's canonical prompt. Enumerates source markdown via `finddocs`, drafts node bodies inline, persists via `node write`. There is no separate `bootstrap-incremental.md` prompt file anymore.
-- **`kb-add/SKILL.md`**: the manual-add skill's canonical prompt. Conversationally gathers fields, persists via `node write`.
+- **`proposal-extract.md`** (v1 in the bundled template): drives the async proposal-drain hook to convert a redacted transcript into structured practice and map candidates. Run by `kk-proposal-drain` via the active harness's headless driver.
+- **`kk-curate/SKILL.md`**: the curate skill's canonical prompt. Reads pending session logs, drafts add/modify/contradict/drop actions in-session, hands the merged set to `curate-dedup`, walks contradictions with the user. There is no separate `curator.md` prompt file anymore. The curator logic that used to be spawned as a sub-agent is now the skill prompt.
+- **`kk-bootstrap/SKILL.md`**: the bootstrap skill's canonical prompt. Enumerates source markdown via `finddocs`, drafts node bodies inline, persists via `node write`. There is no separate `bootstrap-incremental.md` prompt file anymore.
+- **`kk-add/SKILL.md`**: the manual-add skill's canonical prompt. Conversationally gathers fields, persists via `node write`.
 
 | Surface | Source of truth | Local override |
 |---|---|---|
 | Proposal extraction | `templates/prompts/proposal-extract.md` | `.config/prompts/proposal-extract.md` |
-| Curate skill | `src/templates-source/skills/kb-curate/SKILL.md` (regenerated into `.claude/skills/kb-curate/SKILL.md` etc.) | edit the per-harness copy directly |
-| Bootstrap skill | `src/templates-source/skills/kb-bootstrap/SKILL.md` (regenerated similarly) | edit the per-harness copy directly |
-| Manual-add skill | `src/templates-source/skills/kb-add/SKILL.md` (regenerated similarly) | edit the per-harness copy directly |
+| Curate skill | `src/templates-source/skills/kk-curate/SKILL.md` (regenerated into `.claude/skills/kk-curate/SKILL.md` etc.) | edit the per-harness copy directly |
+| Bootstrap skill | `src/templates-source/skills/kk-bootstrap/SKILL.md` (regenerated similarly) | edit the per-harness copy directly |
+| Manual-add skill | `src/templates-source/skills/kk-add/SKILL.md` (regenerated similarly) | edit the per-harness copy directly |
 
-The skill source under `src/templates-source/skills/kb-<name>/SKILL.md` is the single canonical version; the per-harness copies (`.claude/skills/kb-<name>/`, `.opencode/skills/kb-<name>/`, etc.) are regenerated from it by the template-sync mechanism. Edit the per-harness copy when iterating in a consumer repo; edit the templates-source when contributing back to the package.
+The skill source under `src/templates-source/skills/kk-<name>/SKILL.md` is the single canonical version; the per-harness copies (`.claude/skills/kk-<name>/`, `.opencode/skills/kk-<name>/`, etc.) are regenerated from it by the template-sync mechanism. Edit the per-harness copy when iterating in a consumer repo; edit the templates-source when contributing back to the package.
 
 ## Pipeline overview
 
-The KB's prompts form the knowledge-acquisition pipeline. Two extractors emit candidate nodes: the **proposal extractor** (the `proposal-extract.md` prompt, run via the active harness's headless driver by the proposal-drain hook) for live sessions, and the **bootstrap skill** (`kb-bootstrap/SKILL.md`, running in the host harness session) for existing docs. The **curator skill** (`kb-curate/SKILL.md`, also running in the host harness session) decides what becomes a file on disk. The diagram below shows the gates, filters, and decisions inside each prompt.
+The knowledge base's prompts form the knowledge-acquisition pipeline. Two extractors emit candidate nodes: the **proposal extractor** (the `proposal-extract.md` prompt, run via the active harness's headless driver by the proposal-drain hook) for live sessions, and the **bootstrap skill** (`kk-bootstrap/SKILL.md`, running in the host harness session) for existing docs. The **curator skill** (`kk-curate/SKILL.md`, also running in the host harness session) decides what becomes a file on disk. The diagram below shows the gates, filters, and decisions inside each prompt.
 
 ```mermaid
 flowchart TB
@@ -58,7 +58,7 @@ flowchart TB
         PF3 -- "yes" --> PO
     end
 
-    subgraph bootstrap["Bootstrap skill · kb-bootstrap/SKILL.md"]
+    subgraph bootstrap["Bootstrap skill · kk-bootstrap/SKILL.md"]
         direction TB
         BI["One markdown doc<br/>=== FILE: path === ... === END FILE ==="]
         BS{"Skip filter<br/>API dumps · boilerplate<br/>generic framework · TODOs?"}
@@ -77,13 +77,13 @@ flowchart TB
         BC --> BO
     end
 
-    subgraph curator["Curator skill · kb-curate/SKILL.md"]
+    subgraph curator["Curator skill · kk-curate/SKILL.md"]
         direction TB
         CI["Batch of candidates<br/>existing_nodes always empty<br/>(overlap judged from candidate framing)"]
         CG{"Non-productive<br/>provenance signals?<br/>hedged · hypothetical · plan-scoped"}
         CCF{"Change-oriented framing?<br/>'used to X, now Y' · rename · removal"}
         CSAL{"Clean end-state claim<br/>salvageable?"}
-        COV{"Suspected overlap<br/>with existing KB node?"}
+        COV{"Suspected overlap<br/>with existing knowledge base node?"}
         CNEG{"Direct negation?<br/>(both cannot be true<br/>in the same scope)"}
         CEXT{"Extends without<br/>negating?"}
 
@@ -146,7 +146,7 @@ Output shape must match `ProposalOutputSchema` in `src/lib/schemas.ts`. New fiel
 
 ## Curator skill prompt
 
-The kb-curate skill's `SKILL.md` decides what happens to every proposal candidate: add, modify, contradict, or drop. Runs in the host harness session. Second-biggest quality lever.
+The kk-curate skill's `SKILL.md` decides what happens to every proposal candidate: add, modify, contradict, or drop. Runs in the host harness session. Second-biggest quality lever.
 
 ### Input
 
@@ -190,7 +190,7 @@ The skill applies actions via the deterministic `curate-dedup` and `node write` 
 
 - `add` → the skill calls `node write` to atomically write `nodes/<kind>/<id>.md`. If the file already exists, `node write` resolves the slug via `ensureUniqueId` (`<id>-2`, …); a true collision-after-resolution is reported as a failure.
 - `modify` → the skill calls `node write` against the existing `nodes/<kind>/<target_node_id>.md`. If the target file doesn't exist, the skill records a `modify_missing_target` failure.
-- `contradict` → the skill includes the action in the JSON it pipes to `curate-dedup`, which writes the conflict to `.ai/knowledge-base/conflicts/<id>.md` (with `status: pending`) and stamps the source session log. The skill then walks each conflict in-session with the user.
+- `contradict` → the skill includes the action in the JSON it pipes to `curate-dedup`, which writes the conflict to `.ai/kenkeep/conflicts/<id>.md` (with `status: pending`) and stamps the source session log. The skill then walks each conflict in-session with the user.
 - `drop` is a no-op.
 
 `suggested_resolution` is always emitted as `null`; resolution happens via the in-session walkthrough.
@@ -204,7 +204,7 @@ The skill applies actions via the deterministic `curate-dedup` and `node write` 
 
 - Modifications that rephrase existing content (drop instead).
 - Additions when a near-duplicate exists (modify instead).
-- Suggesting a `suggested_resolution` value (it's ignored - the user picks via the kb-curate skill).
+- Suggesting a `suggested_resolution` value (it's ignored - the user picks via the kk-curate skill).
 - Crossing the practice/map boundary.
 - Change-oriented framing (transition narratives, migration stories, rename or removal logs): automatic drop regardless of confidence, unless a clean end-state claim can be salvaged.
 - Maintenance/lifecycle actions, project story or history (especially plan/ticket/issue references), and incidental one-off facts dressed up as practices: automatic drop, unless a durable operating principle or current-state fact can be salvaged.
@@ -212,7 +212,7 @@ The skill applies actions via the deterministic `curate-dedup` and `node write` 
 
 ## Bootstrap skill prompt
 
-Controls what the kb-bootstrap skill treats as candidates from your source docs. Runs in the host harness session. There is no separate `bootstrap-incremental.md` prompt file (deleted in the launcher refactor).
+Controls what the kk-bootstrap skill treats as candidates from your source docs. Runs in the host harness session. There is no separate `bootstrap-incremental.md` prompt file (deleted in the launcher refactor).
 
 ### Skill behavior
 
@@ -227,7 +227,7 @@ Controls what the kb-bootstrap skill treats as candidates from your source docs.
 1. Pick 3–5 representative docs.
 2. `finddocs --from <subset>` to confirm scope.
 3. Run `bootstrap --from <subset>`. Review proposals as they land in `nodes/`.
-4. Note false positives and false negatives. Adjust the "what to extract" and "what to skip" sections of `src/templates-source/skills/kb-bootstrap/SKILL.md` (or the per-harness copy under `.claude/skills/kb-bootstrap/SKILL.md` for a consumer-side override).
+4. Note false positives and false negatives. Adjust the "what to extract" and "what to skip" sections of `src/templates-source/skills/kk-bootstrap/SKILL.md` (or the per-harness copy under `.claude/skills/kk-bootstrap/SKILL.md` for a consumer-side override).
 5. Delete `bootstrap-state.json` and re-run.
 6. Repeat until acceptance lands around 60–80%. Higher rates tend to drop true positives.
 
@@ -258,7 +258,7 @@ Curate and bootstrap no longer write `_logs/curator/*.jsonl` or `_logs/bootstrap
 Common curate / bootstrap issues:
 
 - **`nodesWritten: 0` despite a non-empty batch**: check the host session transcript for skill-reported failures (slug collision, `modify_missing_target`, or `add_collision`).
-- **Conflict not surfacing in `/kb-curate`**: check `.ai/knowledge-base/conflicts/` for a file with `status: pending`. The skill walks from there.
+- **Conflict not surfacing in `/kk-curate`**: check `.ai/kenkeep/conflicts/` for a file with `status: pending`. The skill walks from there.
 - **Duplicates after dedup**: `curate-dedup` keeps the higher-confidence action per `proposed_node.id`. Duplicates mean inconsistent slugification produced different ids.
 
 To re-run a single batch: clear `curator_processed_at` and `curator_run_id` from the affected session log and re-run `curate`.

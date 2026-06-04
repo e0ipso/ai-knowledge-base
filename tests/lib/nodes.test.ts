@@ -38,7 +38,7 @@ function seedNode(dir: string, kind: 'practice' | 'map', id: string, body = '# b
 describe('nodes helpers', () => {
   let root: string;
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'kb-nodes-'));
+    root = mkdtempSync(join(tmpdir(), 'kk-nodes-'));
   });
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 

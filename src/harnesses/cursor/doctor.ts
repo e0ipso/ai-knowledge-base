@@ -13,7 +13,7 @@ import { cursorHookSpecs } from './hook-spec.js';
 import { cursorPaths } from './install.js';
 
 const exec = promisify(execFile);
-const EXPECTED_SKILLS = ['kb-add', 'kb-bootstrap', 'kb-curate'];
+const EXPECTED_SKILLS = ['kk-add', 'kk-bootstrap', 'kk-curate'];
 
 export async function cursorDoctorChecks(paths: RepoPaths): Promise<NamedDoctorCheck[]> {
   const locs = cursorPaths(paths.root);
@@ -45,7 +45,7 @@ async function checkAgentCli(): Promise<DoctorCheckResult> {
 function checkCursorHooks(hooksFile: string, hooksDir: string): DoctorCheckResult {
   if (!existsSync(hooksFile)) {
     return errCheck(
-      'no .cursor/hooks.json. Run `npx @e0ipso/ai-knowledge-base init --harnesses cursor --upgrade`.'
+      'no .cursor/hooks.json. Run `npx kenkeep init --harnesses cursor --upgrade`.'
     );
   }
   let parsed: { hooks?: Record<string, Array<{ command?: string }>> };
@@ -72,20 +72,20 @@ function checkCursorHooks(hooksFile: string, hooksDir: string): DoctorCheckResul
   if (missingRegs.length > 0) parts.push(`missing registrations: ${missingRegs.join(', ')}`);
   if (missingFiles.size > 0) parts.push(`missing scripts: ${[...missingFiles].join(', ')}`);
   return errCheck(
-    `${parts.join('; ')}. Re-run \`npx @e0ipso/ai-knowledge-base init --harnesses cursor --upgrade\`.`
+    `${parts.join('; ')}. Re-run \`npx kenkeep init --harnesses cursor --upgrade\`.`
   );
 }
 
 function checkCursorSkills(skillsDir: string): DoctorCheckResult {
   if (!existsSync(skillsDir)) {
     return errCheck(
-      'no .cursor/skills/ directory. Re-run `npx @e0ipso/ai-knowledge-base init --harnesses cursor --upgrade`.'
+      'no .cursor/skills/ directory. Re-run `npx kenkeep init --harnesses cursor --upgrade`.'
     );
   }
   const missing = EXPECTED_SKILLS.filter(name => !existsSync(join(skillsDir, name, 'SKILL.md')));
   return missing.length === 0
     ? ok(EXPECTED_SKILLS.join(', '))
     : errCheck(
-        `missing SKILL.md for: ${missing.join(', ')}. Re-run \`npx @e0ipso/ai-knowledge-base init --upgrade\`.`
+        `missing SKILL.md for: ${missing.join(', ')}. Re-run \`npx kenkeep init --upgrade\`.`
       );
 }

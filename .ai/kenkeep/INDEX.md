@@ -1,0 +1,175 @@
+---
+schema_version: 1
+nodes_hash: 'sha256:9f228ffb6a2775ded72e55d07c417b00a6acc0322228ca9f18ee83a53d139e5a'
+node_count: 55
+---
+# kk Index
+
+_55 nodes • ~18656 estimated tokens_
+
+
+## Conventions (how we build)
+- **CLI launchers must set KENKEEP_BUILDER_INTERNAL=1 on the harness child** [`nodes/practice/practice-recursion-guard-kenkeep-builder-internal.md`] #recursion #hooks #env
+- **Curator never auto-resolves contradictions** [`nodes/practice/practice-curator-never-auto-resolves-contradictions.md`] #curator #conflicts #human-in-the-loop
+- **Bootstrap never overwrites existing nodes** [`nodes/practice/practice-bootstrap-never-overwrites-existing-nodes.md`] #bootstrap #nodes #safety
+- **Bootstrap is supervised and judgmental, not exhaustive** [`nodes/practice/practice-bootstrap-is-supervised-and-judgmental.md`] #bootstrap #supervision #sampling
+- **Determinism contract for INDEX/GRAPH generation** [`nodes/practice/practice-determinism-contract.md`] #determinism #indexing #testing
+- **Don't run curate or bootstrap-incremental in CI** [`nodes/practice/practice-dont-run-llm-pipelines-in-ci.md`] #ci #llm #workflow
+- **Don't translate event names across harness adapters** [`nodes/practice/practice-no-event-translation-across-adapters.md`] #adapter #events #harness
+- **init does not install husky/lint-staged/secretlint/commitlint** [`nodes/practice/practice-init-does-not-install-commit-tooling.md`] #init #install #scope
+- **Local prompt overrides fall back to bundled templates** [`nodes/practice/practice-local-prompt-overrides-fall-back-to-bundled.md`] #prompts #customization #override
+- **Pass --harness explicitly outside an active harness session** [`nodes/practice/practice-explicit-harness-flag-outside-claude.md`] #harness #cli #codex #cursor #opencode
+- **Adapters never reach into each other's directories** [`nodes/practice/practice-adapters-never-cross-directories.md`] #adapter #architecture #isolation
+- **Bump the prompt's Version comment on every behavior change** [`nodes/practice/practice-bump-prompt-version-comment.md`] #prompts #versioning #audit
+- **Conventional Commits drive semantic-release** [`nodes/practice/practice-conventional-commits-and-release.md`] #git #release #conventional-commits
+- **Curate CLI conflict output names the three resolution outcomes** [`nodes/practice/practice-curate-cli-conflict-output-names-the-three-resolution-outcomes.md`] #kenkeep #kk-curate #conflicts #cli #ux
+- **Curator drops non-productive and change-oriented candidates** [`nodes/practice/practice-curator-drops-non-productive-candidates.md`] #curator #prompts #calibration #anti-pattern
+- **Cursor sessionStart additional_context is silently dropped** [`nodes/practice/practice-cursor-sessionstart-additional-context-is-silently-dropped.md`] #cursor #harness #hooks #gotcha #context-injection
+- **Default bootstrap nodes to confidence: medium** [`nodes/practice/practice-confidence-default-medium-bootstrap.md`] #bootstrap #confidence #calibration
+- **Do not justify scope decisions by current-snapshot file contents** [`nodes/practice/practice-do-not-justify-scope-decisions-by-current-snapshot-file-contents.md`] #yagni #assumptions #verification
+- **Document model recommendations with harness-agnostic framing** [`nodes/practice/practice-document-model-recommendations-with-harness-agnostic-framing.md`] #documentation #harness #models #recommendations
+- **Hook behavior changes must be applied to all four harness adapters** [`nodes/practice/practice-hook-behavior-changes-must-be-applied-to-all-four-harness-adapters.md`] #harness #hooks #architecture #drift
+- **Hook status messages include kk prefix after emoji** [`nodes/practice/practice-hook-status-messages-include-kk-prefix-after-emoji.md`] #hooks #messaging #ux
+- **init and upgrade inject a static kk index pointer into AGENTS.md** [`nodes/practice/practice-init-and-upgrade-inject-a-static-kk-index-pointer-into-agents-md.md`] #init #upgrade #agents-md #index #markers
+- **Inside the kenkeep source repo, run the CLI from dist/, not via npx** [`nodes/practice/practice-inside-the-kenkeep-source-repo-run-the-cli-from-dist-not-via-npx.md`] #kenkeep #kk-curate #repo-local #npx #cli
+- **No em dashes anywhere in the project** [`nodes/practice/practice-no-em-dashes.md`] #style #writing #ai-detection
+- **Node naming: id, filename, and kind must agree** [`nodes/practice/practice-lint-naming-rules.md`] #lint #naming #nodes
+- **Review node changes via git** [`nodes/practice/practice-review-nodes-via-git.md`] #review #git #workflow
+- **Strict schema-version bump policy: no migrators** [`nodes/practice/practice-strict-schema-version-bump-policy.md`] #schema #versioning #breaking-change
+
+## Components (what exists)
+- **curate (CLI command + /kk-curate skill)** [`nodes/map/map-curate-command.md`] #cli #curate #skill
+- **Harness adapter** [`nodes/map/map-harness-adapter.md`] #harness #adapter #claude #codex #cursor #opencode #architecture
+- **INDEX.md** [`nodes/map/map-index-md.md`] #index #deterministic #sessionstart
+- **kk-proposal-drain (extraction hook)** [`nodes/map/map-proposal-drain-hook.md`] #hooks #extraction #llm #async #claude #billing
+- **bootstrap-incremental (CLI)** [`nodes/map/map-bootstrap-incremental-command.md`] #cli #bootstrap #deterministic
+- **Conflict files (conflicts/<run-id>-<n>.md)** [`nodes/map/map-conflict-files.md`] #conflicts #curator #schema
+- **/kk-bootstrap skill** [`nodes/map/map-kk-bootstrap-skill.md`] #skill #bootstrap #agent
+- **Curator action (add / modify / contradict / drop)** [`nodes/map/map-curator-action.md`] #schema #curator #action
+- **GRAPH.md** [`nodes/map/map-graph-md.md`] #graph #deterministic
+- **kk-session-start.mjs (consume hook)** [`nodes/map/map-session-start-hook.md`] #hooks #consume #sessionstart #index
+- **Node frontmatter schema** [`nodes/map/map-node-frontmatter.md`] #schema #frontmatter #nodes
+- **Claude Code harness adapter** [`nodes/map/map-claude-harness.md`] #harness #claude #hooks
+- **Cursor harness adapter** [`nodes/map/map-cursor-harness-adapter.md`] #harness #cursor #hooks
+- **kk-capture.mjs (capture hook)** [`nodes/map/map-capture-hook.md`] #hooks #capture
+- **.state/bootstrap-state.json (per-doc hash cache)** [`nodes/map/map-bootstrap-state-file.md`] #bootstrap #hash #state #schema
+- **Codex CLI harness adapter** [`nodes/map/map-codex-harness.md`] #harness #codex #hooks
+- **config.yaml (project settings)** [`nodes/map/map-config-yaml.md`] #config #settings #model
+- **nodes/ directory and the two kinds** [`nodes/map/map-nodes-directory.md`] #nodes #practice #map #frontmatter #schema
+- **OpenCode harness adapter** [`nodes/map/map-opencode-harness.md`] #harness #opencode #hooks #plugin
+- **Session log (_sessions/*.md)** [`nodes/map/map-session-log.md`] #session #capture #state #schema
+- **.ai/kenkeep/ directory layout** [`nodes/map/map-kenkeep-directory.md`] #layout #state #directory
+- **nodes_hash algorithm** [`nodes/map/map-nodes-hash.md`] #hash #deterministic #sha256
+- **Proposal candidate schema** [`nodes/map/map-proposal-candidate-schema.md`] #schema #proposal #candidate
+- **.state/state.json (lock + nudge state)** [`nodes/map/map-state-file.md`] #state #lock #schema
+- **kenkeep npm package** [`nodes/map/map-kenkeep-package.md`] #overview #package #npm
+- **curate CLI conflict-resolution output message** [`nodes/map/map-curate-cli-conflict-resolution-output-message.md`] #cli #curate #conflicts #output
+- **Hook build pipeline: TS sources to deployed .cjs bundles** [`nodes/map/map-hook-build-pipeline-ts-to-cjs.md`] #build #hooks #tsup #templates #cjs
+- **updateAgentsMd - kk index pointer injection into AGENTS.md** [`nodes/map/map-update-agents-md-kk-index-pointer-injection-into-agents-md.md`] #init #upgrade #agents-md #markers #index
+
+## By topic
+
+- **#hooks (12):** kk-proposal-drain (extraction hook), kk-session-start.mjs (consume hook), Claude Code harness adapter, Cursor harness adapter, kk-capture.mjs (capture hook), CLI launchers must set KENKEEP_BUILDER_INTERNAL=1 on the harness child, Codex CLI harness adapter, OpenCode harness adapter, Cursor sessionStart additional_context is silently dropped, Hook behavior changes must be applied to all four harness adapters, Hook build pipeline: TS sources to deployed .cjs bundles, Hook status messages include kk prefix after emoji
+- **#harness (10):** Harness adapter, Claude Code harness adapter, Cursor harness adapter, Codex CLI harness adapter, OpenCode harness adapter, Don't translate event names across harness adapters, Pass --harness explicitly outside an active harness session, Cursor sessionStart additional_context is silently dropped, Document model recommendations with harness-agnostic framing, Hook behavior changes must be applied to all four harness adapters
+- **#schema (9):** Conflict files (conflicts/<run-id>-<n>.md), Curator action (add / modify / contradict / drop), Node frontmatter schema, .state/bootstrap-state.json (per-doc hash cache), nodes/ directory and the two kinds, Session log (_sessions/*.md), Proposal candidate schema, .state/state.json (lock + nudge state), Strict schema-version bump policy: no migrators
+- **#bootstrap (6):** bootstrap-incremental (CLI), /kk-bootstrap skill, .state/bootstrap-state.json (per-doc hash cache), Bootstrap never overwrites existing nodes, Bootstrap is supervised and judgmental, not exhaustive, Default bootstrap nodes to confidence: medium
+- **#cli (6):** curate (CLI command + /kk-curate skill), bootstrap-incremental (CLI), Pass --harness explicitly outside an active harness session, Curate CLI conflict output names the three resolution outcomes, curate CLI conflict-resolution output message, Inside the kenkeep source repo, run the CLI from dist/, not via npx
+- **#conflicts (4):** Conflict files (conflicts/<run-id>-<n>.md), Curator never auto-resolves contradictions, Curate CLI conflict output names the three resolution outcomes, curate CLI conflict-resolution output message
+- **#curator (4):** Conflict files (conflicts/<run-id>-<n>.md), Curator action (add / modify / contradict / drop), Curator never auto-resolves contradictions, Curator drops non-productive and change-oriented candidates
+- **#cursor (4):** Harness adapter, Cursor harness adapter, Pass --harness explicitly outside an active harness session, Cursor sessionStart additional_context is silently dropped
+- **#deterministic (4):** INDEX.md, bootstrap-incremental (CLI), GRAPH.md, nodes_hash algorithm
+- **#index (4):** INDEX.md, kk-session-start.mjs (consume hook), init and upgrade inject a static kk index pointer into AGENTS.md, updateAgentsMd - kk index pointer injection into AGENTS.md
+- **#nodes (4):** Node frontmatter schema, nodes/ directory and the two kinds, Bootstrap never overwrites existing nodes, Node naming: id, filename, and kind must agree
+- **#state (4):** .state/bootstrap-state.json (per-doc hash cache), Session log (_sessions/*.md), .ai/kenkeep/ directory layout, .state/state.json (lock + nudge state)
+- **#adapter (3):** Harness adapter, Don't translate event names across harness adapters, Adapters never reach into each other's directories
+- **#architecture (3):** Harness adapter, Adapters never reach into each other's directories, Hook behavior changes must be applied to all four harness adapters
+- **#claude (3):** Harness adapter, kk-proposal-drain (extraction hook), Claude Code harness adapter
+- **#codex (3):** Harness adapter, Codex CLI harness adapter, Pass --harness explicitly outside an active harness session
+- **#init (3):** init does not install husky/lint-staged/secretlint/commitlint, init and upgrade inject a static kk index pointer into AGENTS.md, updateAgentsMd - kk index pointer injection into AGENTS.md
+- **#opencode (3):** Harness adapter, OpenCode harness adapter, Pass --harness explicitly outside an active harness session
+- **#prompts (3):** Local prompt overrides fall back to bundled templates, Bump the prompt's Version comment on every behavior change, Curator drops non-productive and change-oriented candidates
+- **#agents-md (2):** init and upgrade inject a static kk index pointer into AGENTS.md, updateAgentsMd - kk index pointer injection into AGENTS.md
+- **#calibration (2):** Curator drops non-productive and change-oriented candidates, Default bootstrap nodes to confidence: medium
+- **#capture (2):** kk-capture.mjs (capture hook), Session log (_sessions/*.md)
+- **#curate (2):** curate (CLI command + /kk-curate skill), curate CLI conflict-resolution output message
+- **#frontmatter (2):** Node frontmatter schema, nodes/ directory and the two kinds
+- **#git (2):** Conventional Commits drive semantic-release, Review node changes via git
+- **#hash (2):** .state/bootstrap-state.json (per-doc hash cache), nodes_hash algorithm
+- **#kenkeep (2):** Curate CLI conflict output names the three resolution outcomes, Inside the kenkeep source repo, run the CLI from dist/, not via npx
+- **#kk-curate (2):** Curate CLI conflict output names the three resolution outcomes, Inside the kenkeep source repo, run the CLI from dist/, not via npx
+- **#llm (2):** kk-proposal-drain (extraction hook), Don't run curate or bootstrap-incremental in CI
+- **#markers (2):** init and upgrade inject a static kk index pointer into AGENTS.md, updateAgentsMd - kk index pointer injection into AGENTS.md
+- **#sessionstart (2):** INDEX.md, kk-session-start.mjs (consume hook)
+- **#skill (2):** curate (CLI command + /kk-curate skill), /kk-bootstrap skill
+- **#upgrade (2):** init and upgrade inject a static kk index pointer into AGENTS.md, updateAgentsMd - kk index pointer injection into AGENTS.md
+- **#ux (2):** Curate CLI conflict output names the three resolution outcomes, Hook status messages include kk prefix after emoji
+- **#versioning (2):** Bump the prompt's Version comment on every behavior change, Strict schema-version bump policy: no migrators
+- **#workflow (2):** Don't run curate or bootstrap-incremental in CI, Review node changes via git
+- **#action (1):** Curator action (add / modify / contradict / drop)
+- **#agent (1):** /kk-bootstrap skill
+- **#ai-detection (1):** No em dashes anywhere in the project
+- **#anti-pattern (1):** Curator drops non-productive and change-oriented candidates
+- **#assumptions (1):** Do not justify scope decisions by current-snapshot file contents
+- **#async (1):** kk-proposal-drain (extraction hook)
+- **#audit (1):** Bump the prompt's Version comment on every behavior change
+- **#billing (1):** kk-proposal-drain (extraction hook)
+- **#breaking-change (1):** Strict schema-version bump policy: no migrators
+- **#build (1):** Hook build pipeline: TS sources to deployed .cjs bundles
+- **#candidate (1):** Proposal candidate schema
+- **#ci (1):** Don't run curate or bootstrap-incremental in CI
+- **#cjs (1):** Hook build pipeline: TS sources to deployed .cjs bundles
+- **#confidence (1):** Default bootstrap nodes to confidence: medium
+- **#config (1):** config.yaml (project settings)
+- **#consume (1):** kk-session-start.mjs (consume hook)
+- **#context-injection (1):** Cursor sessionStart additional_context is silently dropped
+- **#conventional-commits (1):** Conventional Commits drive semantic-release
+- **#customization (1):** Local prompt overrides fall back to bundled templates
+- **#determinism (1):** Determinism contract for INDEX/GRAPH generation
+- **#directory (1):** .ai/kenkeep/ directory layout
+- **#documentation (1):** Document model recommendations with harness-agnostic framing
+- **#drift (1):** Hook behavior changes must be applied to all four harness adapters
+- **#env (1):** CLI launchers must set KENKEEP_BUILDER_INTERNAL=1 on the harness child
+- **#events (1):** Don't translate event names across harness adapters
+- **#extraction (1):** kk-proposal-drain (extraction hook)
+- **#gotcha (1):** Cursor sessionStart additional_context is silently dropped
+- **#graph (1):** GRAPH.md
+- **#human-in-the-loop (1):** Curator never auto-resolves contradictions
+- **#indexing (1):** Determinism contract for INDEX/GRAPH generation
+- **#install (1):** init does not install husky/lint-staged/secretlint/commitlint
+- **#isolation (1):** Adapters never reach into each other's directories
+- **#layout (1):** .ai/kenkeep/ directory layout
+- **#lint (1):** Node naming: id, filename, and kind must agree
+- **#lock (1):** .state/state.json (lock + nudge state)
+- **#map (1):** nodes/ directory and the two kinds
+- **#messaging (1):** Hook status messages include kk prefix after emoji
+- **#model (1):** config.yaml (project settings)
+- **#models (1):** Document model recommendations with harness-agnostic framing
+- **#naming (1):** Node naming: id, filename, and kind must agree
+- **#npm (1):** kenkeep npm package
+- **#npx (1):** Inside the kenkeep source repo, run the CLI from dist/, not via npx
+- **#output (1):** curate CLI conflict-resolution output message
+- **#override (1):** Local prompt overrides fall back to bundled templates
+- **#overview (1):** kenkeep npm package
+- **#package (1):** kenkeep npm package
+- **#plugin (1):** OpenCode harness adapter
+- **#practice (1):** nodes/ directory and the two kinds
+- **#proposal (1):** Proposal candidate schema
+- **#recommendations (1):** Document model recommendations with harness-agnostic framing
+- **#recursion (1):** CLI launchers must set KENKEEP_BUILDER_INTERNAL=1 on the harness child
+- **#release (1):** Conventional Commits drive semantic-release
+- **#repo-local (1):** Inside the kenkeep source repo, run the CLI from dist/, not via npx
+- **#review (1):** Review node changes via git
+- **#safety (1):** Bootstrap never overwrites existing nodes
+- **#sampling (1):** Bootstrap is supervised and judgmental, not exhaustive
+- **#scope (1):** init does not install husky/lint-staged/secretlint/commitlint
+- **#session (1):** Session log (_sessions/*.md)
+- **#settings (1):** config.yaml (project settings)
+- **#sha256 (1):** nodes_hash algorithm
+- **#style (1):** No em dashes anywhere in the project
+- **#supervision (1):** Bootstrap is supervised and judgmental, not exhaustive
+- **#templates (1):** Hook build pipeline: TS sources to deployed .cjs bundles
+- **#testing (1):** Determinism contract for INDEX/GRAPH generation
+- **#tsup (1):** Hook build pipeline: TS sources to deployed .cjs bundles
+- **#verification (1):** Do not justify scope decisions by current-snapshot file contents
+- **#writing (1):** No em dashes anywhere in the project
+- **#yagni (1):** Do not justify scope decisions by current-snapshot file contents

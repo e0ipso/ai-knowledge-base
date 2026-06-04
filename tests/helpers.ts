@@ -11,7 +11,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 export const repoRoot = resolve(here, '..');
 export const cliPath = join(repoRoot, 'dist/cli.js');
 
-export function makeSandbox(prefix = 'ai-kb-test-'): string {
+export function makeSandbox(prefix = 'ai-kk-test-'): string {
   return mkdtempSync(join(tmpdir(), prefix));
 }
 

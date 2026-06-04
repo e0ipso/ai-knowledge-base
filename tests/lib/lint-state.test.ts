@@ -15,7 +15,7 @@ describe('lint-state read/write', () => {
   let file: string;
 
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'kb-lint-state-'));
+    root = mkdtempSync(join(tmpdir(), 'kk-lint-state-'));
     stateDir = join(root, '.state');
     mkdirSync(stateDir, { recursive: true });
     file = lintStateFile(stateDir);

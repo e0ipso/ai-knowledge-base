@@ -209,11 +209,11 @@ export function proposalLogPath(logsDir: string, sessionId: string, when: Date):
 }
 
 function relativeLogPath(sessionsDir: string, logFile: string): string {
-  // Store paths relative to the knowledge-base root for cross-machine portability.
-  // sessionsDir = .ai/knowledge-base/_sessions; the kb root is its parent.
-  const kbRoot = join(sessionsDir, '..');
-  const rel = logFile.startsWith(kbRoot)
-    ? logFile.slice(kbRoot.length).replace(/^[\\/]/, '')
+  // Store paths relative to the kenkeep root for cross-machine portability.
+  // sessionsDir = .ai/kenkeep/_sessions; the kb root is its parent.
+  const kkRoot = join(sessionsDir, '..');
+  const rel = logFile.startsWith(kkRoot)
+    ? logFile.slice(kkRoot.length).replace(/^[\\/]/, '')
     : logFile;
   return rel;
 }
@@ -270,7 +270,7 @@ export interface ProposalDrainOpts {
 }
 
 export async function runProposalDrain(opts: ProposalDrainOpts): Promise<void> {
-  const PACKAGE_TAG = '[ai-knowledge-base]';
+  const PACKAGE_TAG = '[kenkeep]';
   try {
     execFileSync('which', [opts.binaryName], { stdio: 'ignore' });
   } catch {
@@ -288,7 +288,7 @@ export async function runProposalDrain(opts: ProposalDrainOpts): Promise<void> {
   }
 
   try {
-    process.stderr.write('🔄 KB Proposals: Draining queue…\n');
+    process.stderr.write('🔄 kk Proposals: Draining queue…\n');
     const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
     const summary = await drainProposalQueue({
       paths,
@@ -297,7 +297,7 @@ export async function runProposalDrain(opts: ProposalDrainOpts): Promise<void> {
       harnessOpts: opts.buildHarnessOpts(settings),
     });
     if (summary.status === 'locked') {
-      process.stderr.write('🔒 KB Proposals: Drain already in progress.\n');
+      process.stderr.write('🔒 kk Proposals: Drain already in progress.\n');
       return;
     }
     const failed = summary.processed.filter(p => p.status === 'failed');
@@ -306,7 +306,7 @@ export async function runProposalDrain(opts: ProposalDrainOpts): Promise<void> {
         `${PACKAGE_TAG} proposal drain: ${failed.length} session(s) failed; see _logs/proposal/\n`
       );
     }
-    process.stderr.write('📬 KB Proposals: Queue drained.\n');
+    process.stderr.write('📬 kk Proposals: Queue drained.\n');
   } catch (err) {
     process.stderr.write(
       `${PACKAGE_TAG} proposal drain error: ${err instanceof Error ? err.message : String(err)}\n`

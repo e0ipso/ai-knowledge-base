@@ -8,8 +8,8 @@ import type { HookSpec } from '../types.js';
  * `writeCodexHooks` settings writer.
  */
 export const codexHookSpecs: readonly HookSpec[] = [
-  { event: 'Stop', scriptPath: 'kb-capture.cjs' },
-  { event: 'SessionStart', scriptPath: 'kb-session-start.cjs' },
-  { event: 'SessionStart', scriptPath: 'kb-proposal-drain.cjs', async: true },
-  { event: 'Stop', scriptPath: 'kb-lint-tick.cjs' },
+  { event: 'Stop', scriptPath: 'kk-capture.cjs' },
+  { event: 'SessionStart', scriptPath: 'kk-session-start.cjs' },
+  { event: 'SessionStart', scriptPath: 'kk-proposal-drain.cjs', async: true },
+  { event: 'Stop', scriptPath: 'kk-lint-tick.cjs' },
 ];

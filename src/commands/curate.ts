@@ -5,9 +5,9 @@ export interface CurateLauncherOptions {
 }
 
 /**
- * Thin launcher for the `kb-curate` skill: resolves the active harness,
- * then execs `<harness-binary> -p "/kb-curate"` with
- * `KB_BUILDER_INTERNAL=1` on the child env and stdio inherited.
+ * Thin launcher for the `kk-curate` skill: resolves the active harness,
+ * then execs `<harness-binary> -p "/kk-curate"` with
+ * `KENKEEP_BUILDER_INTERNAL=1` on the child env and stdio inherited.
  *
  * The deterministic dedup pass lives in the `curate-dedup` primitive;
  * the model work itself lives in the in-host skill prompt. This command
@@ -16,7 +16,7 @@ export interface CurateLauncherOptions {
  */
 export function runCurateLauncher(opts: CurateLauncherOptions = {}): void {
   const launchOpts: Parameters<typeof launchSkill>[0] = {
-    skill: 'kb-curate',
+    skill: 'kk-curate',
     passedArgs: '',
   };
   if (opts.harness !== undefined) launchOpts.harness = opts.harness;

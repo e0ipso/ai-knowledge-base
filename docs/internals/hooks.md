@@ -6,23 +6,23 @@ nav_order: 2
 
 # Hooks
 
-"Hooks" here means [Claude Code's hook mechanism](https://docs.claude.com/en/docs/claude-code/hooks): scripts the assistant invokes on events like `SessionStart` and `Stop`. `ai-knowledge-base` consumes them; it does not expose a hook API of its own for third-party extension.
+"Hooks" here means [Claude Code's hook mechanism](https://docs.claude.com/en/docs/claude-code/hooks): scripts the assistant invokes on events like `SessionStart` and `Stop`. `kenkeep` consumes them; it does not expose a hook API of its own for third-party extension.
 
 `init` registers three hook scripts in `.claude/settings.json`.
 
 | Script | Event(s) | Mode |
 |---|---|---|
-| `kb-capture.mjs` | `Stop`, `SessionEnd`, `PreCompact` | sync, ≤1s |
-| `kb-proposal-drain.mjs` | `SessionStart` | async |
-| `kb-session-start.mjs` | `SessionStart` | sync, ≤1s |
+| `kk-capture.mjs` | `Stop`, `SessionEnd`, `PreCompact` | sync, ≤1s |
+| `kk-proposal-drain.mjs` | `SessionStart` | async |
+| `kk-session-start.mjs` | `SessionStart` | sync, ≤1s |
 
 The two `SessionStart` entries are independent; a failure in one doesn't block the other.
 
 ## Recursion guard
 
-All three hooks exit immediately if `KB_BUILDER_INTERNAL=1` is set. Two surfaces propagate this var onto the harness child they exec: the `proposal-drain` hook (when it spawns its headless extractor) and the CLI launchers (`bootstrap`, `curate`, `node add`, which exec `<harness> -p "/kb-<name>"`). Without the guard, the spawned session would fire its own SessionStart hooks and recurse. If you wrap a harness CLI, propagate `KB_BUILDER_INTERNAL=1` only into intentionally-internal subprocesses.
+All three hooks exit immediately if `KENKEEP_BUILDER_INTERNAL=1` is set. Two surfaces propagate this var onto the harness child they exec: the `proposal-drain` hook (when it spawns its headless extractor) and the CLI launchers (`bootstrap`, `curate`, `node add`, which exec `<harness> -p "/kk-<name>"`). Without the guard, the spawned session would fire its own SessionStart hooks and recurse. If you wrap a harness CLI, propagate `KENKEEP_BUILDER_INTERNAL=1` only into intentionally-internal subprocesses.
 
-## `kb-capture.mjs` (capture)
+## `kk-capture.mjs` (capture)
 
 1. Read hook input from stdin.
 2. Validate `session_id` via `assertValidSessionId` (strict UUID v4 shape). On bad input, throw with a named error message; the catch handler writes it to stderr.
@@ -38,7 +38,7 @@ Never invokes the LLM. 1s deadline. A missed deadline exits silently; the next t
 
 | Condition | Outcome |
 |---|---|
-| `KB_BUILDER_INTERNAL=1` | Exit. No capture. |
+| `KENKEEP_BUILDER_INTERNAL=1` | Exit. No capture. |
 | Empty / malformed stdin | Exit silently. |
 | `session_id` not a UUID v4 | Write the error to stderr; no session log. |
 | `transcript_path` missing | Exit silently. |
@@ -46,7 +46,7 @@ Never invokes the LLM. 1s deadline. A missed deadline exits silently; the next t
 | Secretlint fails to load or crashes | Log to stderr, no session log written. |
 | 1s deadline exceeded | Exit silently; next trigger retries. |
 
-## `kb-proposal-drain.mjs` (extraction)
+## `kk-proposal-drain.mjs` (extraction)
 
 Per `SessionStart`:
 
@@ -58,11 +58,11 @@ Per `SessionStart`:
 6. On success: update frontmatter with `proposal_status: done`, populated `proposals.{practice,map}`, deduped `topics`.
 7. On failure: write `proposal_status: failed` with `proposal_error`. The failure modes here (timeout, schema mismatch, bad JSON) do not heal on retry, so the drain does not rotate them.
 
-## `kb-session-start.mjs` (consume)
+## `kk-session-start.mjs` (consume)
 
 1. Recursion guard.
 2. Load `INDEX.md`. If missing, emit "_The knowledge base is empty._".
-3. Compare frontmatter `nodes_hash` against the live hash of `nodes/`. On drift, append `> KB index is stale, run \`npx @e0ipso/ai-knowledge-base index rebuild\``.
+3. Compare frontmatter `nodes_hash` against the live hash of `nodes/`. On drift, append `> kk index is stale, run \`npx kenkeep index rebuild\``.
 4. Count pending logs. If above `curationThreshold` AND last nudge was over an hour ago, append a nudge and write `last_nudged_at`.
 5. Emit:
 
@@ -80,11 +80,11 @@ After `init`, `.claude/settings.json` carries one block per event:
 {
   "hooks": {
     "Stop": [
-      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kb-capture.mjs" }] }
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kk-capture.mjs" }] }
     ],
     "SessionStart": [
-      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kb-proposal-drain.mjs", "async": true }] },
-      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kb-session-start.mjs" }] }
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kk-proposal-drain.mjs", "async": true }] },
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kk-session-start.mjs" }] }
     ]
   }
 }

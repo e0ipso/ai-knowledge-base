@@ -10,7 +10,7 @@ export const DEFAULT_NUDGE_THRESHOLD = 20;
 export const DEFAULT_STALE_DAYS = 7;
 
 export interface SessionStartContext {
-  kbDir: string;
+  kkDir: string;
   nodesDir: string;
   sessionsDir: string;
   stateFile: string;
@@ -40,7 +40,7 @@ export interface SessionStartResult {
 /**
  * Builds the additional-context payload for the SessionStart sync hook.
  *
- * 1. Reads INDEX.md (or returns a "KB is empty" stub if missing).
+ * 1. Reads INDEX.md (or returns a "kk is empty" stub if missing).
  * 2. Detects staleness by comparing the frontmatter `nodes_hash` against
  *    the live hash of `nodes/`. If mismatched, appends a warning line.
  * 3. Counts pending session logs and, when >= threshold,
@@ -53,7 +53,7 @@ export function buildSessionStartContext(ctx: SessionStartContext): SessionStart
   const threshold = ctx.threshold ?? DEFAULT_NUDGE_THRESHOLD;
   const staleDays = ctx.staleDays ?? DEFAULT_STALE_DAYS;
 
-  const { content: indexBody, frontmatterHash, missing } = loadIndex(ctx.kbDir);
+  const { content: indexBody, frontmatterHash, missing } = loadIndex(ctx.kkDir);
   const liveHash = computeNodesHash(ctx.nodesDir);
   const indexStale = !missing && frontmatterHash !== null && frontmatterHash !== liveHash;
 
@@ -78,26 +78,26 @@ export function buildSessionStartContext(ctx: SessionStartContext): SessionStart
   lines.push(indexBody.trim());
   lines.push('');
   lines.push(
-    '> KB nodes are snapshots in time. Before acting on a node that names a specific file path, function, or flag, verify it still exists in the current tree. If the referenced entity is gone, prefer the live code; flag the stale node to the user.'
+    '> kk nodes are snapshots in time. Before acting on a node that names a specific file path, function, or flag, verify it still exists in the current tree. If the referenced entity is gone, prefer the live code; flag the stale node to the user.'
   );
   lines.push('');
   lines.push(
-    '> KB navigation: consult the index above first, then `grep -C 2 <term> nodes/` for candidate slugs (the `-C 2` context surfaces the `summary:` frontmatter line), and only open full node bodies for confirmed matches.'
+    '> kk navigation: consult the index above first, then `grep -C 2 <term> nodes/` for candidate slugs (the `-C 2` context surfaces the `summary:` frontmatter line), and only open full node bodies for confirmed matches.'
   );
   if (indexStale) {
     lines.push('');
     lines.push(
-      `> KB index is stale, run \`npx @e0ipso/ai-knowledge-base index rebuild\` to refresh (live hash differs from INDEX.md \`nodes_hash\`).`
+      `> kk index is stale, run \`npx kenkeep index rebuild\` to refresh (live hash differs from INDEX.md \`nodes_hash\`).`
     );
   }
   if (shouldNudge) {
     const oldestPhrase =
       oldestAgeDays === 0 ? 'captured today' : `oldest pending: ${oldestAgeDays} day(s)`;
     const copyPaste =
-      'Run `/kb-curate` (or `npx @e0ipso/ai-knowledge-base curate`). Curation is simple; a mid-tier model at moderate effort is sufficient and cheaper.';
+      'Run `/kk-curate` (or `npx kenkeep curate`). Curation is simple; a mid-tier model at moderate effort is sufficient and cheaper.';
     lines.push('');
     if (loud) {
-      lines.push('> 🚨 KB curation queue is overdue');
+      lines.push('> 🚨 kk curation queue is overdue');
       lines.push(
         `> ${pending} pending session log(s), ${summary.candidateCount} candidate proposal(s), ${oldestPhrase}`
       );
@@ -116,7 +116,7 @@ export function buildSessionStartContext(ctx: SessionStartContext): SessionStart
     if (lintState.last_errors > 0 || lintState.last_findings > 0) {
       lines.push('');
       lines.push(
-        `> Last KB lint ${lintState.last_lint_at}: ${lintState.last_errors} error(s), ${lintState.last_findings} finding(s). Run \`npx @e0ipso/ai-knowledge-base lint --verbose\` for details.`
+        `> Last kk lint ${lintState.last_lint_at}: ${lintState.last_errors} error(s), ${lintState.last_findings} finding(s). Run \`npx kenkeep lint --verbose\` for details.`
       );
       lintNudged = true;
     }
@@ -143,8 +143,8 @@ interface LoadedIndex {
   missing: boolean;
 }
 
-function loadIndex(kbDir: string): LoadedIndex {
-  const indexFile = `${kbDir.replace(/[\\/]$/, '')}/INDEX.md`;
+function loadIndex(kkDir: string): LoadedIndex {
+  const indexFile = `${kkDir.replace(/[\\/]$/, '')}/INDEX.md`;
   if (!existsSync(indexFile)) {
     return {
       content: stubIndex(),
@@ -165,9 +165,9 @@ function loadIndex(kbDir: string): LoadedIndex {
 
 function stubIndex(): string {
   return [
-    '# KB Index',
+    '# kk Index',
     '',
-    '_The knowledge base is empty. Capture a session (the Stop hook fires automatically) or run `npx @e0ipso/ai-knowledge-base node add` to seed it._',
+    '_The knowledge base is empty. Capture a session (the Stop hook fires automatically) or run `npx kenkeep node add` to seed it._',
   ].join('\n');
 }
 
@@ -238,14 +238,14 @@ export function countPendingSessions(sessionsDir: string): number {
 
 export function buildNudgeContent(result: SessionStartResult): { statusLine: string; content: string } {
   const statusLine = result.nudged
-    ? `🚨 KB curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates — run /kb-curate`
-    : `📋 KB queue: ${result.pendingSessions} pending session log(s), ${result.candidateCount} candidate(s)`;
+    ? `🚨 kk curation overdue: ${result.pendingSessions} pending, ${result.candidateCount} candidates — run /kk-curate`
+    : `📋 kk queue: ${result.pendingSessions} pending session log(s), ${result.candidateCount} candidate(s)`;
   let content = statusLine + '\n\n' + result.additionalContext;
   if (result.nudged) {
     const box =
       '┌──────────────────────────────────────┐\n' +
-      '│ 🚨 KB curation is overdue            │\n' +
-      '│ Run /kb-curate to process them.      │\n' +
+      '│ 🚨 kk curation is overdue            │\n' +
+      '│ Run /kk-curate to process them.      │\n' +
       '└──────────────────────────────────────┘\n' +
       `${result.pendingSessions} pending session(s), ${result.candidateCount} candidate(s)`;
     content +=

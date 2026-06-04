@@ -8,8 +8,8 @@ import type { HookSpec } from '../types.js';
  * canonical names happens.
  */
 export const openCodeHookSpecs: readonly HookSpec[] = [
-  { event: 'session.idle', scriptPath: 'kb-capture.cjs' },
-  { event: 'session.idle', scriptPath: 'kb-lint-tick.cjs' },
-  { event: 'session.created', scriptPath: 'kb-session-start.cjs' },
-  { event: 'session.created', scriptPath: 'kb-proposal-drain.cjs', async: true },
+  { event: 'session.idle', scriptPath: 'kk-capture.cjs' },
+  { event: 'session.idle', scriptPath: 'kk-lint-tick.cjs' },
+  { event: 'session.created', scriptPath: 'kk-session-start.cjs' },
+  { event: 'session.created', scriptPath: 'kk-proposal-drain.cjs', async: true },
 ];

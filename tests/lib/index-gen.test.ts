@@ -37,7 +37,7 @@ function seedNodes(root: string, seeds: NodeSeed[]): void {
 describe('generateIndex', () => {
   let root: string;
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'kb-index-'));
+    root = mkdtempSync(join(tmpdir(), 'kk-index-'));
   });
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 
@@ -124,7 +124,7 @@ describe('generateIndex', () => {
 describe('generateGraph', () => {
   let root: string;
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'kb-graph-'));
+    root = mkdtempSync(join(tmpdir(), 'kk-graph-'));
   });
   afterEach(() => rmSync(root, { recursive: true, force: true }));
 

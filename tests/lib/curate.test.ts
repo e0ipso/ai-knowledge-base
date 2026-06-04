@@ -31,7 +31,7 @@ interface Harness {
 }
 
 function makeHarness(): Harness {
-  const root = mkdtempSync(join(tmpdir(), 'kb-curate-'));
+  const root = mkdtempSync(join(tmpdir(), 'kk-curate-'));
   const paths = repoPaths(root);
   mkdirSync(paths.sessionsDir, { recursive: true });
   mkdirSync(paths.nodesDir, { recursive: true });

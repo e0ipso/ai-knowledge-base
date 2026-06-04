@@ -15,23 +15,23 @@ import { readState } from '../../src/lib/state.js';
 
 interface Harness {
   root: string;
-  kbDir: string;
+  kkDir: string;
   nodesDir: string;
   sessionsDir: string;
   stateFile: string;
 }
 
 function makeHarness(): Harness {
-  const root = mkdtempSync(join(tmpdir(), 'kb-session-start-'));
-  const kbDir = join(root, '.ai/knowledge-base');
-  const nodesDir = join(kbDir, 'nodes');
-  const sessionsDir = join(kbDir, '_sessions');
-  const stateFile = join(root, '.ai/knowledge-base/.state/state.json');
+  const root = mkdtempSync(join(tmpdir(), 'kk-session-start-'));
+  const kkDir = join(root, '.ai/kenkeep');
+  const nodesDir = join(kkDir, 'nodes');
+  const sessionsDir = join(kkDir, '_sessions');
+  const stateFile = join(root, '.ai/kenkeep/.state/state.json');
   mkdirSync(join(nodesDir, 'practice'), { recursive: true });
   mkdirSync(join(nodesDir, 'map'), { recursive: true });
   mkdirSync(sessionsDir, { recursive: true });
   mkdirSync(dirname(stateFile), { recursive: true });
-  return { root, kbDir, nodesDir, sessionsDir, stateFile };
+  return { root, kkDir, nodesDir, sessionsDir, stateFile };
 }
 
 interface SeedOptions {
@@ -116,8 +116,8 @@ function seedNode(harness: Harness, kind: 'practice' | 'map', id: string): void 
 
 function writeIndexFromCurrentNodes(harness: Harness): void {
   const idx = generateIndex(harness.nodesDir);
-  mkdirSync(harness.kbDir, { recursive: true });
-  writeIndex(join(harness.kbDir, 'INDEX.md'), idx);
+  mkdirSync(harness.kkDir, { recursive: true });
+  writeIndex(join(harness.kkDir, 'INDEX.md'), idx);
 }
 
 describe('countPendingSessions', () => {
@@ -151,13 +151,13 @@ describe('buildSessionStartContext', () => {
 
   it('emits a stub when INDEX.md is missing', () => {
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
     });
     expect(result.indexMissing).toBe(true);
-    expect(result.additionalContext).toContain('# KB Index');
+    expect(result.additionalContext).toContain('# kk Index');
     expect(result.additionalContext).toContain('empty');
   });
 
@@ -165,19 +165,19 @@ describe('buildSessionStartContext', () => {
     seedNode(harness, 'practice', 'practice-foo');
     writeIndexFromCurrentNodes(harness);
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
     });
-    expect(result.additionalContext).toContain('KB nodes are snapshots in time');
+    expect(result.additionalContext).toContain('kk nodes are snapshots in time');
   });
 
-  it('emits the KB navigation directive in the additional context payload', () => {
+  it('emits the kk navigation directive in the additional context payload', () => {
     seedNode(harness, 'practice', 'practice-foo');
     writeIndexFromCurrentNodes(harness);
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
@@ -190,7 +190,7 @@ describe('buildSessionStartContext', () => {
     seedNode(harness, 'practice', 'practice-foo');
     writeIndexFromCurrentNodes(harness);
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
@@ -198,7 +198,7 @@ describe('buildSessionStartContext', () => {
     expect(result.indexStale).toBe(false);
     expect(result.indexMissing).toBe(false);
     expect(result.additionalContext).toContain('practice-foo');
-    expect(result.additionalContext).not.toContain('KB index is stale');
+    expect(result.additionalContext).not.toContain('kk index is stale');
     expect(result.additionalContext).not.toContain('pending session log');
   });
 
@@ -208,20 +208,20 @@ describe('buildSessionStartContext', () => {
     // Drift: add another node so the live nodes_hash no longer matches.
     seedNode(harness, 'map', 'map-bar');
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
     });
     expect(result.indexStale).toBe(true);
-    expect(result.additionalContext).toContain('KB index is stale');
+    expect(result.additionalContext).toContain('kk index is stale');
   });
 
   it('appends a nudge when pending >= threshold and updates last_nudged_at', () => {
     for (let i = 0; i < DEFAULT_NUDGE_THRESHOLD; i += 1) seedSession(harness, `s-${i}`, false);
     const now = new Date('2026-05-11T10:00:00Z');
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
@@ -236,7 +236,7 @@ describe('buildSessionStartContext', () => {
   it('does not nudge when below threshold', () => {
     seedSession(harness, 'just-one', false);
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
@@ -256,19 +256,19 @@ describe('buildSessionStartContext', () => {
       });
     }
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
       now: () => new Date('2026-05-11T20:00:00Z'),
     });
     expect(result.nudged).toBe(true);
-    expect(result.additionalContext).not.toContain('KB curation queue is overdue');
+    expect(result.additionalContext).not.toContain('kk curation queue is overdue');
     expect(result.additionalContext).toContain(
       `${DEFAULT_NUDGE_THRESHOLD} pending session log(s), ${DEFAULT_NUDGE_THRESHOLD * 2} candidate proposal(s), captured today`
     );
     expect(result.additionalContext).toContain(
-      'Run `/kb-curate` (or `npx @e0ipso/ai-knowledge-base curate`). Curation is simple; a mid-tier model at moderate effort is sufficient and cheaper.'
+      'Run `/kk-curate` (or `npx kenkeep curate`). Curation is simple; a mid-tier model at moderate effort is sufficient and cheaper.'
     );
   });
 
@@ -280,14 +280,14 @@ describe('buildSessionStartContext', () => {
       });
     }
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
       now: () => new Date('2026-05-11T10:00:00Z'),
     });
     expect(result.nudged).toBe(true);
-    expect(result.additionalContext).toContain('KB curation queue is overdue');
+    expect(result.additionalContext).toContain('kk curation queue is overdue');
     expect(result.additionalContext).toContain('oldest pending: 8 day(s)');
     expect(result.additionalContext).toContain(
       `${DEFAULT_NUDGE_THRESHOLD} pending session log(s), ${DEFAULT_NUDGE_THRESHOLD * 2} candidate proposal(s)`
@@ -300,14 +300,14 @@ describe('buildSessionStartContext', () => {
       seedSession(harness, `s-${i}`, false, { capturedAt: today, mapCount: 1 });
     }
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
       now: () => new Date('2026-05-11T20:00:00Z'),
     });
     expect(result.nudged).toBe(true);
-    expect(result.additionalContext).toContain('KB curation queue is overdue');
+    expect(result.additionalContext).toContain('kk curation queue is overdue');
     expect(result.additionalContext).toContain('captured today');
     expect(result.additionalContext).toContain(
       `${DEFAULT_NUDGE_THRESHOLD * 2} pending session log(s)`
@@ -321,7 +321,7 @@ describe('buildSessionStartContext', () => {
     }
     seedMalformedSession(harness, 'broken');
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
@@ -332,7 +332,7 @@ describe('buildSessionStartContext', () => {
     expect(result.additionalContext).toContain(
       `${DEFAULT_NUDGE_THRESHOLD} pending session log(s), ${DEFAULT_NUDGE_THRESHOLD} candidate proposal(s)`
     );
-    expect(result.additionalContext).not.toContain('KB curation queue is overdue');
+    expect(result.additionalContext).not.toContain('kk curation queue is overdue');
   });
 });
 
@@ -395,7 +395,7 @@ describe('buildSessionStartContext lint nudge', () => {
   afterEach(() => rmSync(harness.root, { recursive: true, force: true }));
 
   it('omits the lint nudge when lint-state reports zero errors and zero findings', () => {
-    const lintStateFile = join(harness.root, '.ai/knowledge-base/.state/lint-state.json');
+    const lintStateFile = join(harness.root, '.ai/kenkeep/.state/lint-state.json');
     mkdirSync(dirname(lintStateFile), { recursive: true });
     writeFileSync(
       lintStateFile,
@@ -408,18 +408,18 @@ describe('buildSessionStartContext lint nudge', () => {
       })
     );
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
       lintStateFile,
     });
     expect(result.lintNudged).toBe(false);
-    expect(result.additionalContext).not.toMatch(/Last KB lint/);
+    expect(result.additionalContext).not.toMatch(/Last kk lint/);
   });
 
   it('appends a lint summary line and sets lintNudged when counts are non-zero', () => {
-    const lintStateFile = join(harness.root, '.ai/knowledge-base/.state/lint-state.json');
+    const lintStateFile = join(harness.root, '.ai/kenkeep/.state/lint-state.json');
     mkdirSync(dirname(lintStateFile), { recursive: true });
     writeFileSync(
       lintStateFile,
@@ -432,14 +432,14 @@ describe('buildSessionStartContext lint nudge', () => {
       })
     );
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
       lintStateFile,
     });
     expect(result.lintNudged).toBe(true);
-    expect(result.additionalContext).toMatch(/Last KB lint .* 2 error\(s\), 1 finding\(s\)/);
+    expect(result.additionalContext).toMatch(/Last kk lint .* 2 error\(s\), 1 finding\(s\)/);
   });
 });
 
@@ -452,16 +452,16 @@ describe('buildSessionStartContext additionalContext shape', () => {
     seedNode(harness, 'practice', 'practice-foo');
     writeIndexFromCurrentNodes(harness);
     // Make sure the raw file has frontmatter.
-    const raw = readFileSync(join(harness.kbDir, 'INDEX.md'), 'utf8');
+    const raw = readFileSync(join(harness.kkDir, 'INDEX.md'), 'utf8');
     expect(raw).toMatch(/^---\n/);
     const result = buildSessionStartContext({
-      kbDir: harness.kbDir,
+      kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
       sessionsDir: harness.sessionsDir,
       stateFile: harness.stateFile,
     });
     // The injected content is the body, no YAML frontmatter.
     expect(result.additionalContext.startsWith('---')).toBe(false);
-    expect(result.additionalContext).toContain('# KB Index');
+    expect(result.additionalContext).toContain('# kk Index');
   });
 });

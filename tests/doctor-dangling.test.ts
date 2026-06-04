@@ -12,9 +12,9 @@ interface Harness {
 }
 
 function makeHarness(): Harness {
-  const root = mkdtempSync(join(tmpdir(), 'kb-doctor-dangling-'));
-  const nodesDir = join(root, '.ai/knowledge-base/nodes');
-  const sessionsDir = join(root, '.ai/knowledge-base/_sessions');
+  const root = mkdtempSync(join(tmpdir(), 'kk-doctor-dangling-'));
+  const nodesDir = join(root, '.ai/kenkeep/nodes');
+  const sessionsDir = join(root, '.ai/kenkeep/_sessions');
   mkdirSync(join(nodesDir, 'practice'), { recursive: true });
   mkdirSync(sessionsDir, { recursive: true });
   return { root, nodesDir, sessionsDir };

@@ -9,7 +9,7 @@ import { atomicWriteJson, readJsonValidated } from './fs-atomic.js';
 /**
  * Filenames that are categorically not project knowledge. Applied
  * unconditionally by `discoverMarkdownFiles` before `.gitignore` /
- * `.kbignore`. Use `.kbignore` to opt a specific path back in (or out)
+ * `.kkignore`. Use `.kkignore` to opt a specific path back in (or out)
  * — there is no flag-driven inversion.
  */
 export const STATIC_SKIPS: readonly string[] = [
@@ -69,8 +69,8 @@ export interface DiscoverOptions {
   repoRoot: string;
   /** `.gitignore` Ignore instance, applied at descent and filter stages. */
   gitignore?: Ignore;
-  /** `.kbignore` Ignore instance, applied at descent and filter stages. */
-  kbignore?: Ignore;
+  /** `.kkignore` Ignore instance, applied at descent and filter stages. */
+  kkignore?: Ignore;
 }
 
 /**
@@ -80,8 +80,8 @@ export interface DiscoverOptions {
  *
  * `scannedBeforeFilter`: count of `.md` files the walker visited after
  * `.git` / `node_modules` short-circuits and after `.gitignore` /
- * `.kbignore` directory-level descent short-circuits, but **before** the
- * per-file `STATIC_SKIPS` / `.gitignore` / `.kbignore` filter chain. The
+ * `.kkignore` directory-level descent short-circuits, but **before** the
+ * per-file `STATIC_SKIPS` / `.gitignore` / `.kkignore` filter chain. The
  * gap between this and `files.length` is what the `no-docs` diagnostic
  * surfaces to the user: "walked N candidates, ignore rules dropped them all".
  */
@@ -93,19 +93,19 @@ export interface DiscoverResult {
 /**
  * Walks `repoRoot` recursively returning every `.md` file (paths relative
  * to `repoRoot`, posix). Filter chain: posix-relativize →
- * `STATIC_SKIPS` → `.gitignore` → `.kbignore` → sort. Directory descent
+ * `STATIC_SKIPS` → `.gitignore` → `.kkignore` → sort. Directory descent
  * also short-circuits on `.git`, `node_modules`, and on any directory
- * matched by `.gitignore` or `.kbignore` (perf mitigation for large
+ * matched by `.gitignore` or `.kkignore` (perf mitigation for large
  * monorepos with broadly-excluded subtrees).
  */
 export function discoverMarkdownFiles(opts: DiscoverOptions): DiscoverResult {
   const empty: DiscoverResult = { files: [], scannedBeforeFilter: 0 };
   if (!existsSync(opts.repoRoot)) return empty;
   const out: string[] = [];
-  walk(opts.repoRoot, opts.repoRoot, out, opts.gitignore, opts.kbignore);
+  walk(opts.repoRoot, opts.repoRoot, out, opts.gitignore, opts.kkignore);
   const staticSkipMatchers = STATIC_SKIPS.map(p => picomatch(p, { dot: true }));
   const ig = opts.gitignore;
-  const kb = opts.kbignore;
+  const kb = opts.kkignore;
   const rels = out.map(abs => relativePosix(opts.repoRoot, abs));
   const files = rels
     .filter(rel => {
@@ -123,7 +123,7 @@ function walk(
   currentDir: string,
   out: string[],
   gitignore: Ignore | undefined,
-  kbignore: Ignore | undefined
+  kkignore: Ignore | undefined
 ): void {
   let entries: import('node:fs').Dirent[];
   try {
@@ -135,16 +135,16 @@ function walk(
     const full = join(currentDir, ent.name);
     if (ent.isDirectory()) {
       if (ent.name === '.git' || ent.name === 'node_modules') continue;
-      // Push `.gitignore` / `.kbignore` into directory-descent decisions.
+      // Push `.gitignore` / `.kkignore` into directory-descent decisions.
       // The `ignore` package treats a trailing-slash path as a directory
       // query, which is the semantics we want for short-circuiting.
       const relDir = relativePosix(rootDir, full);
       if (relDir !== '') {
         const dirKey = `${relDir}/`;
         if (gitignore && gitignore.ignores(dirKey)) continue;
-        if (kbignore && kbignore.ignores(dirKey)) continue;
+        if (kkignore && kkignore.ignores(dirKey)) continue;
       }
-      walk(rootDir, full, out, gitignore, kbignore);
+      walk(rootDir, full, out, gitignore, kkignore);
       continue;
     }
     if (!ent.isFile()) continue;
@@ -158,7 +158,7 @@ function relativePosix(from: string, to: string): string {
 }
 
 /**
- * Reads an ignore-format file (`.gitignore`, `.kbignore`) and returns an
+ * Reads an ignore-format file (`.gitignore`, `.kkignore`) and returns an
  * `Ignore` instance. Missing file → `undefined` (no filter). Read errors
  * (e.g. permission) bubble up — only ENOENT is silent.
  */

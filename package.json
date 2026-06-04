@@ -1,27 +1,27 @@
 {
-  "name": "@e0ipso/ai-knowledge-base",
+  "name": "kenkeep",
   "version": "0.26.4",
   "description": "Builds and maintains a per-repo knowledge base from AI coding sessions, for use with Claude Code.",
   "license": "MIT",
   "author": "e0ipso",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/e0ipso/ai-knowledge-base.git"
+    "url": "git+https://github.com/e0ipso/kenkeep.git"
   },
-  "homepage": "https://github.com/e0ipso/ai-knowledge-base#readme",
+  "homepage": "https://github.com/e0ipso/kenkeep#readme",
   "bugs": {
-    "url": "https://github.com/e0ipso/ai-knowledge-base/issues"
+    "url": "https://github.com/e0ipso/kenkeep/issues"
   },
   "keywords": [
     "claude",
     "claude-code",
-    "knowledge-base",
+    "kenkeep",
     "ai",
     "agents"
   ],
   "type": "module",
   "bin": {
-    "ai-knowledge-base": "./dist/cli.js"
+    "kenkeep": "./dist/cli.js"
   },
   "files": [
     "dist",

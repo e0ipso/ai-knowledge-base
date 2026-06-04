@@ -97,8 +97,8 @@ function loadFile(file: string): SettingsFile | null {
 /**
  * The committed project-level path inside a consuming repo.
  */
-export function projectConfigPath(kbDir: string): string {
-  return join(kbDir, 'config.yaml');
+export function projectConfigPath(kkDir: string): string {
+  return join(kkDir, 'config.yaml');
 }
 
 /**
@@ -118,7 +118,7 @@ export function defaultProjectConfigBody(): string {
     lintEveryNSessions: SETTINGS_DEFAULTS.lintEveryNSessions,
   };
   const header = [
-    '# ai-knowledge-base project settings.',
+    '# kenkeep project settings.',
     '#',
     '# Per-call model selection (optional). Each entry is keyed by the',
     '# `harness` discriminator and only consumed when the active adapter',
@@ -135,7 +135,7 @@ export function defaultProjectConfigBody(): string {
     '#   reasoningEffort: high # codex only: opaque effort string (optional)',
     '#',
     '# Set `cliDefaultHarness: <id>` to pick the adapter for plain-shell',
-    '# CLI invocations (e.g. `npx ai-knowledge-base curate` typed in a',
+    '# CLI invocations (e.g. `npx kenkeep curate` typed in a',
     '# terminal). Skills and hooks always resolve via env detection or',
     '# the explicit `--harness <id>` flag and ignore this setting.',
     '',

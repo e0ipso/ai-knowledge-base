@@ -1,4 +1,4 @@
-# Fixture: existing KB nodes (4)
+# Fixture: existing knowledge base nodes (4)
 
 Used to test curator decisions. The transcript should produce, among other things, candidates that overlap with these.
 

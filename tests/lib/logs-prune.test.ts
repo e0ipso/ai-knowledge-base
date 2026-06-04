@@ -9,7 +9,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 describe('pruneLogs', () => {
   let sandbox: string;
   beforeEach(() => {
-    sandbox = mkdtempSync(join(tmpdir(), 'kb-prune-'));
+    sandbox = mkdtempSync(join(tmpdir(), 'kk-prune-'));
   });
   afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
 

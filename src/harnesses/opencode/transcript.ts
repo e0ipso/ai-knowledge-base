@@ -53,7 +53,7 @@ export function defaultOpenCodeStorageDir(env: NodeJS.ProcessEnv = process.env):
  *
  * Only `type === 'text'` parts contribute to the transcript. Tool-call
  * parts are ignored. When the session file is missing or the message
- * tree yields zero text turns, the caller (kb-capture) is expected to
+ * tree yields zero text turns, the caller (kk-capture) is expected to
  * fall back to `opencode export`.
  */
 export function parseOpenCodeTranscript(

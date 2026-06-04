@@ -34,7 +34,7 @@ interface SessionMatterData {
 /**
  * Reads `_sessions/` and returns every log with `proposal_status: done` that
  * has not yet been processed by curate. Used by the `curate dedup` primitive
- * and by `ai-knowledge-base status` for reporting.
+ * and by `kenkeep status` for reporting.
  */
 export function listPendingSessions(sessionsDir: string): PendingSession[] {
   if (!existsSync(sessionsDir)) return [];

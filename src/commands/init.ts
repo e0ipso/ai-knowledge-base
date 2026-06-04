@@ -5,7 +5,7 @@ import { getHarness, hasHarness, listHarnessIds } from '../harnesses/registry.js
 import { copyTree } from '../lib/fs-atomic.js';
 import { log } from '../lib/log.js';
 import { findRepoRoot, packageTemplatesDir, repoPaths } from '../lib/paths.js';
-import { ensureKbignore } from '../lib/kbignore-stub.js';
+import { ensureKbignore } from '../lib/kkignore-stub.js';
 import { defaultProjectConfigBody } from '../lib/settings.js';
 import { packageVersion } from '../lib/version.js';
 
@@ -22,12 +22,12 @@ interface InstalledVersion {
   harnesses: string[];
 }
 
-const AGENTS_BLOCK_START = '<!-- >>> @e0ipso/ai-knowledge-base:kb-index >>> -->';
-const AGENTS_BLOCK_END = '<!-- <<< @e0ipso/ai-knowledge-base:kb-index <<< -->';
+const AGENTS_BLOCK_START = '<!-- >>> kenkeep:kk-index >>> -->';
+const AGENTS_BLOCK_END = '<!-- <<< kenkeep:kk-index <<< -->';
 const AGENTS_POINTER =
-  'Curated project knowledge lives in [.ai/knowledge-base/INDEX.md](.ai/knowledge-base/INDEX.md). Consult it before designing a non-trivial change.';
+  'Curated project knowledge lives in [.ai/kenkeep/INDEX.md](.ai/kenkeep/INDEX.md). Consult it before designing a non-trivial change.';
 
-const KB_GITIGNORE_LINES = [
+const KENKEEP_GITIGNORE_LINES = [
   '_sessions/',
   '_logs/',
   '.state/',
@@ -65,7 +65,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
   }
 
   // 1. Knowledge-base skeleton.
-  copyTree(join(templatesDir, 'knowledge-base'), paths.kbDir);
+  copyTree(join(templatesDir, 'kenkeep'), paths.kkDir);
 
   // 2. Per-harness files (templates + hook registration). Each adapter in
   //    src/harnesses/<id>/ knows where its own files live.
@@ -74,27 +74,27 @@ export async function runInit(opts: InitOptions): Promise<void> {
     await adapter.install({ root, paths, templatesDir, upgrade: false });
   }
 
-  // 3. Prompts under .ai/knowledge-base/.config/prompts (for local override).
+  // 3. Prompts under .ai/kenkeep/.config/prompts (for local override).
   const promptsSrc = join(templatesDir, 'prompts');
   if (existsSync(promptsSrc)) {
     copyTree(promptsSrc, paths.promptsDir);
   }
 
-  // 4. Write .ai/knowledge-base/.gitignore and update AGENTS.md. The project's
+  // 4. Write .ai/kenkeep/.gitignore and update AGENTS.md. The project's
   //    root .gitignore is intentionally untouched.
-  ensureKbGitignore(paths.kbGitignoreFile);
+  ensureKbGitignore(paths.kkGitignoreFile);
   updateAgentsMd(join(root, 'AGENTS.md'));
 
-  // 4b. Emit `.kbignore` stub. Never overwrites: user-edited scope is sacred.
-  const kbignore = ensureKbignore(root);
-  if (kbignore.written) {
-    log.info(`Wrote default .kbignore at ${kbignore.path}`);
+  // 4b. Emit `.kkignore` stub. Never overwrites: user-edited scope is sacred.
+  const kkignore = ensureKbignore(root);
+  if (kkignore.written) {
+    log.info(`Wrote default .kkignore at ${kkignore.path}`);
   }
 
   // 5. Write default settings file unless one is already present. Users edit
   // config.yaml; init never overwrites it.
   if (!existsSync(paths.projectConfigFile)) {
-    mkdirSync(paths.kbDir, { recursive: true });
+    mkdirSync(paths.kkDir, { recursive: true });
     writeFileSync(paths.projectConfigFile, defaultProjectConfigBody());
   }
 
@@ -115,8 +115,8 @@ export async function runInit(opts: InitOptions): Promise<void> {
       return `\`${rel}/\``;
     })
     .join(', ');
-  log.plain(`  1. Review and commit \`.ai/knowledge-base/\` and ${harnessDirs}.`);
-  log.plain('  2. Run `npx @e0ipso/ai-knowledge-base doctor` to verify the setup.');
+  log.plain(`  1. Review and commit \`.ai/kenkeep/\` and ${harnessDirs}.`);
+  log.plain('  2. Run `npx kenkeep doctor` to verify the setup.');
 }
 
 function validateHarnesses(harnesses: string[]): void {
@@ -140,7 +140,7 @@ async function runUpgrade(
 ): Promise<void> {
   if (!existsSync(paths.installedVersionFile)) {
     throw new Error(
-      'Not initialized. Run `npx @e0ipso/ai-knowledge-base init --harnesses claude` for a first-time install.'
+      'Not initialized. Run `npx kenkeep init --harnesses claude` for a first-time install.'
     );
   }
   const current = packageVersion();
@@ -158,23 +158,23 @@ async function runUpgrade(
 
   copyPromptsPreservingLocal(join(templatesDir, 'prompts'), paths.promptsDir);
 
-  ensureKbGitignore(paths.kbGitignoreFile);
+  ensureKbGitignore(paths.kkGitignoreFile);
   updateAgentsMd(join(root, 'AGENTS.md'));
 
-  const kbignore = ensureKbignore(root);
-  if (kbignore.written) {
-    log.info(`Wrote default .kbignore at ${kbignore.path}`);
+  const kkignore = ensureKbignore(root);
+  if (kkignore.written) {
+    log.info(`Wrote default .kkignore at ${kkignore.path}`);
   }
 
   if (!existsSync(paths.projectConfigFile)) {
-    mkdirSync(paths.kbDir, { recursive: true });
+    mkdirSync(paths.kkDir, { recursive: true });
     writeFileSync(paths.projectConfigFile, defaultProjectConfigBody());
   }
 
   writeInstalledVersion(paths.installedVersionFile, paths.stateDir, opts.harnesses);
 
   log.success(`Upgraded to ${current}.`);
-  log.plain('Run `npx @e0ipso/ai-knowledge-base doctor` to verify.');
+  log.plain('Run `npx kenkeep doctor` to verify.');
 }
 
 function copyPromptsPreservingLocal(src: string, dst: string): void {
@@ -194,7 +194,7 @@ function copyPromptsPreservingLocal(src: string, dst: string): void {
 function writeInstalledVersion(file: string, stateDir: string, harnesses: string[]): void {
   const installed: InstalledVersion = {
     schema_version: 1,
-    package: '@e0ipso/ai-knowledge-base',
+    package: 'kenkeep',
     version: packageVersion(),
     installed_at: new Date().toISOString(),
     harnesses,
@@ -205,14 +205,14 @@ function writeInstalledVersion(file: string, stateDir: string, harnesses: string
 
 
 /**
- * Writes `.ai/knowledge-base/.gitignore` with the canonical entries if it
+ * Writes `.ai/kenkeep/.gitignore` with the canonical entries if it
  * doesn't already exist. Once written, the file is treated as user-owned —
  * upgrades will not overwrite local edits.
  */
 function ensureKbGitignore(file: string): void {
   if (existsSync(file)) return;
   mkdirSync(dirname(file), { recursive: true });
-  writeFileSync(file, `${KB_GITIGNORE_LINES.join('\n')}\n`);
+  writeFileSync(file, `${KENKEEP_GITIGNORE_LINES.join('\n')}\n`);
 }
 
 function ensureTrailingNewline(s: string): string {

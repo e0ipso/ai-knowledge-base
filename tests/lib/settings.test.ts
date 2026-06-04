@@ -13,7 +13,7 @@ import { SettingsSchema } from '../../src/lib/schemas.js';
 describe('settings', () => {
   let sandbox: string;
   beforeEach(() => {
-    sandbox = mkdtempSync(join(tmpdir(), 'kb-settings-'));
+    sandbox = mkdtempSync(join(tmpdir(), 'kk-settings-'));
   });
   afterEach(() => rmSync(sandbox, { recursive: true, force: true }));
 
@@ -77,8 +77,8 @@ describe('settings', () => {
   });
 
   it('projectConfigPath joins to the kb dir', () => {
-    expect(projectConfigPath('/repo/.ai/knowledge-base')).toBe(
-      '/repo/.ai/knowledge-base/config.yaml'
+    expect(projectConfigPath('/repo/.ai/kenkeep')).toBe(
+      '/repo/.ai/kenkeep/config.yaml'
     );
   });
 

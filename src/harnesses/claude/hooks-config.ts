@@ -15,10 +15,10 @@ const HOOK_INSTALL_PATH = '.claude/hooks';
 /**
  * Merges hook entries into `.claude/settings.json`. Existing user-defined
  * hooks are preserved; entries previously written by us are recognized by
- * the `.claude/hooks/kb-` script-path prefix and replaced wholesale.
+ * the `.claude/hooks/kk-` script-path prefix and replaced wholesale.
  *
  * Hook specs accepted here use Claude-relative script paths (e.g.
- * `.claude/hooks/kb-capture.cjs`), so the caller of this function is
+ * `.claude/hooks/kk-capture.cjs`), so the caller of this function is
  * responsible for prefixing the harness directory before invoking it.
  */
 export async function writeClaudeHookConfig(
@@ -36,7 +36,7 @@ export async function writeClaudeHookConfig(
   }
   settings.hooks ??= {};
 
-  const ownedPrefix = `${HOOK_INSTALL_PATH}/kb-`;
+  const ownedPrefix = `${HOOK_INSTALL_PATH}/kk-`;
   for (const [event, entries] of Object.entries(settings.hooks)) {
     const filtered = entries
       .map(entry => ({

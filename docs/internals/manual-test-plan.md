@@ -11,14 +11,14 @@ Checks that resist automation: real Claude Code sessions, non-Linux OS, and huma
 ## Clean sandbox
 
 ```sh
-mkdir kb-manual-test && cd kb-manual-test
+mkdir kk-manual-test && cd kk-manual-test
 git init
 echo "node_modules" > .gitignore
-npm pack ../path/to/ai-knowledge-base
+npm pack ../path/to/kenkeep
 npm init -y
-npx ./e0ipso-ai-knowledge-base-<v>.tgz init --harnesses claude
+npx ./e0ipso-kenkeep-<v>.tgz init --harnesses claude
 npm install
-npx @e0ipso/ai-knowledge-base doctor
+npx kenkeep doctor
 ```
 
 `doctor` should exit 0 (warnings OK).
@@ -41,7 +41,7 @@ The hook contract is ≤1s wall-clock.
 - [ ] Resulting `_sessions/<log>.md` contains the **full transcript slice**, not a summary.
 - [ ] If the deadline fires, the next `Stop`/`SessionEnd` still produces a log covering the missed window.
 
-Diagnostic: `time node .claude/hooks/kb-capture.mjs < /dev/null` should be under 200ms cold. Over 1s usually means secretlint is loading from a slow filesystem, or the consumer hasn't run `npm install`.
+Diagnostic: `time node .claude/hooks/kk-capture.mjs < /dev/null` should be under 200ms cold. Over 1s usually means secretlint is loading from a slow filesystem, or the consumer hasn't run `npm install`.
 
 ## 3. Secretlint per platform
 
@@ -78,7 +78,7 @@ If curator output is clearly noise, bump the proposal prompt's `Version:` and ti
 5. [ ] `init --upgrade`. Confirm:
    - [ ] Sentinel comment preserved.
    - [ ] Custom `config.yaml` key preserved.
-   - [ ] `kb-capture.mjs` reflects the new version.
+   - [ ] `kk-capture.mjs` reflects the new version.
    - [ ] `installed-version` shows the new version.
 6. [ ] `doctor` exits 0, no version mismatch.
 
@@ -90,16 +90,16 @@ If curator output is clearly noise, bump the proposal prompt's `Version:` and ti
 - [ ] Set `logsRetentionDays: 0` in `config.yaml`, rerun: every `*.jsonl` under `_logs/` is deleted.
 - [ ] Set `logsRetentionDays: 365`, rerun on an already-pruned tree: reports `pruned 0 files`, no error.
 
-## 7. `/kb-bootstrap`
+## 7. `/kk-bootstrap`
 
 - [ ] In a sandbox with a small public repo (README + architecture.md), `init` and open Claude Code.
-- [ ] Run `/kb-bootstrap`. Agent reads source docs, writes nodes directly under `nodes/<kind>/`, reports a summary including any collisions skipped.
+- [ ] Run `/kk-bootstrap`. Agent reads source docs, writes nodes directly under `nodes/<kind>/`, reports a summary including any collisions skipped.
 - [ ] Walk `git diff nodes/` (or use a tool like [self-review](https://github.com/e0ipso/self-review)). `git commit` the ones you want; `git restore <path>` the rest.
 - [ ] No node carries a literal secret or stale TODO from the source docs.
 
 ## 8. `bootstrap` discovery and hash-aware re-run
 
-- [ ] In a repo with 50+ markdown files (>200k chars), run `finddocs` to preview discovery. The output is one `+ <relpath>` line per surviving file; confirm the count matches your expectation given `.kbignore`.
+- [ ] In a repo with 50+ markdown files (>200k chars), run `finddocs` to preview discovery. The output is one `+ <relpath>` line per surviving file; confirm the count matches your expectation given `.kkignore`.
 - [ ] Run `bootstrap --from <subset>` against 3-5 docs. Inspect `bootstrap-state.json`. Each processed doc has an entry with `content_sha256` and `produced_nodes`.
 - [ ] Re-run `bootstrap --from <subset>`. The skill should report that every doc was hash-skipped.
 - [ ] Edit one file. Re-run. Only that file is reprocessed.
@@ -115,7 +115,7 @@ Curate and bootstrap no longer take a `state.json` lock. They are single-author 
 ## 10. Settings file
 
 - [ ] With no `config.yaml`, `curate` uses built-in defaults (`curationThreshold: 5`, `logsRetentionDays: 30`, `lintEveryNSessions: 50`).
-- [ ] Add project `.ai/knowledge-base/config.yaml` with `curationThreshold: 3`. Re-run honors 3.
+- [ ] Add project `.ai/kenkeep/config.yaml` with `curationThreshold: 3`. Re-run honors 3.
 - [ ] Add an unknown key (e.g. `foo: bar`). `curate` exits with an error naming the file.
 
 ## 11. Doctor exit codes

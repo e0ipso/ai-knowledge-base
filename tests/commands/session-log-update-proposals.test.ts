@@ -40,7 +40,7 @@ describe('session-log update-proposals CLI', () => {
   let sessionPath: string;
 
   beforeEach(() => {
-    sandbox = mkdtempSync(join(tmpdir(), 'kb-session-log-update-'));
+    sandbox = mkdtempSync(join(tmpdir(), 'kk-session-log-update-'));
     sessionPath = join(sandbox, '20260511-1000-test-session.md');
     writeFileSync(
       sessionPath,

@@ -74,20 +74,20 @@ export async function runDoctor(opts: DoctorOptions): Promise<number> {
   const checks: NamedCheck[] = [
     { name: 'Node.js >= 22', result: checkNodeVersion() },
     {
-      name: '.ai/knowledge-base/.state/installed-version',
+      name: '.ai/kenkeep/.state/installed-version',
       result: checkInstalled(paths.installedVersionFile),
     },
     {
-      name: '.gitignore lists ai-knowledge-base paths',
-      result: checkGitignore(paths.kbGitignoreFile),
+      name: '.gitignore lists kenkeep paths',
+      result: checkGitignore(paths.kkGitignoreFile),
     },
-    { name: '.kbignore present and non-empty', result: checkKbignore(join(root, '.kbignore')) },
+    { name: '.kkignore present and non-empty', result: checkKbignore(join(root, '.kkignore')) },
     ...harnessChecks,
     { name: 'shipped prompts present', result: checkPrompts(paths.promptsDir) },
     { name: 'settings file is valid', result: checkSettings(paths.projectConfigFile) },
     {
       name: 'INDEX.md is fresh',
-      result: checkIndexFreshness(join(paths.kbDir, 'INDEX.md'), paths.nodesDir),
+      result: checkIndexFreshness(join(paths.kkDir, 'INDEX.md'), paths.nodesDir),
     },
     { name: 'node frontmatter valid', result: frontmatterCheck.result },
     { name: 'derived_from references resolve', result: danglingResult },
@@ -214,7 +214,7 @@ function installedHarnessIds(file: string): string[] {
 function checkInstalled(file: string): CheckResult {
   if (!existsSync(file)) {
     return err(
-      'missing. Run `npx @e0ipso/ai-knowledge-base init --harnesses claude` from the repo root.'
+      'missing. Run `npx kenkeep init --harnesses claude` from the repo root.'
     );
   }
   let parsed: { version?: string };
@@ -228,7 +228,7 @@ function checkInstalled(file: string): CheckResult {
   if (installed === null) return warn('installed-version has no `version` field.');
   if (installed === current) return ok(current);
   return warn(
-    `installed ${installed}, package ${current}. Run \`npx @e0ipso/ai-knowledge-base init --upgrade\` to refresh templates.`
+    `installed ${installed}, package ${current}. Run \`npx kenkeep init --upgrade\` to refresh templates.`
   );
 }
 
@@ -243,7 +243,7 @@ function checkPrompts(promptsDir: string): CheckResult {
 
 function checkIndexFreshness(indexFile: string, nodesDir: string): CheckResult {
   if (!existsSync(indexFile))
-    return warn('INDEX.md missing; run `npx @e0ipso/ai-knowledge-base index rebuild`.');
+    return warn('INDEX.md missing; run `npx kenkeep index rebuild`.');
   try {
     const parsed = matter(readFileSync(indexFile, 'utf8'));
     const fm = IndexFrontmatterSchema.safeParse(parsed.data);
@@ -253,7 +253,7 @@ function checkIndexFreshness(indexFile: string, nodesDir: string): CheckResult {
       : fm.data.nodes_hash;
     return recorded === computeNodesHash(nodesDir)
       ? ok(`fresh (${fm.data.node_count} node(s))`)
-      : warn('stale (nodes_hash drift); run `npx @e0ipso/ai-knowledge-base index rebuild`.');
+      : warn('stale (nodes_hash drift); run `npx kenkeep index rebuild`.');
   } catch (e) {
     return warn(`unreadable: ${(e as Error).message}`);
   }
@@ -262,7 +262,7 @@ function checkIndexFreshness(indexFile: string, nodesDir: string): CheckResult {
 function checkSettings(file: string): CheckResult {
   if (!existsSync(file)) {
     return warn(
-      'no .ai/knowledge-base/config.yaml, package defaults are in effect. Run `npx @e0ipso/ai-knowledge-base init --upgrade` to create one.'
+      'no .ai/kenkeep/config.yaml, package defaults are in effect. Run `npx kenkeep init --upgrade` to create one.'
     );
   }
   let loaded: unknown;
@@ -284,18 +284,18 @@ function checkSettings(file: string): CheckResult {
 }
 
 function checkGitignore(file: string): CheckResult {
-  if (!existsSync(file)) return warn('no .gitignore inside .ai/knowledge-base/');
+  if (!existsSync(file)) return warn('no .gitignore inside .ai/kenkeep/');
   const body = readFileSync(file, 'utf8');
   return body.includes('_sessions/') && body.includes('_logs/')
-    ? ok('ai-knowledge-base entries present')
+    ? ok('kenkeep entries present')
     : warn('missing entries for `_sessions/` and/or `_logs/`');
 }
 
-const KBIGNORE_WARNING =
-  '.kbignore missing or empty. Run `init --upgrade` to regenerate the default stub, or add your own patterns.';
+const KKIGNORE_WARNING =
+  '.kkignore missing or empty. Run `init --upgrade` to regenerate the default stub, or add your own patterns.';
 
 /**
- * Verifies that `.kbignore` exists at the repo root and contains at least one
+ * Verifies that `.kkignore` exists at the repo root and contains at least one
  * non-comment, non-blank line. The file scopes bootstrap discovery away from
  * vendored or generated trees, so an absent/empty file is load-bearing enough
  * to surface as an advisory warning. ENOENT is treated as the "missing"
@@ -308,12 +308,12 @@ function checkKbignore(file: string): CheckResult {
     body = readFileSync(file, 'utf8');
   } catch (e) {
     const code = (e as NodeJS.ErrnoException).code;
-    if (code === 'ENOENT') return warn(KBIGNORE_WARNING);
+    if (code === 'ENOENT') return warn(KKIGNORE_WARNING);
     return err(`unreadable: ${(e as Error).message}`);
   }
   const hasPattern = body.split(/\r?\n/).some(line => {
     const trimmed = line.trimStart();
     return trimmed.length > 0 && !trimmed.startsWith('#');
   });
-  return hasPattern ? ok('present with pattern(s)') : warn(KBIGNORE_WARNING);
+  return hasPattern ? ok('present with pattern(s)') : warn(KKIGNORE_WARNING);
 }

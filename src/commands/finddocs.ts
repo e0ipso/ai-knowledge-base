@@ -40,7 +40,7 @@ function toPosix(p: string): string {
 
 /**
  * Discovers candidate markdown files under the repo (or a `--from` scope)
- * applying the same `.gitignore` + `.kbignore` + `STATIC_SKIPS` chain as
+ * applying the same `.gitignore` + `.kkignore` + `STATIC_SKIPS` chain as
  * the bootstrap path, then prints `+ <relpath>` (one per surviving file).
  * With `--with-hashes`, each line is suffixed with a tab and the file's
  * SHA-256 hex digest, so callers can compare against `bootstrap-state.json`.
@@ -51,7 +51,7 @@ function toPosix(p: string): string {
 export async function runFindDocsCommand(opts: FindDocsOptions = {}): Promise<number> {
   const root = findRepoRoot();
   const gitignoreInstance = loadIgnoreFile(join(root, '.gitignore'));
-  const kbignoreInstance = loadIgnoreFile(join(root, '.kbignore'));
+  const kkignoreInstance = loadIgnoreFile(join(root, '.kkignore'));
 
   // Resolve --from to an absolute path under repo root, validate it exists
   // and is a directory. When omitted, the scope is the repo root itself.
@@ -83,12 +83,12 @@ export async function runFindDocsCommand(opts: FindDocsOptions = {}): Promise<nu
     scopeRel = toPosix(rel);
   }
 
-  // Walk from repo root so `.gitignore` / `.kbignore` pattern semantics
+  // Walk from repo root so `.gitignore` / `.kkignore` pattern semantics
   // (anchored to the repo root) match what bootstrap sees. When --from is
   // set, filter the survivors to paths under that subdirectory.
   const discoverOpts: DiscoverOptions = { repoRoot: root };
   if (gitignoreInstance) discoverOpts.gitignore = gitignoreInstance;
-  if (kbignoreInstance) discoverOpts.kbignore = kbignoreInstance;
+  if (kkignoreInstance) discoverOpts.kkignore = kkignoreInstance;
 
   let discovery;
   try {

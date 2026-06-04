@@ -17,15 +17,15 @@ No API key required. `init` spawns the harness's own headless driver (`claude -p
 In your repo root:
 
 ```sh
-npx @e0ipso/ai-knowledge-base init --harnesses <id>
-npx @e0ipso/ai-knowledge-base --harness <id> doctor
+npx kenkeep init --harnesses <id>
+npx kenkeep --harness <id> doctor
 ```
 
 `<id>` is one of `claude`, `codex`, `cursor`, `opencode`. Pass a comma-separated list to install several at once.
 
 `init` creates:
 
-- `.ai/knowledge-base/`: KB scaffold (nodes, INDEX, GRAPH, state, config, prompt overrides). Shared across harnesses.
+- `.ai/kenkeep/`: knowledge base scaffold (nodes, INDEX, GRAPH, state, config, prompt overrides). Shared across harnesses.
 - One harness-specific hook + skills directory (`.claude/`, `.codex/` + `.agents/skills/`, `.cursor/`, or `.opencode/`).
 - A managed block in `.gitignore` for runtime state.
 
@@ -33,7 +33,7 @@ npx @e0ipso/ai-knowledge-base --harness <id> doctor
 
 ## Per-harness notes
 
-The CLI auto-detects Claude (via `CLAUDECODE=1`) and Cursor (via `CURSOR_VERSION`). **Codex and OpenCode export no in-session env var**, so when invoking from outside a session, or from inside a Codex/OpenCode session, pass `--harness <id>` explicitly, or set `cliDefaultHarness` in `.ai/knowledge-base/config.yaml`.
+The CLI auto-detects Claude (via `CLAUDECODE=1`) and Cursor (via `CURSOR_VERSION`). **Codex and OpenCode export no in-session env var**, so when invoking from outside a session, or from inside a Codex/OpenCode session, pass `--harness <id>` explicitly, or set `cliDefaultHarness` in `.ai/kenkeep/config.yaml`.
 
 | Harness | Capture events | Notable |
 |---|---|---|
@@ -49,12 +49,12 @@ If your harness isn't listed above, this tool doesn't support it yet.
 The shared SKILL.md does not carry per-tool `allowed-tools` frontmatter. To pre-approve every CLI subcommand under Claude, add to `.claude/settings.json`:
 
 ```json
-{ "permissions": { "allow": ["Bash(npx @e0ipso/ai-knowledge-base:*)"] } }
+{ "permissions": { "allow": ["Bash(npx kenkeep:*)"] } }
 ```
 
 ## Optional: commit-time hardening
 
-`kb-capture.mjs` redacts secrets in captured transcripts via secretlint. It does **not** protect commits. The two pieces teams most often add by hand:
+`kk-capture.mjs` redacts secrets in captured transcripts via secretlint. It does **not** protect commits. The two pieces teams most often add by hand:
 
 ### Secret scanning on commit
 
@@ -72,7 +72,7 @@ npx husky init
 ```js
 module.exports = {
   '*': ['secretlint'],
-  '.ai/knowledge-base/nodes/**/*.md': () => ['npx @e0ipso/ai-knowledge-base index rebuild --stage'],
+  '.ai/kenkeep/nodes/**/*.md': () => ['npx kenkeep index rebuild --stage'],
 };
 ```
 
@@ -96,11 +96,11 @@ Add `.husky/commit-msg` with `npx --no -- commitlint --edit "$1"`.
 ## Seed from existing docs
 
 ```
-/kb-bootstrap [path]           # in-session
+/kk-bootstrap [path]           # in-session
 ```
 
 ```sh
-npx @e0ipso/ai-knowledge-base bootstrap --from docs/   # CLI launcher, execs `<harness> -p "/kb-bootstrap --from docs/"`
+npx kenkeep bootstrap --from docs/   # CLI launcher, execs `<harness> -p "/kk-bootstrap --from docs/"`
 ```
 
 Surveys your markdown, splits into `practice` and `map` nodes, writes under `nodes/`. Hash-aware: only reprocesses docs whose SHA-256 changed since the last run. Existing nodes are never overwritten. Review the written files: accept by leaving them in place, reject by deleting them. Don't run `bootstrap` in CI. It launches the host harness and the LLM-driven work needs human review.
@@ -108,9 +108,9 @@ Surveys your markdown, splits into `practice` and `map` nodes, writes under `nod
 ## Upgrading
 
 ```sh
-npm install --save-dev @e0ipso/ai-knowledge-base@latest
-npx @e0ipso/ai-knowledge-base init --harnesses <id> --upgrade
-npx @e0ipso/ai-knowledge-base --harness <id> doctor
+npm install --save-dev kenkeep@latest
+npx kenkeep init --harnesses <id> --upgrade
+npx kenkeep --harness <id> doctor
 ```
 
 `--upgrade` refreshes hooks, skills, and bundled prompts; preserves your `config.yaml` and local prompt overrides.

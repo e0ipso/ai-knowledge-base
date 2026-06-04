@@ -13,7 +13,7 @@ describe('writeCursorHooksConfig', () => {
   let hooksFile: string;
 
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'kb-cursor-hooks-'));
+    root = mkdtempSync(join(tmpdir(), 'kk-cursor-hooks-'));
     hooksFile = join(root, '.cursor/hooks.json');
   });
 
@@ -22,17 +22,17 @@ describe('writeCursorHooksConfig', () => {
   it('creates .cursor/hooks.json with native Cursor shape on a fresh repo', async () => {
     expect(existsSync(hooksFile)).toBe(false);
     await writeCursorHooksConfig(root, [
-      { event: 'stop', scriptPath: '.cursor/hooks/kb-capture.cjs' },
-      { event: 'sessionStart', scriptPath: '.cursor/hooks/kb-session-start.cjs' },
+      { event: 'stop', scriptPath: '.cursor/hooks/kk-capture.cjs' },
+      { event: 'sessionStart', scriptPath: '.cursor/hooks/kk-session-start.cjs' },
     ]);
     expect(existsSync(hooksFile)).toBe(true);
     const parsed = JSON.parse(readFileSync(hooksFile, 'utf8'));
     expect(parsed.version).toBe(1);
     expect(parsed.hooks.stop).toEqual([
-      { command: 'node ./.cursor/hooks/kb-capture.cjs', timeout: 30 },
+      { command: 'node ./.cursor/hooks/kk-capture.cjs', timeout: 30 },
     ]);
     expect(parsed.hooks.sessionStart[0].command).toBe(
-      'node ./.cursor/hooks/kb-session-start.cjs'
+      'node ./.cursor/hooks/kk-session-start.cjs'
     );
   });
 
@@ -49,16 +49,16 @@ describe('writeCursorHooksConfig', () => {
     );
 
     await writeCursorHooksConfig(root, [
-      { event: 'stop', scriptPath: '.cursor/hooks/kb-capture.cjs' },
+      { event: 'stop', scriptPath: '.cursor/hooks/kk-capture.cjs' },
     ]);
 
     const parsed = JSON.parse(readFileSync(hooksFile, 'utf8'));
     const commands = parsed.hooks.stop.map((e: { command: string }) => e.command);
     expect(commands).toContain('node ./scripts/user-stop.mjs');
-    expect(commands).toContain('node ./.cursor/hooks/kb-capture.cjs');
+    expect(commands).toContain('node ./.cursor/hooks/kk-capture.cjs');
   });
 
-  it('scrubs previously-owned kb- hooks before rewriting', async () => {
+  it('scrubs previously-owned kk- hooks before rewriting', async () => {
     mkdirSync(join(root, '.cursor'), { recursive: true });
     writeFileSync(
       hooksFile,
@@ -66,7 +66,7 @@ describe('writeCursorHooksConfig', () => {
         version: 1,
         hooks: {
           stop: [
-            { command: 'node .cursor/hooks/kb-old-name.cjs', timeout: 30 },
+            { command: 'node .cursor/hooks/kk-old-name.cjs', timeout: 30 },
             { command: 'node ./scripts/user-stop.mjs' },
           ],
         },
@@ -74,14 +74,14 @@ describe('writeCursorHooksConfig', () => {
     );
 
     await writeCursorHooksConfig(root, [
-      { event: 'stop', scriptPath: '.cursor/hooks/kb-capture.cjs' },
+      { event: 'stop', scriptPath: '.cursor/hooks/kk-capture.cjs' },
     ]);
 
     const parsed = JSON.parse(readFileSync(hooksFile, 'utf8'));
     const commands = parsed.hooks.stop.map((e: { command: string }) => e.command);
-    expect(commands).not.toContain('node .cursor/hooks/kb-old-name.cjs');
+    expect(commands).not.toContain('node .cursor/hooks/kk-old-name.cjs');
     expect(commands).toContain('node ./scripts/user-stop.mjs');
-    expect(commands).toContain('node ./.cursor/hooks/kb-capture.cjs');
+    expect(commands).toContain('node ./.cursor/hooks/kk-capture.cjs');
   });
 
   it('readCursorHooks returns defaults when the file does not exist', () => {

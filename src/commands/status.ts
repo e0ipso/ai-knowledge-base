@@ -10,7 +10,7 @@ export async function runStatus(): Promise<void> {
 
   if (!existsSync(paths.installedVersionFile)) {
     log.warn(
-      'ai-knowledge-base is not initialized in this repo. Run `npx @e0ipso/ai-knowledge-base init --harnesses claude`.'
+      'kenkeep is not initialized in this repo. Run `npx kenkeep init --harnesses claude`.'
     );
     return;
   }
@@ -24,7 +24,7 @@ export async function runStatus(): Promise<void> {
   const nodeCounts = countNodes(paths.nodesDir);
 
   log.plain(
-    `@e0ipso/ai-knowledge-base v${installed.version} (installed ${installed.installed_at})`
+    `kenkeep v${installed.version} (installed ${installed.installed_at})`
   );
   log.plain('');
   log.plain('Knowledge base');

@@ -17,7 +17,7 @@ afterEach(() => {
 });
 
 function makeStorage(): string {
-  const root = mkdtempSync(join(tmpdir(), 'kb-opencode-storage-'));
+  const root = mkdtempSync(join(tmpdir(), 'kk-opencode-storage-'));
   cleanup.paths.push(root);
   return root;
 }

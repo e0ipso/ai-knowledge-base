@@ -14,7 +14,7 @@ import { codexHookSpecs } from './hook-spec.js';
 import { codexPaths } from './install.js';
 
 const exec = promisify(execFile);
-const EXPECTED_SKILLS = ['kb-add', 'kb-bootstrap', 'kb-curate'];
+const EXPECTED_SKILLS = ['kk-add', 'kk-bootstrap', 'kk-curate'];
 const TOML_HOOKS_HEADER = /^\s*\[hooks\b/m;
 
 export async function codexDoctorChecks(paths: RepoPaths): Promise<NamedDoctorCheck[]> {
@@ -57,7 +57,7 @@ function checkCodexHooks(
   }
   if (!existsSync(hooksFile)) {
     return errCheck(
-      'no .codex/hooks.json. Run `npx @e0ipso/ai-knowledge-base init --harnesses codex --upgrade`.'
+      'no .codex/hooks.json. Run `npx kenkeep init --harnesses codex --upgrade`.'
     );
   }
   let parsed: {
@@ -88,20 +88,20 @@ function checkCodexHooks(
   if (missingRegs.length > 0) parts.push(`missing registrations: ${missingRegs.join(', ')}`);
   if (missingFiles.size > 0) parts.push(`missing scripts: ${[...missingFiles].join(', ')}`);
   return errCheck(
-    `${parts.join('; ')}. Re-run \`npx @e0ipso/ai-knowledge-base init --harnesses codex --upgrade\`.`
+    `${parts.join('; ')}. Re-run \`npx kenkeep init --harnesses codex --upgrade\`.`
   );
 }
 
 function checkCodexSkills(skillsDir: string): DoctorCheckResult {
   if (!existsSync(skillsDir)) {
     return errCheck(
-      'no .agents/skills/ directory. Re-run `npx @e0ipso/ai-knowledge-base init --harnesses codex --upgrade`.'
+      'no .agents/skills/ directory. Re-run `npx kenkeep init --harnesses codex --upgrade`.'
     );
   }
   const missing = EXPECTED_SKILLS.filter(name => !existsSync(join(skillsDir, name, 'SKILL.md')));
   return missing.length === 0
     ? ok(EXPECTED_SKILLS.join(', '))
     : errCheck(
-        `missing SKILL.md for: ${missing.join(', ')}. Re-run \`npx @e0ipso/ai-knowledge-base init --upgrade\`.`
+        `missing SKILL.md for: ${missing.join(', ')}. Re-run \`npx kenkeep init --upgrade\`.`
       );
 }

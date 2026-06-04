@@ -7,7 +7,7 @@ import type { HarnessInstallOptions } from '../types.js';
 /**
  * Where the OpenCode adapter's template tree lives under the package
  * `templates/` directory (created at build time from
- * `src/templates-source/opencode/` plus compiled plugin and kb-hooks
+ * `src/templates-source/opencode/` plus compiled plugin and kk-hooks
  * scripts under `dist/plugins/opencode/` and `dist/hooks/opencode/`).
  */
 export const OPENCODE_TEMPLATE_SUBDIR = 'opencode';
@@ -17,7 +17,7 @@ export function openCodePaths(root: string) {
   return {
     dir,
     pluginsDir: join(dir, 'plugins'),
-    kbHooksDir: join(dir, 'kb-hooks'),
+    kkHooksDir: join(dir, 'kk-hooks'),
     skillsDir: join(dir, 'skills'),
     pluginFile: join(dir, 'plugins', 'kb.mjs'),
   };
@@ -43,9 +43,9 @@ export async function installOpenCode(opts: HarnessInstallOptions): Promise<void
     copyTree(pluginSrc, paths.pluginsDir);
   }
 
-  const kbHooksSrc = join(templateDir, 'kb-hooks');
-  if (existsSync(kbHooksSrc)) {
-    copyTree(kbHooksSrc, paths.kbHooksDir);
+  const kkHooksSrc = join(templateDir, 'kk-hooks');
+  if (existsSync(kkHooksSrc)) {
+    copyTree(kkHooksSrc, paths.kkHooksDir);
   }
 
   installSharedSkills(opts.templatesDir, paths.skillsDir);

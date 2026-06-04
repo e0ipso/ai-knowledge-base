@@ -48,7 +48,7 @@ export interface OpenCodeHeadlessOptions extends HeadlessRunOptions {
  * string as JSON after `session.idle` (or stream end), then runs it
  * through the caller-supplied Zod schema.
  *
- * The recursion guard env var `KB_BUILDER_INTERNAL=1` is always set on
+ * The recursion guard env var `KENKEEP_BUILDER_INTERNAL=1` is always set on
  * the child so the spawned opencode's plugin shim no-ops.
  */
 export async function runHeadlessOpenCode<T>(
@@ -70,7 +70,7 @@ export async function runHeadlessOpenCode<T>(
 
   const env: NodeJS.ProcessEnv = {
     ...(opts.env ?? process.env),
-    KB_BUILDER_INTERNAL: '1',
+    KENKEEP_BUILDER_INTERNAL: '1',
   };
 
   let logStream: ReturnType<typeof createWriteStream> | null = null;

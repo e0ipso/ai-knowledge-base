@@ -18,7 +18,7 @@ export const DEFAULT_TIMEOUT_MS = 60_000;
  * themselves (e.g. `runHeadlessClaude` adds a `JSON.parse` + Zod schema pass
  * on top).
  *
- * The recursion guard env var (`KB_BUILDER_INTERNAL=1`) is always set on the
+ * The recursion guard env var (`KENKEEP_BUILDER_INTERNAL=1`) is always set on the
  * child so capture/drain hooks fired from the spawned process exit silently.
  */
 export async function runHeadlessClaudeRaw(
@@ -42,7 +42,7 @@ export async function runHeadlessClaudeRaw(
   if (harnessOpts.effort) args.push('--effort', harnessOpts.effort);
   const env: NodeJS.ProcessEnv = {
     ...(opts.env ?? process.env),
-    KB_BUILDER_INTERNAL: '1',
+    KENKEEP_BUILDER_INTERNAL: '1',
   };
 
   let logStream: ReturnType<typeof createWriteStream> | null = null;

@@ -11,7 +11,7 @@ import type { HookEvent, HookSpec } from '../types.js';
  * one of ours and is wholesale replaced on upgrade. Entries that do not
  * carry the marker (user-authored hooks) are preserved untouched.
  */
-const OWNED_COMMAND_PREFIX = 'node ./.codex/hooks/kb-';
+const OWNED_COMMAND_PREFIX = 'node ./.codex/hooks/kk-';
 
 /**
  * Default per-hook timeout in seconds, applied to every command we
@@ -25,7 +25,7 @@ const DEFAULT_HOOK_TIMEOUT_SECONDS = 30;
  * triggers. Documented in `docs/installation/codex-toml-hooks-coexistence.md`.
  */
 const TOML_COEXISTENCE_DOCS_URL =
-  'https://github.com/e0ipso/ai-knowledge-base/blob/main/docs/installation/codex-toml-hooks-coexistence.md';
+  'https://github.com/e0ipso/kenkeep/blob/main/docs/installation/codex-toml-hooks-coexistence.md';
 
 const HookCommandSchema = z
   .object({
@@ -129,10 +129,10 @@ function guardAgainstTomlHooks(paths: CodexHookWritePaths): void {
 /**
  * Merges hook entries into `.codex/hooks.json`. Existing user-defined
  * hooks are preserved; entries previously written by us are recognized by
- * the `node ./.codex/hooks/kb-` command prefix and replaced wholesale.
+ * the `node ./.codex/hooks/kk-` command prefix and replaced wholesale.
  *
  * Hook specs accepted here use Codex-relative script paths (e.g.
- * `.codex/hooks/kb-capture.cjs`). The caller of this function is
+ * `.codex/hooks/kk-capture.cjs`). The caller of this function is
  * responsible for prefixing the harness directory before invoking it.
  */
 export async function writeCodexHooks(

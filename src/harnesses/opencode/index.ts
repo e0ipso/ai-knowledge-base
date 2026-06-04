@@ -12,7 +12,7 @@ import { parseOpenCodeTranscriptText, renderOpenCodeTranscript } from './transcr
  * OpenCode harness adapter. OpenCode's extension surface is a long-lived
  * TS/JS plugin module (`.opencode/plugins/kb.mjs`) rather than per-event
  * shell commands, so the adapter sets `pluginsDir` instead of `hooksDir`.
- * Per-event handlers ship as Node scripts under `.opencode/kb-hooks/`
+ * Per-event handlers ship as Node scripts under `.opencode/kk-hooks/`
  * that the plugin shim spawns on each subscribed event.
  *
  * `detectFromEnv` is intentionally omitted: OpenCode exports no

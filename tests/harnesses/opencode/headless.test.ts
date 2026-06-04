@@ -107,7 +107,7 @@ describe('runHeadlessOpenCode', () => {
     ]);
   });
 
-  it('sets KB_BUILDER_INTERNAL=1 on the child env', async () => {
+  it('sets KENKEEP_BUILDER_INTERNAL=1 on the child env', async () => {
     const { captured } = mockExecaOnce([
       JSON.stringify({
         type: 'message.part.updated',
@@ -117,7 +117,7 @@ describe('runHeadlessOpenCode', () => {
     ]);
     await runHeadlessOpenCode('hello', '', Schema);
     const env = (captured.options as { env: Record<string, string> }).env;
-    expect(env['KB_BUILDER_INTERNAL']).toBe('1');
+    expect(env['KENKEEP_BUILDER_INTERNAL']).toBe('1');
   });
 
   it('throws when the child fails (non-zero exit)', async () => {

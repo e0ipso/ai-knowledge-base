@@ -27,7 +27,7 @@ function writeNode(
     confidence: overrides.confidence ?? 'high',
     summary: overrides.summary ?? 's',
   };
-  const dir = join(sandbox, '.ai/knowledge-base/nodes', kind);
+  const dir = join(sandbox, '.ai/kenkeep/nodes', kind);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, `${filenameBase}.md`), matter.stringify(`# ${id}\nBody.`, fm));
 }

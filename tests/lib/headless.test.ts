@@ -61,7 +61,7 @@ const Schema = z.object({ ok: z.boolean(), n: z.number() });
 describe('runHeadlessClaude', () => {
   let dir: string;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'kb-headless-'));
+    dir = mkdtempSync(join(tmpdir(), 'kk-headless-'));
   });
   afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
@@ -124,7 +124,7 @@ describe('runHeadlessClaude', () => {
     expect(JSON.parse(lines[1]!).type).toBe('result');
   });
 
-  it('forces KB_BUILDER_INTERNAL=1 in the child env and passes -p arguments', async () => {
+  it('forces KENKEEP_BUILDER_INTERNAL=1 in the child env and passes -p arguments', async () => {
     const { captured } = mockExecaOnce([
       JSON.stringify({
         type: 'result',
@@ -137,7 +137,7 @@ describe('runHeadlessClaude', () => {
       env: { FOO: 'bar' },
     });
     const env = captured.options?.['env'] as NodeJS.ProcessEnv;
-    expect(env['KB_BUILDER_INTERNAL']).toBe('1');
+    expect(env['KENKEEP_BUILDER_INTERNAL']).toBe('1');
     expect(env['FOO']).toBe('bar');
     expect(captured.args).toEqual([
       '-p',

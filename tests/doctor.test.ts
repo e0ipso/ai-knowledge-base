@@ -30,15 +30,15 @@ describe('doctor', () => {
     const combined = result.stdout + result.stderr;
     expect(combined).toContain('Node.js >= 22');
     expect(combined).toContain('installed-version');
-    expect(combined).toContain('.gitignore lists ai-knowledge-base paths');
+    expect(combined).toContain('.gitignore lists kenkeep paths');
     expect(combined).toContain('settings file is valid');
     expect(combined).toContain('Claude skills installed');
-    expect(combined).toContain('kb-add, kb-bootstrap, kb-curate');
+    expect(combined).toContain('kk-add, kk-bootstrap, kk-curate');
   });
 
   it('flags nodes with invalid frontmatter and skips the dangling check', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    const dir = join(sandbox, '.ai/knowledge-base/nodes/practice');
+    const dir = join(sandbox, '.ai/kenkeep/nodes/practice');
     mkdirSync(dir, { recursive: true });
     // Missing required `summary` field triggers schema validation failure.
     writeFileSync(
@@ -69,57 +69,57 @@ describe('doctor', () => {
     expect(combined).toContain('skipped');
   });
 
-  it('reports a missing kb-lint-tick.cjs as an error in the Claude hooks check', async () => {
+  it('reports a missing kk-lint-tick.cjs as an error in the Claude hooks check', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    rmSync(join(sandbox, '.claude/hooks/kb-lint-tick.cjs'));
+    rmSync(join(sandbox, '.claude/hooks/kk-lint-tick.cjs'));
     const result = await runCli(sandbox, ['doctor']);
     expect(result.exitCode).toBe(1);
     const combined = result.stdout + result.stderr;
     expect(combined).toContain('Claude hooks registered');
-    expect(combined).toContain('kb-lint-tick.cjs');
+    expect(combined).toContain('kk-lint-tick.cjs');
   });
 
-  it('warns when .kbignore is missing', async () => {
+  it('warns when .kkignore is missing', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    rmSync(join(sandbox, '.kbignore'), { force: true });
+    rmSync(join(sandbox, '.kkignore'), { force: true });
     const result = await runCli(sandbox, ['doctor']);
     const combined = result.stdout + result.stderr;
-    expect(combined).toContain('.kbignore present and non-empty');
-    expect(combined).toContain('.kbignore missing or empty');
+    expect(combined).toContain('.kkignore present and non-empty');
+    expect(combined).toContain('.kkignore missing or empty');
     expect(combined).toContain('`init --upgrade`');
   });
 
-  it('warns when .kbignore contains only comments and blank lines', async () => {
+  it('warns when .kkignore contains only comments and blank lines', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    writeFileSync(join(sandbox, '.kbignore'), '# just a comment\n\n   \n# another\n');
+    writeFileSync(join(sandbox, '.kkignore'), '# just a comment\n\n   \n# another\n');
     const result = await runCli(sandbox, ['doctor']);
     const combined = result.stdout + result.stderr;
-    expect(combined).toContain('.kbignore present and non-empty');
-    expect(combined).toContain('.kbignore missing or empty');
+    expect(combined).toContain('.kkignore present and non-empty');
+    expect(combined).toContain('.kkignore missing or empty');
   });
 
-  it('passes when .kbignore has at least one pattern line', async () => {
+  it('passes when .kkignore has at least one pattern line', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    writeFileSync(join(sandbox, '.kbignore'), '# header\nnode_modules/\n');
+    writeFileSync(join(sandbox, '.kkignore'), '# header\nnode_modules/\n');
     const result = await runCli(sandbox, ['doctor']);
     const combined = result.stdout + result.stderr;
-    expect(combined).toContain('.kbignore present and non-empty');
-    expect(combined).not.toContain('.kbignore missing or empty');
+    expect(combined).toContain('.kkignore present and non-empty');
+    expect(combined).not.toContain('.kkignore missing or empty');
   });
 
   it('treats a leading-whitespace comment as a comment (warns)', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    writeFileSync(join(sandbox, '.kbignore'), '   # indented comment only\n');
+    writeFileSync(join(sandbox, '.kkignore'), '   # indented comment only\n');
     const result = await runCli(sandbox, ['doctor']);
     const combined = result.stdout + result.stderr;
-    expect(combined).toContain('.kbignore present and non-empty');
-    expect(combined).toContain('.kbignore missing or empty');
+    expect(combined).toContain('.kkignore present and non-empty');
+    expect(combined).toContain('.kkignore missing or empty');
   });
 
   it('flags an invalid config.yaml as an error', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
     writeFileSync(
-      join(sandbox, '.ai/knowledge-base/config.yaml'),
+      join(sandbox, '.ai/kenkeep/config.yaml'),
       'schema_version: 1\ncurationThreshold: -1\n'
     );
     const result = await runCli(sandbox, ['doctor']);

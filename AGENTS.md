@@ -1,17 +1,17 @@
 # AGENTS.md
 
-`@e0ipso/ai-knowledge-base` — npm CLI that captures, curates, and re-injects per-repo knowledge from AI coding sessions for Claude Code, OpenAI Codex CLI, and OpenCode. TypeScript, Node 22+, ESM, bundled via `tsup`.
+`kenkeep` — npm CLI that captures, curates, and re-injects per-repo knowledge from AI coding sessions for Claude Code, OpenAI Codex CLI, and OpenCode. TypeScript, Node 22+, ESM, bundled via `tsup`.
 
-Authoritative product spec: [PRD.md](PRD.md). Curated project knowledge: [.ai/knowledge-base/INDEX.md](.ai/knowledge-base/INDEX.md) — skim it before designing a non-trivial change.
+Authoritative product spec: [PRD.md](PRD.md). Curated project knowledge: [.ai/kenkeep/INDEX.md](.ai/kenkeep/INDEX.md) — skim it before designing a non-trivial change.
 
 ## Constitution
 
 These principles override every other guideline in this file. If a change would violate one, stop and discuss with the maintainer first.
 
 1. **No daemons, no background services, no external runtimes.** Everything runs as a one-shot CLI invocation or a hook fired by the host harness. No long-lived processes, no Docker, no sidecars.
-2. **Plain markdown in git for all KB data.** Nodes, INDEX, GRAPH, conflicts — all human-readable markdown under `.ai/knowledge-base/`. No databases, no vector stores, no binary blobs.
-3. **Human-in-the-loop curation — nothing writes to KB without `/kb-curate` + `git commit`.** The curator writes directly to `nodes/`, but acceptance is `git commit`; rejection is `git restore`. The system never modifies the KB without human approval. See [practice-review-nodes-via-git](.ai/knowledge-base/nodes/practice/practice-review-nodes-via-git.md).
-4. **Team artifact, not per-user state.** Anything committed under `.ai/knowledge-base/nodes/`, `INDEX.md`, `GRAPH.md`, `config.yaml` is shared. Per-user state (`_sessions/`, `_logs/`, `.state/`) is gitignored.
+2. **Plain markdown in git for all knowledge base data.** Nodes, INDEX, GRAPH, conflicts — all human-readable markdown under `.ai/kenkeep/`. No databases, no vector stores, no binary blobs.
+3. **Human-in-the-loop curation — nothing writes to the knowledge base without `/kk-curate` + `git commit`.** The curator writes directly to `nodes/`, but acceptance is `git commit`; rejection is `git restore`. The system never modifies the knowledge base without human approval. See [practice-review-nodes-via-git](.ai/kenkeep/nodes/practice/practice-review-nodes-via-git.md).
+4. **Team artifact, not per-user state.** Anything committed under `.ai/kenkeep/nodes/`, `INDEX.md`, `GRAPH.md`, `config.yaml` is shared. Per-user state (`_sessions/`, `_logs/`, `.state/`) is gitignored.
 
 When in doubt about scope or behavior, [PRD.md](PRD.md) wins.
 
@@ -41,7 +41,7 @@ src/
     claude/ codex/ cursor/ opencode/
   lib/                    # shared utilities, schemas, paths, logging
   templates-source/       # source for the shipped templates/ tree
-    skills/               # SKILL.md files shared across all harnesses (kb-bootstrap, kb-curate, kb-add)
+    skills/               # SKILL.md files shared across all harnesses (kk-bootstrap, kk-curate, kk-add)
     prompts/              # proposal-extract.md and proposal-extract-style.md (proposal drain hook only)
 scripts/
   build-templates.mjs     # copies templates-source/ → templates/, compiles hooks
@@ -59,15 +59,15 @@ PRD.md                    # authoritative product spec
 
 ### Harness adapters
 
-- Each harness lives under `src/harnesses/<id>/` and implements `HarnessAdapter` from [`src/harnesses/types.ts`](src/harnesses/types.ts). Register it in [`src/harnesses/registry.ts`](src/harnesses/registry.ts). See [map-harness-adapter](.ai/knowledge-base/nodes/map/map-harness-adapter.md).
-- **[Adapters never reach into each other's directories.](.ai/knowledge-base/nodes/practice/practice-adapters-never-cross-directories.md)** Shared logic lives in `src/lib/`, `src/commands/`, or `src/templates-source/skills/`.
-- **[No event-name translation across adapters.](.ai/knowledge-base/nodes/practice/practice-no-event-translation-across-adapters.md)** `HookEvent` is opaque `string`; each adapter declares the event names its runtime emits natively (Claude: `Stop`/`SessionEnd`/`PreCompact`; Codex: `Stop` only; OpenCode: `session.idle`/`session.created`). Do not introduce a global enum.
-- Adapters with per-event shell hooks use `paths(root).hooksDir`. Adapters with a long-lived plugin module (OpenCode) use `pluginsDir`; the build pipeline auto-detects a sibling `plugins/` source dir and renames hook output to `kb-hooks/` to avoid the runtime-reserved `.opencode/hooks/`. See [map-opencode-harness](.ai/knowledge-base/nodes/map/map-opencode-harness.md).
-- New harness env detectors must be added to **both** the adapter's `detectFromEnv` **and** the `ENV_DETECTORS` heredoc in `src/templates-source/skills/kb-curate/SKILL.md`. `npm run lint:detect-harness` fails CI on drift.
+- Each harness lives under `src/harnesses/<id>/` and implements `HarnessAdapter` from [`src/harnesses/types.ts`](src/harnesses/types.ts). Register it in [`src/harnesses/registry.ts`](src/harnesses/registry.ts). See [map-harness-adapter](.ai/kenkeep/nodes/map/map-harness-adapter.md).
+- **[Adapters never reach into each other's directories.](.ai/kenkeep/nodes/practice/practice-adapters-never-cross-directories.md)** Shared logic lives in `src/lib/`, `src/commands/`, or `src/templates-source/skills/`.
+- **[No event-name translation across adapters.](.ai/kenkeep/nodes/practice/practice-no-event-translation-across-adapters.md)** `HookEvent` is opaque `string`; each adapter declares the event names its runtime emits natively (Claude: `Stop`/`SessionEnd`/`PreCompact`; Codex: `Stop` only; OpenCode: `session.idle`/`session.created`). Do not introduce a global enum.
+- Adapters with per-event shell hooks use `paths(root).hooksDir`. Adapters with a long-lived plugin module (OpenCode) use `pluginsDir`; the build pipeline auto-detects a sibling `plugins/` source dir and renames hook output to `kk-hooks/` to avoid the runtime-reserved `.opencode/hooks/`. See [map-opencode-harness](.ai/kenkeep/nodes/map/map-opencode-harness.md).
+- New harness env detectors must be added to **both** the adapter's `detectFromEnv` **and** the `ENV_DETECTORS` heredoc in `src/templates-source/skills/kk-curate/SKILL.md`. `npm run lint:detect-harness` fails CI on drift.
 
 ### Schema versions
 
-Every frontmatter and JSON state file carries `schema_version: 1`. Policy is **[strict — clean break, no migrators](.ai/knowledge-base/nodes/practice/practice-strict-schema-version-bump-policy.md)**:
+Every frontmatter and JSON state file carries `schema_version: 1`. Policy is **[strict — clean break, no migrators](.ai/kenkeep/nodes/practice/practice-strict-schema-version-bump-policy.md)**:
 
 - **Bump** when removing/renaming a field, changing field semantics, or making an optional field required.
 - **Do not bump** when adding optional fields, adding enum cases, or relaxing constraints.
@@ -76,41 +76,41 @@ When you bump, the reader rejects the old shape with a clear error pointing the 
 
 ### Prompt versioning
 
-Each `src/templates-source/prompts/*.md` and `src/templates-source/claude/commands/*.md` carries a top-of-file `Version: N` comment. [Bump it when behavior changes](.ai/knowledge-base/nodes/practice/practice-bump-prompt-version-comment.md), and call out the prompt change in the changelog so users know to diff. Prompt version is independent of npm package version. Local prompt overrides under `.ai/knowledge-base/.config/prompts/` [fall back to the bundled templates](.ai/knowledge-base/nodes/practice/practice-local-prompt-overrides-fall-back-to-bundled.md) when absent.
+Each `src/templates-source/prompts/*.md` and `src/templates-source/claude/commands/*.md` carries a top-of-file `Version: N` comment. [Bump it when behavior changes](.ai/kenkeep/nodes/practice/practice-bump-prompt-version-comment.md), and call out the prompt change in the changelog so users know to diff. Prompt version is independent of npm package version. Local prompt overrides under `.ai/kenkeep/.config/prompts/` [fall back to the bundled templates](.ai/kenkeep/nodes/practice/practice-local-prompt-overrides-fall-back-to-bundled.md) when absent.
 
 ### Commits and releases
 
-- **[Conventional Commits](.ai/knowledge-base/nodes/practice/practice-conventional-commits-and-release.md)** (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`). Commit messages and PR titles both. semantic-release uses these to compute the next version and changelog on merge to `main`.
+- **[Conventional Commits](.ai/kenkeep/nodes/practice/practice-conventional-commits-and-release.md)** (`feat:`, `fix:`, `refactor:`, `docs:`, `test:`, `chore:`). Commit messages and PR titles both. semantic-release uses these to compute the next version and changelog on merge to `main`.
 - One logical change per PR. Branch from `main`. Doc updates land in the same PR as the code change.
 - No manual tagging, no manual `npm publish`. Do not bump `version` in `package.json` by hand.
 
 ### Capture and curation pipeline
 
-- **[`KB_BUILDER_INTERNAL=1` must be set on the harness child the CLI launchers exec](.ai/knowledge-base/nodes/practice/practice-recursion-guard-kb-builder-internal.md)** (`bootstrap`, `curate`, `node add` all exec `<harness> -p "/kb-<name>"`). The proposal-drain hook also propagates it onto its headless child. Without the guard, the spawned session's own SessionStart hooks fire and you get infinite recursion.
-- **Proposal extraction is two-tier.** Async `SessionStart` hooks drain pending session logs via the headless CLI when eligible (non-Claude harness + CLI binary on PATH). `/kb-curate` extracts any still-`pending` logs inline (Step 0), then runs curation — whether that queue is partial or the full set.
+- **[`KENKEEP_BUILDER_INTERNAL=1` must be set on the harness child the CLI launchers exec](.ai/kenkeep/nodes/practice/practice-recursion-guard-kk-builder-internal.md)** (`bootstrap`, `curate`, `node add` all exec `<harness> -p "/kk-<name>"`). The proposal-drain hook also propagates it onto its headless child. Without the guard, the spawned session's own SessionStart hooks fire and you get infinite recursion.
+- **Proposal extraction is two-tier.** Async `SessionStart` hooks drain pending session logs via the headless CLI when eligible (non-Claude harness + CLI binary on PATH). `/kk-curate` extracts any still-`pending` logs inline (Step 0), then runs curation — whether that queue is partial or the full set.
 - The async proposal-drain hook drains **all** pending session logs in one pass (no entry cap). The `maxEntries` parameter exists in the API for explicit capping but defaults to no limit.
-- The `session-log update-proposals` CLI primitive writes validated proposal JSON into session log frontmatter. Used by the `/kb-curate` inline extraction step; deterministic, no LLM.
-- **Capture writes session logs directly.** The capture hook parses the transcript and writes `_sessions/*.md` without built-in secret scanning. End users may configure pre-commit or CI secret scanners separately. See [map-capture-hook](.ai/knowledge-base/nodes/map/map-capture-hook.md).
-- **[The curator never auto-resolves contradictions.](.ai/knowledge-base/nodes/practice/practice-curator-never-auto-resolves-contradictions.md)** It writes one markdown file per conflict under [`.ai/knowledge-base/conflicts/<run-id>-<n>.md`](.ai/knowledge-base/nodes/map/map-conflict-files.md) and lets the `kb-curate` skill walk them with the human.
-- **[Bootstrap never overwrites existing nodes.](.ai/knowledge-base/nodes/practice/practice-bootstrap-never-overwrites-existing-nodes.md)** Collisions are skipped and reported. Incremental bootstrap behaves the same. Bootstrap is also [supervised and judgmental, not exhaustive](.ai/knowledge-base/nodes/practice/practice-bootstrap-is-supervised-and-judgmental.md).
-- **Bootstrap scope is controlled by `.kbignore` at the repo root plus an optional `--from <scope>` on the launcher.** `bootstrap` walks the repo root by default; `--from <subdir>` narrows the walk. `init` writes a `.kbignore` stub on first run (and on `init --upgrade` when the file is missing) that denies the registered harnesses' instruction directories. Harness memory ingestion (`CLAUDE.md` and friends, via `listMemoryFiles()`) bypasses `.kbignore` entirely.
-- **[Do not run `curate` or `bootstrap` in CI.](.ai/knowledge-base/nodes/practice/practice-dont-run-llm-pipelines-in-ci.md)** They launch the host harness in `-p` mode and run the LLM — human-supervised by design.
-- **The CLI is split into launchers and primitives.** `bootstrap`, `curate`, and `node add` are thin launchers that exec `<harness> -p "/kb-<name>"`; the LLM work runs in the host harness session. The deterministic primitives (`finddocs`, `node write`, `curate-dedup`, `session-log update-proposals`, `index rebuild`, `lint`, `status`, `doctor`, `init`, `logs prune`) never call the LLM. Skills compose the primitives; users may call them directly too.
+- The `session-log update-proposals` CLI primitive writes validated proposal JSON into session log frontmatter. Used by the `/kk-curate` inline extraction step; deterministic, no LLM.
+- **Capture writes session logs directly.** The capture hook parses the transcript and writes `_sessions/*.md` without built-in secret scanning. End users may configure pre-commit or CI secret scanners separately. See [map-capture-hook](.ai/kenkeep/nodes/map/map-capture-hook.md).
+- **[The curator never auto-resolves contradictions.](.ai/kenkeep/nodes/practice/practice-curator-never-auto-resolves-contradictions.md)** It writes one markdown file per conflict under [`.ai/kenkeep/conflicts/<run-id>-<n>.md`](.ai/kenkeep/nodes/map/map-conflict-files.md) and lets the `kk-curate` skill walk them with the human.
+- **[Bootstrap never overwrites existing nodes.](.ai/kenkeep/nodes/practice/practice-bootstrap-never-overwrites-existing-nodes.md)** Collisions are skipped and reported. Incremental bootstrap behaves the same. Bootstrap is also [supervised and judgmental, not exhaustive](.ai/kenkeep/nodes/practice/practice-bootstrap-is-supervised-and-judgmental.md).
+- **Bootstrap scope is controlled by `.kkignore` at the repo root plus an optional `--from <scope>` on the launcher.** `bootstrap` walks the repo root by default; `--from <subdir>` narrows the walk. `init` writes a `.kkignore` stub on first run (and on `init --upgrade` when the file is missing) that denies the registered harnesses' instruction directories. Harness memory ingestion (`CLAUDE.md` and friends, via `listMemoryFiles()`) bypasses `.kkignore` entirely.
+- **[Do not run `curate` or `bootstrap` in CI.](.ai/kenkeep/nodes/practice/practice-dont-run-llm-pipelines-in-ci.md)** They launch the host harness in `-p` mode and run the LLM — human-supervised by design.
+- **The CLI is split into launchers and primitives.** `bootstrap`, `curate`, and `node add` are thin launchers that exec `<harness> -p "/kk-<name>"`; the LLM work runs in the host harness session. The deterministic primitives (`finddocs`, `node write`, `curate-dedup`, `session-log update-proposals`, `index rebuild`, `lint`, `status`, `doctor`, `init`, `logs prune`) never call the LLM. Skills compose the primitives; users may call them directly too.
 - **Single-author skill sessions, no cross-process locks.** Curate and bootstrap no longer hold a `state.json` lock — running two `curate` invocations against the same repo concurrently may silently drop one writer's session-stamp update (no data corruption, but some sessions reprocess on the next run). Document this constraint, don't speculatively re-add locking.
-- Outside an active Claude session, **[pass `--harness` explicitly](.ai/knowledge-base/nodes/practice/practice-explicit-harness-flag-outside-claude.md)** when invoking the CLI — env-based detection only fires inside a host runtime.
-- **Harness auto-memory files feed `bootstrap` and `curate`.** The active adapter's `listMemoryFiles()` returns absolute `file://` IRIs (Claude Code's persisted memories today; Codex and OpenCode return `[]` until their hosts add the feature). File content passes through as-is before reaching the LLM. A per-user ledger at `.ai/knowledge-base/.state/memory-ledger.json` (gitignored under the existing `.state/` rule) tracks SHA-256s so unchanged memory files are skipped on subsequent runs, and contradictions still surface as conflict files [per the curator's no-auto-resolve invariant](.ai/knowledge-base/nodes/practice/practice-curator-never-auto-resolves-contradictions.md).
+- Outside an active Claude session, **[pass `--harness` explicitly](.ai/kenkeep/nodes/practice/practice-explicit-harness-flag-outside-claude.md)** when invoking the CLI — env-based detection only fires inside a host runtime.
+- **Harness auto-memory files feed `bootstrap` and `curate`.** The active adapter's `listMemoryFiles()` returns absolute `file://` IRIs (Claude Code's persisted memories today; Codex and OpenCode return `[]` until their hosts add the feature). File content passes through as-is before reaching the LLM. A per-user ledger at `.ai/kenkeep/.state/memory-ledger.json` (gitignored under the existing `.state/` rule) tracks SHA-256s so unchanged memory files are skipped on subsequent runs, and contradictions still surface as conflict files [per the curator's no-auto-resolve invariant](.ai/kenkeep/nodes/practice/practice-curator-never-auto-resolves-contradictions.md).
 
 ### Init scope
 
-`init` writes `.ai/knowledge-base/` and registers harness hooks/skills. It [does **not** install husky, lint-staged, secretlint, commitlint, or any commit-time tooling](.ai/knowledge-base/nodes/practice/practice-init-does-not-install-commit-tooling.md) in the consuming repo. Teams wire those up themselves. Do not expand `init`'s footprint — see [PRD.md §8.1](PRD.md).
+`init` writes `.ai/kenkeep/` and registers harness hooks/skills. It [does **not** install husky, lint-staged, secretlint, commitlint, or any commit-time tooling](.ai/kenkeep/nodes/practice/practice-init-does-not-install-commit-tooling.md) in the consuming repo. Teams wire those up themselves. Do not expand `init`'s footprint — see [PRD.md §8.1](PRD.md).
 
 ### INDEX / GRAPH determinism
 
-[`INDEX.md`](.ai/knowledge-base/nodes/map/map-index-md.md) and [`GRAPH.md`](.ai/knowledge-base/nodes/map/map-graph-md.md) are regenerated by the curator at end-of-run and by the [local `pre-commit` lint-staged config](.ai/knowledge-base/nodes/practice/practice-pre-commit-stages-index-graph.md). [Generation must be deterministic](.ai/knowledge-base/nodes/practice/practice-determinism-contract.md) — sort keys, stable ordering, no timestamps in output. If you change generation logic, update [`docs/internals/architecture.md`](docs/internals/architecture.md) and the determinism tests.
+[`INDEX.md`](.ai/kenkeep/nodes/map/map-index-md.md) and [`GRAPH.md`](.ai/kenkeep/nodes/map/map-graph-md.md) are regenerated by the curator at end-of-run and by the [local `pre-commit` lint-staged config](.ai/kenkeep/nodes/practice/practice-pre-commit-stages-index-graph.md). [Generation must be deterministic](.ai/kenkeep/nodes/practice/practice-determinism-contract.md) — sort keys, stable ordering, no timestamps in output. If you change generation logic, update [`docs/internals/architecture.md`](docs/internals/architecture.md) and the determinism tests.
 
 ### Node naming
 
-[Every node's `id` equals `<kind>-<slug>`, and its filename is `<id>.md` under `nodes/<kind>/`.](.ai/knowledge-base/nodes/practice/practice-lint-naming-rules.md) Lint enforces this. `relates_to` / `depends_on` must resolve to an existing node id; dangling edges are errors. See [map-node-frontmatter](.ai/knowledge-base/nodes/map/map-node-frontmatter.md) and [map-nodes-directory](.ai/knowledge-base/nodes/map/map-nodes-directory.md).
+[Every node's `id` equals `<kind>-<slug>`, and its filename is `<id>.md` under `nodes/<kind>/`.](.ai/kenkeep/nodes/practice/practice-lint-naming-rules.md) Lint enforces this. `relates_to` / `depends_on` must resolve to an existing node id; dangling edges are errors. See [map-node-frontmatter](.ai/kenkeep/nodes/map/map-node-frontmatter.md) and [map-nodes-directory](.ai/kenkeep/nodes/map/map-nodes-directory.md).
 
 ## Testing
 
@@ -119,12 +119,12 @@ Each `src/templates-source/prompts/*.md` and `src/templates-source/claude/comman
 - Before a release that touches schema, capture/curate behavior, or the pinned Claude Code CLI version, work through [`docs/internals/manual-test-plan.md`](docs/internals/manual-test-plan.md) and record results in the release PR description.
 - **Never** add environment-detection branches or test-only conditionals in production source files. Fix root causes. Green tests must mean the code actually works.
 
-## Working with the KB in this repo
+## Working with the knowledge base in this repo
 
-We dogfood the tool. [`.ai/knowledge-base/nodes/`](.ai/knowledge-base/nodes/) contains the curated knowledge about how this codebase is built. Start at [`INDEX.md`](.ai/knowledge-base/INDEX.md); the practice nodes encode hard-won rules that are easier to obey than to re-derive.
+We dogfood the tool. [`.ai/kenkeep/nodes/`](.ai/kenkeep/nodes/) contains the curated knowledge about how this codebase is built. Start at [`INDEX.md`](.ai/kenkeep/INDEX.md); the practice nodes encode hard-won rules that are easier to obey than to re-derive.
 
-To add to the KB during a session: invoke the `kb-add` skill. To process accumulated session captures: invoke `kb-curate` ([map-curate-command](.ai/knowledge-base/nodes/map/map-curate-command.md)). To seed from existing docs: invoke `kb-bootstrap` ([map-kb-bootstrap-skill](.ai/knowledge-base/nodes/map/map-kb-bootstrap-skill.md)). All three write to `nodes/` directly; review with `git diff`, accept with `git commit`, reject with `git restore`.
+To add to the knowledge base during a session: invoke the `kk-add` skill. To process accumulated session captures: invoke `kk-curate` ([map-curate-command](.ai/kenkeep/nodes/map/map-curate-command.md)). To seed from existing docs: invoke `kk-bootstrap` ([map-kk-bootstrap-skill](.ai/kenkeep/nodes/map/map-kk-bootstrap-skill.md)). All three write to `nodes/` directly; review with `git diff`, accept with `git commit`, reject with `git restore`.
 
-<!-- >>> @e0ipso/ai-knowledge-base:kb-index >>> -->
-Curated project knowledge lives in [.ai/knowledge-base/INDEX.md](.ai/knowledge-base/INDEX.md). Consult it before designing a non-trivial change.
-<!-- <<< @e0ipso/ai-knowledge-base:kb-index <<< -->
+<!-- >>> kenkeep:kk-index >>> -->
+Curated project knowledge lives in [.ai/kenkeep/INDEX.md](.ai/kenkeep/INDEX.md). Consult it before designing a non-trivial change.
+<!-- <<< kenkeep:kk-index <<< -->

@@ -17,7 +17,7 @@ export function packageTemplatesDir(): string {
 
 /**
  * Walks upward from `from` looking for a directory containing a `.git`
- * folder or the package's install marker at `.ai/knowledge-base/.state/`.
+ * folder or the package's install marker at `.ai/kenkeep/.state/`.
  * Falls back to `from` if none are found.
  */
 export function findRepoRoot(from: string = process.cwd()): string {
@@ -25,7 +25,7 @@ export function findRepoRoot(from: string = process.cwd()): string {
   while (true) {
     if (
       existsSync(join(cur, '.git')) ||
-      existsSync(join(cur, '.ai/knowledge-base/.state/installed-version'))
+      existsSync(join(cur, '.ai/kenkeep/.state/installed-version'))
     ) {
       return cur;
     }
@@ -38,14 +38,14 @@ export function findRepoRoot(from: string = process.cwd()): string {
 export interface RepoPaths {
   root: string;
   aiDir: string;
-  kbDir: string;
+  kkDir: string;
   /**
-   * State directory under the KB root: `.ai/knowledge-base/.state/`.
+   * State directory under the kk root: `.ai/kenkeep/.state/`.
    * Holds the installed-version marker, lock/nudge state, and bootstrap state.
    */
   stateDir: string;
   /**
-   * Config directory under the KB root: `.ai/knowledge-base/.config/`.
+   * Config directory under the kk root: `.ai/kenkeep/.config/`.
    * Holds local prompt overrides and other user-editable configuration.
    */
   configDir: string;
@@ -56,19 +56,19 @@ export interface RepoPaths {
   logsDir: string;
   nodesDir: string;
   /**
-   * Conflicts directory under the KB root: `.ai/knowledge-base/conflicts/`.
+   * Conflicts directory under the kk root: `.ai/kenkeep/conflicts/`.
    * Holds one markdown file per curator-detected contradiction; reviewed via
    * `git diff` and committed or `git restore`d like any other tracked file.
    */
   conflictsDir: string;
   /**
-   * `.gitignore` shipped inside the knowledge-base directory. Init creates
+   * `.gitignore` shipped inside the kenkeep directory. Init creates
    * this so the project's root `.gitignore` is never touched.
    */
-  kbGitignoreFile: string;
+  kkGitignoreFile: string;
   /**
    * Per-user ledger of ingested harness auto-memory files
-   * (`.ai/knowledge-base/.state/memory-ledger.json`). Lives under `.state/`
+   * (`.ai/kenkeep/.state/memory-ledger.json`). Lives under `.state/`
    * so the existing gitignore rule keeps it out of commits.
    */
   memoryLedgerFile: string;
@@ -76,24 +76,24 @@ export interface RepoPaths {
 
 export function repoPaths(root: string): RepoPaths {
   const aiDir = join(root, '.ai');
-  const kbDir = join(aiDir, 'knowledge-base');
-  const stateDir = join(kbDir, '.state');
-  const configDir = join(kbDir, '.config');
+  const kkDir = join(aiDir, 'kenkeep');
+  const stateDir = join(kkDir, '.state');
+  const configDir = join(kkDir, '.config');
   const promptsDir = join(configDir, 'prompts');
   return {
     root,
     aiDir,
-    kbDir,
+    kkDir,
     stateDir,
     configDir,
     promptsDir,
     installedVersionFile: join(stateDir, 'installed-version'),
-    projectConfigFile: join(kbDir, 'config.yaml'),
-    sessionsDir: join(kbDir, '_sessions'),
-    logsDir: join(kbDir, '_logs'),
-    nodesDir: join(kbDir, 'nodes'),
-    conflictsDir: join(kbDir, 'conflicts'),
-    kbGitignoreFile: join(kbDir, '.gitignore'),
+    projectConfigFile: join(kkDir, 'config.yaml'),
+    sessionsDir: join(kkDir, '_sessions'),
+    logsDir: join(kkDir, '_logs'),
+    nodesDir: join(kkDir, 'nodes'),
+    conflictsDir: join(kkDir, 'conflicts'),
+    kkGitignoreFile: join(kkDir, '.gitignore'),
     memoryLedgerFile: join(stateDir, 'memory-ledger.json'),
   };
 }

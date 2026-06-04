@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Lints for drift between the canonical TS harness-resolution source
-// and the heredoc body embedded in the shared kb-curate SKILL.md.
+// and the heredoc body embedded in the shared kk-curate SKILL.md.
 //
 // Both sides own a list of (a) registered harness ids and (b) env-var
 // detectors. When the two lists diverge, skills route to the wrong
@@ -11,7 +11,7 @@
 //   - src/harnesses/registry.ts    (REGISTERED harness ids)
 //   - src/harnesses/claude/index.ts, codex/index.ts, opencode/index.ts
 //     (each adapter's detectFromEnv body; we scan for `env['VAR']`)
-//   - src/templates-source/skills/kb-curate/SKILL.md (heredoc body)
+//   - src/templates-source/skills/kk-curate/SKILL.md (heredoc body)
 //
 // Output:
 //   - exit 0 with `detect-harness lint OK` on a match
@@ -29,7 +29,7 @@ const root = resolve(here, '..');
 
 const registryFile = join(root, 'src/harnesses/registry.ts');
 const harnessesDir = join(root, 'src/harnesses');
-const skillFile = join(root, 'src/templates-source/skills/kb-curate/SKILL.md');
+const skillFile = join(root, 'src/templates-source/skills/kk-curate/SKILL.md');
 
 function fail(msg) {
   process.stderr.write(`${msg}\n`);
@@ -82,13 +82,13 @@ function readEnvDetectorsFromTs() {
   return out;
 }
 
-// 3. From the heredoc inside kb-curate/SKILL.md: extract REGISTERED and
-//    ENV_DETECTORS. The heredoc spans from `cat << 'EOF' > /tmp/kb-detect-harness.mjs`
+// 3. From the heredoc inside kk-curate/SKILL.md: extract REGISTERED and
+//    ENV_DETECTORS. The heredoc spans from `cat << 'EOF' > /tmp/kk-detect-harness.mjs`
 //    to the matching `EOF` token.
 function readFromHeredoc() {
   const text = readFile(skillFile);
   const match = text.match(
-    /cat <<\s*'EOF'\s*>\s*\/tmp\/kb-detect-harness\.mjs\s*\n([\s\S]*?)\n\s*EOF/
+    /cat <<\s*'EOF'\s*>\s*\/tmp\/kk-detect-harness\.mjs\s*\n([\s\S]*?)\n\s*EOF/
   );
   if (!match) fail(`could not locate detect-harness heredoc in ${skillFile}`);
   const body = match[1];

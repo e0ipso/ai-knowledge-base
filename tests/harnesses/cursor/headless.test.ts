@@ -61,7 +61,7 @@ const Schema = z.object({ ok: z.boolean(), n: z.number() });
 describe('runHeadlessCursor', () => {
   let dir: string;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'kb-cursor-headless-'));
+    dir = mkdtempSync(join(tmpdir(), 'kk-cursor-headless-'));
   });
   afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
@@ -82,7 +82,7 @@ describe('runHeadlessCursor', () => {
     expect(out).toEqual({ ok: true, n: 42 });
   });
 
-  it('sets KB_BUILDER_INTERNAL=1 on the child env', async () => {
+  it('sets KENKEEP_BUILDER_INTERNAL=1 on the child env', async () => {
     const { captured } = mockExecaOnce([
       JSON.stringify({
         type: 'result',
@@ -91,7 +91,7 @@ describe('runHeadlessCursor', () => {
       }),
     ]);
     await runHeadlessCursor('prompt', '', Schema, {});
-    expect(captured.options?.['env']).toMatchObject({ KB_BUILDER_INTERNAL: '1' });
+    expect(captured.options?.['env']).toMatchObject({ KENKEEP_BUILDER_INTERNAL: '1' });
   });
 
   it('honors agentCli override for tests', async () => {

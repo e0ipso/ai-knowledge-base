@@ -102,11 +102,11 @@ describe("claudeAdapter.listMemoryFiles", () => {
     expect(await claudeAdapter.listMemoryFiles()).toEqual([]);
   });
 
-  it('sets KB_BUILDER_INTERNAL=1 on the spawned child env', async () => {
+  it('sets KENKEEP_BUILDER_INTERNAL=1 on the spawned child env', async () => {
     const { captured } = mockExecaOnce([resultLine([])]);
     await claudeAdapter.listMemoryFiles();
     const env = captured.options?.['env'] as NodeJS.ProcessEnv;
-    expect(env['KB_BUILDER_INTERNAL']).toBe('1');
+    expect(env['KENKEEP_BUILDER_INTERNAL']).toBe('1');
     expect(captured.command).toBe('claude');
     expect(captured.args).toContain('-p');
   });

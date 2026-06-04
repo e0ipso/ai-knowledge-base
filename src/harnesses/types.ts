@@ -12,7 +12,7 @@ export type HookEvent = string;
 
 /**
  * Canonical hook registration record. `scriptPath` is harness-relative
- * (e.g. `kb-capture.cjs` for Claude under `.claude/hooks/`).
+ * (e.g. `kk-capture.cjs` for Claude under `.claude/hooks/`).
  */
 export interface HookSpec {
   event: HookEvent;
@@ -119,7 +119,7 @@ export interface HarnessAdapter {
   /**
    * Name of the executable the CLI launcher commands (`bootstrap`,
    * `curate`, `node add`) should `spawn` to dispatch a slash-command into
-   * this harness via its non-interactive (`-p "/kb-…"`) entrypoint. Looked
+   * this harness via its non-interactive (`-p "/kk-…"`) entrypoint. Looked
    * up on `PATH`. Examples: `claude`, `codex`, `agent` (Cursor),
    * `opencode`.
    */
@@ -173,7 +173,7 @@ export interface HarnessAdapter {
   /**
    * Asks the host harness for its auto-memory files (e.g. Claude Code's
    * persisted memory files under the user/project memory directory). Returns
-   * an array of absolute `file://` IRIs the active KB pipelines
+   * an array of absolute `file://` IRIs the active knowledge base pipelines
    * (`bootstrap-incremental`, `curate`) can read.
    *
    * Adapters whose host has no native memory feature return `[]`. A non-JSON

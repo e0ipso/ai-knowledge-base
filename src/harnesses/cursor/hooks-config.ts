@@ -9,7 +9,7 @@ import type { HookEvent } from '../types.js';
  * `command` includes this substring are replaced on upgrade; user hooks
  * are preserved.
  */
-const OWNED_COMMAND_MARKER = '.cursor/hooks/kb-';
+const OWNED_COMMAND_MARKER = '.cursor/hooks/kk-';
 
 const DEFAULT_HOOK_TIMEOUT_SECONDS = 30;
 
@@ -66,7 +66,7 @@ function isOwnedCommand(command: string): boolean {
 
 /**
  * Merges owned kb hook entries into `.cursor/hooks.json`. User hooks whose
- * commands do not include `.cursor/hooks/kb-` are preserved.
+ * commands do not include `.cursor/hooks/kk-` are preserved.
  */
 export async function writeCursorHooksConfig(
   repoRoot: string,

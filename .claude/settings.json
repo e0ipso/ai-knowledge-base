@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kb-capture.cjs\""
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kk-capture.cjs\""
           }
         ]
       }
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kb-capture.cjs\""
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kk-capture.cjs\""
           }
         ]
       },
@@ -23,7 +23,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kb-lint-tick.cjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kk-lint-tick.cjs\"",
             "async": true
           }
         ]
@@ -34,7 +34,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kb-capture.cjs\""
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kk-capture.cjs\""
           }
         ]
       }
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kb-proposal-drain.cjs\"",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kk-proposal-drain.cjs\"",
             "async": true
           }
         ]
@@ -53,7 +53,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kb-session-start.cjs\""
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/kk-session-start.cjs\""
           }
         ]
       }

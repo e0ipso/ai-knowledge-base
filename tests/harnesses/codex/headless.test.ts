@@ -61,7 +61,7 @@ const Schema = z.object({ ok: z.boolean(), n: z.number() });
 describe('runHeadlessCodex', () => {
   let dir: string;
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'kb-codex-headless-'));
+    dir = mkdtempSync(join(tmpdir(), 'kk-codex-headless-'));
   });
   afterEach(() => {
     rmSync(dir, { recursive: true, force: true });
@@ -127,7 +127,7 @@ describe('runHeadlessCodex', () => {
     expect(args).toContain('reasoning.effort=high');
   });
 
-  it('forces KB_BUILDER_INTERNAL=1 in the child env', async () => {
+  it('forces KENKEEP_BUILDER_INTERNAL=1 in the child env', async () => {
     const { captured } = mockExecaOnce([
       JSON.stringify({
         type: 'item.completed',
@@ -136,7 +136,7 @@ describe('runHeadlessCodex', () => {
     ]);
     await runHeadlessCodex('p', '', Schema, { env: { FOO: 'bar' } });
     const env = captured.options?.['env'] as NodeJS.ProcessEnv;
-    expect(env['KB_BUILDER_INTERNAL']).toBe('1');
+    expect(env['KENKEEP_BUILDER_INTERNAL']).toBe('1');
     expect(env['FOO']).toBe('bar');
   });
 

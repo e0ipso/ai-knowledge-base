@@ -1,3 +1,3 @@
 module.exports = {
-  '.ai/knowledge-base/nodes/**/*.md': () => ['npx ai-knowledge-base index rebuild --stage'],
+  '.ai/kenkeep/nodes/**/*.md': () => ['node ./dist/cli.js index rebuild --stage'],
 };
