@@ -74,11 +74,20 @@ export const CursorModelChoiceSchema = z
   .strict();
 export type CursorModelChoice = z.infer<typeof CursorModelChoiceSchema>;
 
+export const CopilotModelChoiceSchema = z
+  .object({
+    harness: z.literal('copilot'),
+    model: z.string().min(1),
+  })
+  .strict();
+export type CopilotModelChoice = z.infer<typeof CopilotModelChoiceSchema>;
+
 export const ModelChoiceSchema = z.discriminatedUnion('harness', [
   ClaudeModelChoiceSchema,
   CodexModelChoiceSchema,
   OpenCodeModelChoiceSchema,
   CursorModelChoiceSchema,
+  CopilotModelChoiceSchema,
 ]);
 export type ModelChoice = z.infer<typeof ModelChoiceSchema>;
 

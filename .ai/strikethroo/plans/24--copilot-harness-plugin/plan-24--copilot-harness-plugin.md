@@ -351,13 +351,13 @@ graph TD
     005 --> 007
 ```
 
-### Phase 1: Abstraction polish
+### Phase 1: Abstraction polish ✅
 **Parallel Tasks:**
-- Task 001: Widen HookSpec with optional payload and extend lint allowlist for copilot
+- ✔️ Task 001: Widen HookSpec with optional payload and extend lint allowlist for copilot (completed; the heredoc `copilot` allowlist entry is landed together with the registry change in Phase 2 because `lint-detect-harness.mjs` keys the allowlist off registry imports and would otherwise flag drift)
 
-### Phase 2: Copilot adapter scaffold
+### Phase 2: Copilot adapter scaffold ✅
 **Parallel Tasks:**
-- Task 002: Scaffold the Copilot harness adapter module and register it (depends on: 001)
+- ✔️ Task 002: Scaffold the Copilot harness adapter module and register it (completed; added CopilotModelChoiceSchema to the config discriminated union; landed the deferred Task 1 heredoc allowlist edit here)
 
 ### Phase 3: Copilot adapter internals
 **Parallel Tasks:**
