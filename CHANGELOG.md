@@ -1,3 +1,15 @@
+## [1.1.0](https://github.com/e0ipso/kenkeep/compare/v1.0.2...v1.1.0) (2026-06-05)
+
+### Features
+
+* **copilot:** implement hooks-config, transcript, headless ([8b9f2b4](https://github.com/e0ipso/kenkeep/commit/8b9f2b42d4176acb4180eaea95818e975629be2f))
+* **copilot:** scaffold the Copilot harness adapter ([701cf15](https://github.com/e0ipso/kenkeep/commit/701cf15638eef875fc2f1b693f1a84843ff0a20f))
+* **harness:** add optional HookSpec payload field ([3966d18](https://github.com/e0ipso/kenkeep/commit/3966d182250b34f35fa566873d857e875334b0e3))
+
+### Bug Fixes
+
+* **harness:** commit the HookSpec.payload field definition ([5a3aeaa](https://github.com/e0ipso/kenkeep/commit/5a3aeaa5f0fb5f46fb94a2d6b1127a0d4f2a9248))
+
 ## [1.0.2](https://github.com/e0ipso/kenkeep/compare/v1.0.1...v1.0.2) (2026-06-04)
 
 ## [1.0.1](https://github.com/e0ipso/kenkeep/compare/v1.0.0...v1.0.1) (2026-06-04)
