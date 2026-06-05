@@ -12,6 +12,7 @@ import { runSessionLogUpdateProposalsCommand } from './commands/session-log-upda
 import { runNodeAddLauncher } from './commands/node-add.js';
 import { runNodeWriteCommand } from './commands/node-write.js';
 import { runStatus } from './commands/status.js';
+import { runTreeify } from './commands/treeify.js';
 import { listHarnessIds } from './harnesses/registry.js';
 import { log } from './lib/log.js';
 import { packageVersion } from './lib/version.js';
@@ -163,6 +164,19 @@ async function main(): Promise<void> {
       const harnessFlag = getHarnessFlag();
       if (harnessFlag !== undefined) launchOpts.harness = harnessFlag;
       runBootstrapLauncher(launchOpts);
+    });
+
+  program
+    .command('treeify')
+    .description(
+      'One-time supervised migration of an existing flat nodes/<kind>/ knowledge base into the nested topical tree layout. Clusters leaves into folders (via the active harness), preserves ids and edges, bumps schema_version, rebuilds indexes, and stops. Writes files only; review with `git diff` and accept by commit or reject by `git restore`. Refuses on an already-migrated tree.'
+    )
+    .action(async () => {
+      const treeifyOpts: Parameters<typeof runTreeify>[0] = {};
+      const harnessFlag = getHarnessFlag();
+      if (harnessFlag !== undefined) treeifyOpts.harness = harnessFlag;
+      const code = await runTreeify(treeifyOpts);
+      process.exit(code);
     });
 
   const nodeGroup = program.command('node').description('Manage kenkeep nodes.');
