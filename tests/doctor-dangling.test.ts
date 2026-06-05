@@ -50,19 +50,11 @@ describe('collectDanglingDerivedFrom', () => {
     );
   });
 
-  it('reports bare filenames that do not exist under _sessions/', () => {
-    writeNode(harness, 'practice-b', ['session-missing.md']);
-    const out = collectDanglingDerivedFrom(harness.root, harness.nodesDir, harness.sessionsDir);
-    expect(out).toEqual([{ nodeId: 'practice-b', reference: 'session-missing.md' }]);
-  });
-
-  it('reports repo-relative paths that do not exist', () => {
-    writeNode(harness, 'practice-c', ['docs/missing.md']);
-    const out = collectDanglingDerivedFrom(harness.root, harness.nodesDir, harness.sessionsDir);
-    expect(out).toEqual([{ nodeId: 'practice-c', reference: 'docs/missing.md' }]);
-  });
-
-  it('aggregates dangling references across multiple nodes', () => {
+  // Covers both dangling reference kinds in one pass: a dangling repo-relative
+  // path (`docs/missing.md`) and a dangling bare filename resolved against
+  // `_sessions/` (`session-missing.md`), aggregated across multiple nodes,
+  // while a resolving reference (`session-a.md`) is correctly skipped.
+  it('aggregates dangling repo-relative and bare-filename references across nodes', () => {
     writeFileSync(join(harness.sessionsDir, 'session-a.md'), 'x');
     writeNode(harness, 'practice-a', ['session-a.md', 'docs/missing.md']);
     writeNode(harness, 'practice-b', ['session-missing.md']);

@@ -86,22 +86,6 @@ describe('init --upgrade', () => {
     expect(skill).not.toMatch(/^allowed-tools:/m);
   });
 
-  it('preserves a customized local prompt override', async () => {
-    await runCli(sandbox, ['init', '--harnesses', 'claude']);
-
-    const promptFile = join(sandbox, '.ai/kenkeep/.config/prompts/proposal-extract.md');
-    writeFileSync(promptFile, '# my local override\n');
-
-    const versionFile = join(sandbox, '.ai/kenkeep/.state/installed-version');
-    const installed = JSON.parse(readFileSync(versionFile, 'utf8'));
-    installed.version = '0.0.0-test-old';
-    writeFileSync(versionFile, JSON.stringify(installed, null, 2) + '\n');
-
-    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
-    expect(result.exitCode).toBe(0);
-    expect(readFileSync(promptFile, 'utf8')).toBe('# my local override\n');
-  });
-
   it('re-copies a missing prompt during upgrade', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
 

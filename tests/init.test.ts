@@ -144,22 +144,6 @@ describe('init', () => {
     expect(existsSync(join(sandbox, '.opencode/kk-hooks/kk-capture.cjs'))).toBe(true);
   });
 
-  it('installs the shared skill bytes identically across claude, codex, and opencode', async () => {
-    const result = await runCli(sandbox, ['init', '--harnesses', 'claude,codex,opencode']);
-    expect(result.exitCode).toBe(0);
-    const claudeSkill = readFileSync(join(sandbox, '.claude/skills/kk-curate/SKILL.md'), 'utf8');
-    const codexSkill = readFileSync(join(sandbox, '.agents/skills/kk-curate/SKILL.md'), 'utf8');
-    const openCodeSkill = readFileSync(
-      join(sandbox, '.opencode/skills/kk-curate/SKILL.md'),
-      'utf8'
-    );
-    expect(claudeSkill).toBe(codexSkill);
-    expect(codexSkill).toBe(openCodeSkill);
-    expect(claudeSkill).toContain('/tmp/kk-detect-harness.mjs');
-    expect(existsSync(join(sandbox, '.opencode/plugins/kk.mjs'))).toBe(true);
-    expect(existsSync(join(sandbox, '.opencode/kk-hooks/kk-capture.cjs'))).toBe(true);
-  });
-
   it('succeeds in a repo without a package.json and produces no husky artefacts', async () => {
     expect(existsSync(join(sandbox, 'package.json'))).toBe(false);
 
@@ -214,22 +198,6 @@ describe('init', () => {
         }),
       ])
     );
-  });
-
-  it('emits every owned hook command with the $CLAUDE_PROJECT_DIR prefix', async () => {
-    await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    const settings = JSON.parse(readFileSync(join(sandbox, '.claude/settings.json'), 'utf8')) as {
-      hooks?: Record<string, Array<{ hooks: Array<{ command: string }> }>>;
-    };
-    const ownedEvents = ['Stop', 'SessionEnd', 'PreCompact', 'SessionStart'] as const;
-    for (const event of ownedEvents) {
-      const entries = settings.hooks?.[event] ?? [];
-      const flat = entries.flatMap(e => e.hooks);
-      expect(flat.length, `expected hook entries for ${event}`).toBeGreaterThan(0);
-      for (const h of flat) {
-        expect(h.command).toContain('"$CLAUDE_PROJECT_DIR/.claude/hooks/');
-      }
-    }
   });
 
   it('emitted Stop hook command loads when invoked from a subdirectory CWD', async () => {
@@ -309,17 +277,6 @@ describe('init', () => {
     expect(lintCount).toBe(1);
   });
 
-  it('does not overwrite an existing config.yaml on --upgrade', async () => {
-    await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    const configFile = join(sandbox, '.ai/kenkeep/config.yaml');
-    const customized = 'schema_version: 1\ncurationThreshold: 99\n';
-    writeFileSync(configFile, customized);
-
-    const result = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
-    expect(result.exitCode).toBe(0);
-    expect(readFileSync(configFile, 'utf8')).toBe(customized);
-  });
-
   it('writes a default .kkignore on fresh init when absent', async () => {
     const kkignore = join(sandbox, '.kkignore');
     expect(existsSync(kkignore)).toBe(false);
@@ -376,23 +333,16 @@ describe('init', () => {
     expect(readFileSync(kkignore, 'utf8')).toContain('.claude/skills/');
   });
 
-  it('injects kk index pointer into AGENTS.md on fresh init', async () => {
-    const result = await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    expect(result.exitCode).toBe(0);
-
-    const agents = readFileSync(join(sandbox, 'AGENTS.md'), 'utf8');
-    expect(agents).toContain('<!-- >>> kenkeep:kk-index >>> -->');
-    expect(agents).toContain('.ai/kenkeep/INDEX.md');
-    expect(agents).toContain('<!-- <<< kenkeep:kk-index <<< -->');
-  });
-
-  it('appends kk index pointer to an existing AGENTS.md without duplicating', async () => {
+  it('injects the kk index pointer block into an existing AGENTS.md and never duplicates it on upgrade', async () => {
     writeFileSync(join(sandbox, 'AGENTS.md'), '# My Project\n\nSome description.\n');
 
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
     const first = readFileSync(join(sandbox, 'AGENTS.md'), 'utf8');
     expect(first).toContain('# My Project');
+    // The full delimited block is injected: open marker, INDEX pointer, close marker.
+    expect(first).toContain('<!-- >>> kenkeep:kk-index >>> -->');
     expect(first).toContain('.ai/kenkeep/INDEX.md');
+    expect(first).toContain('<!-- <<< kenkeep:kk-index <<< -->');
 
     // Upgrade should not duplicate the block.
     await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);

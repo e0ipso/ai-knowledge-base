@@ -79,23 +79,29 @@ describe('doctor', () => {
     expect(combined).toContain('kk-lint-tick.cjs');
   });
 
-  it('warns when .kkignore is missing', async () => {
+  // The `.kkignore present and non-empty` check treats a missing file and a
+  // file with no effective pattern lines (only comments, blanks, or a
+  // leading-whitespace comment) as equivalent "missing or empty" warnings.
+  it.each([
+    { label: 'missing file', mutate: (root: string) => rmSync(join(root, '.kkignore'), { force: true }) },
+    {
+      label: 'comments and blank lines only',
+      mutate: (root: string) =>
+        writeFileSync(join(root, '.kkignore'), '# just a comment\n\n   \n# another\n'),
+    },
+    {
+      label: 'leading-whitespace comment only',
+      mutate: (root: string) => writeFileSync(join(root, '.kkignore'), '   # indented comment only\n'),
+    },
+  ])('warns when .kkignore is effectively empty ($label)', async ({ mutate }) => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    rmSync(join(sandbox, '.kkignore'), { force: true });
+    mutate(sandbox);
     const result = await runCli(sandbox, ['doctor']);
     const combined = result.stdout + result.stderr;
     expect(combined).toContain('.kkignore present and non-empty');
     expect(combined).toContain('.kkignore missing or empty');
+    // The warning carries the remediation hint regardless of the cause.
     expect(combined).toContain('`init --upgrade`');
-  });
-
-  it('warns when .kkignore contains only comments and blank lines', async () => {
-    await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    writeFileSync(join(sandbox, '.kkignore'), '# just a comment\n\n   \n# another\n');
-    const result = await runCli(sandbox, ['doctor']);
-    const combined = result.stdout + result.stderr;
-    expect(combined).toContain('.kkignore present and non-empty');
-    expect(combined).toContain('.kkignore missing or empty');
   });
 
   it('passes when .kkignore has at least one pattern line', async () => {
@@ -105,15 +111,6 @@ describe('doctor', () => {
     const combined = result.stdout + result.stderr;
     expect(combined).toContain('.kkignore present and non-empty');
     expect(combined).not.toContain('.kkignore missing or empty');
-  });
-
-  it('treats a leading-whitespace comment as a comment (warns)', async () => {
-    await runCli(sandbox, ['init', '--harnesses', 'claude']);
-    writeFileSync(join(sandbox, '.kkignore'), '   # indented comment only\n');
-    const result = await runCli(sandbox, ['doctor']);
-    const combined = result.stdout + result.stderr;
-    expect(combined).toContain('.kkignore present and non-empty');
-    expect(combined).toContain('.kkignore missing or empty');
   });
 
   it('flags an invalid config.yaml as an error', async () => {
