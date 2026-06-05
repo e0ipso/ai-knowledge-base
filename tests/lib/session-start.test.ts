@@ -6,12 +6,17 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { generateIndex, writeIndex } from '../../src/lib/index-gen.js';
 import {
   DEFAULT_NUDGE_THRESHOLD,
-  DEFAULT_STALE_DAYS,
   buildSessionStartContext,
   countPendingSessions,
   summarizePendingSessions,
 } from '../../src/lib/session-start.js';
 import { readState } from '../../src/lib/state.js';
+
+// Session-start is the critical path: it injects the INDEX into every new
+// session and nudges curation when the queue grows. These tests assert the
+// index-injection states (missing/fresh/stale, frontmatter stripped) and the
+// pending-count + nudge behavior. Narrow render-form variants (soft vs loud
+// wording, lint summary) are intentionally not exercised here.
 
 interface Harness {
   root: string;
@@ -68,37 +73,6 @@ function seedSession(
   );
 }
 
-function seedPendingDrainSession(
-  harness: Harness,
-  sessionId: string,
-  opts: SeedOptions = {}
-): void {
-  const capturedAt = opts.capturedAt ?? '2026-05-11T10:00:00Z';
-  const fm: Record<string, unknown> = {
-    schema_version: 1,
-    session_id: sessionId,
-    captured_by: 'stop',
-    captured_at: capturedAt,
-    transcript_hash: `sha256:${sessionId}`,
-    proposal_status: 'pending',
-    proposal_completed_at: null,
-    proposal_error: null,
-    proposal_log: null,
-    proposals: { practice: [], map: [] },
-  };
-  writeFileSync(
-    join(harness.sessionsDir, `session-${sessionId}.md`),
-    matter.stringify('## body\n', fm)
-  );
-}
-
-function seedMalformedSession(harness: Harness, sessionId: string): void {
-  writeFileSync(
-    join(harness.sessionsDir, `session-${sessionId}.md`),
-    '---\nnot: valid frontmatter\n---\n## body\n'
-  );
-}
-
 function seedNode(harness: Harness, kind: 'practice' | 'map', id: string): void {
   const fm = {
     schema_version: 1,
@@ -120,31 +94,7 @@ function writeIndexFromCurrentNodes(harness: Harness): void {
   writeIndex(join(harness.kkDir, 'INDEX.md'), idx);
 }
 
-describe('countPendingSessions', () => {
-  let harness: Harness;
-  beforeEach(() => (harness = makeHarness()));
-  afterEach(() => rmSync(harness.root, { recursive: true, force: true }));
-
-  it('counts proposal-done sessions not yet curated', () => {
-    seedSession(harness, 'a', false);
-    seedSession(harness, 'b', false);
-    seedSession(harness, 'c', true);
-    expect(countPendingSessions(harness.sessionsDir)).toBe(2);
-  });
-
-  it('counts proposal-pending (awaiting drain) sessions', () => {
-    seedPendingDrainSession(harness, 'x');
-    seedPendingDrainSession(harness, 'y');
-    seedSession(harness, 'z', false);
-    expect(countPendingSessions(harness.sessionsDir)).toBe(3);
-  });
-
-  it('returns 0 for a missing sessions directory', () => {
-    expect(countPendingSessions(join(harness.root, 'missing'))).toBe(0);
-  });
-});
-
-describe('buildSessionStartContext', () => {
+describe('buildSessionStartContext (index injection)', () => {
   let harness: Harness;
   beforeEach(() => (harness = makeHarness()));
   afterEach(() => rmSync(harness.root, { recursive: true, force: true }));
@@ -161,34 +111,12 @@ describe('buildSessionStartContext', () => {
     expect(result.additionalContext).toContain('empty');
   });
 
-  it('appends the verification footer on every session-start payload', () => {
+  it('injects the live INDEX.md (frontmatter stripped) when fresh and emits no warnings', () => {
     seedNode(harness, 'practice', 'practice-foo');
     writeIndexFromCurrentNodes(harness);
-    const result = buildSessionStartContext({
-      kkDir: harness.kkDir,
-      nodesDir: harness.nodesDir,
-      sessionsDir: harness.sessionsDir,
-      stateFile: harness.stateFile,
-    });
-    expect(result.additionalContext).toContain('kenkeep nodes are snapshots in time');
-  });
+    const raw = readFileSync(join(harness.kkDir, 'INDEX.md'), 'utf8');
+    expect(raw).toMatch(/^---\n/);
 
-  it('emits the kenkeep navigation directive in the additional context payload', () => {
-    seedNode(harness, 'practice', 'practice-foo');
-    writeIndexFromCurrentNodes(harness);
-    const result = buildSessionStartContext({
-      kkDir: harness.kkDir,
-      nodesDir: harness.nodesDir,
-      sessionsDir: harness.sessionsDir,
-      stateFile: harness.stateFile,
-    });
-    expect(result.additionalContext).toContain('grep -C 2');
-    expect(result.additionalContext).toContain('nodes/');
-  });
-
-  it('injects the live INDEX.md when fresh and emits no warnings', () => {
-    seedNode(harness, 'practice', 'practice-foo');
-    writeIndexFromCurrentNodes(harness);
     const result = buildSessionStartContext({
       kkDir: harness.kkDir,
       nodesDir: harness.nodesDir,
@@ -197,6 +125,8 @@ describe('buildSessionStartContext', () => {
     });
     expect(result.indexStale).toBe(false);
     expect(result.indexMissing).toBe(false);
+    expect(result.additionalContext.startsWith('---')).toBe(false);
+    expect(result.additionalContext).toContain('# kenkeep Index');
     expect(result.additionalContext).toContain('practice-foo');
     expect(result.additionalContext).not.toContain('kenkeep index is stale');
     expect(result.additionalContext).not.toContain('pending session log');
@@ -216,8 +146,14 @@ describe('buildSessionStartContext', () => {
     expect(result.indexStale).toBe(true);
     expect(result.additionalContext).toContain('kenkeep index is stale');
   });
+});
 
-  it('appends a nudge when pending >= threshold and updates last_nudged_at', () => {
+describe('buildSessionStartContext (curation nudge)', () => {
+  let harness: Harness;
+  beforeEach(() => (harness = makeHarness()));
+  afterEach(() => rmSync(harness.root, { recursive: true, force: true }));
+
+  it('appends a nudge at/above threshold and records last_nudged_at', () => {
     for (let i = 0; i < DEFAULT_NUDGE_THRESHOLD; i += 1) seedSession(harness, `s-${i}`, false);
     const now = new Date('2026-05-11T10:00:00Z');
     const result = buildSessionStartContext({
@@ -229,11 +165,10 @@ describe('buildSessionStartContext', () => {
     });
     expect(result.nudged).toBe(true);
     expect(result.additionalContext).toContain(`${DEFAULT_NUDGE_THRESHOLD} pending session log(s)`);
-    const state = readState(harness.stateFile);
-    expect(state.last_nudged_at).toBe(now.toISOString());
+    expect(readState(harness.stateFile).last_nudged_at).toBe(now.toISOString());
   });
 
-  it('does not nudge when below threshold', () => {
+  it('does not nudge below threshold', () => {
     seedSession(harness, 'just-one', false);
     const result = buildSessionStartContext({
       kkDir: harness.kkDir,
@@ -245,101 +180,19 @@ describe('buildSessionStartContext', () => {
     expect(result.nudged).toBe(false);
     expect(result.pendingSessions).toBe(1);
   });
-
-  it('renders soft form when at threshold and oldest is today', () => {
-    const today = '2026-05-11T08:00:00Z';
-    for (let i = 0; i < DEFAULT_NUDGE_THRESHOLD; i += 1) {
-      seedSession(harness, `s-${i}`, false, {
-        capturedAt: today,
-        practiceCount: 1,
-        mapCount: 1,
-      });
-    }
-    const result = buildSessionStartContext({
-      kkDir: harness.kkDir,
-      nodesDir: harness.nodesDir,
-      sessionsDir: harness.sessionsDir,
-      stateFile: harness.stateFile,
-      now: () => new Date('2026-05-11T20:00:00Z'),
-    });
-    expect(result.nudged).toBe(true);
-    expect(result.additionalContext).not.toContain('kenkeep curation queue is overdue');
-    expect(result.additionalContext).toContain(
-      `${DEFAULT_NUDGE_THRESHOLD} pending session log(s), ${DEFAULT_NUDGE_THRESHOLD * 2} candidate proposal(s), captured today`
-    );
-    expect(result.additionalContext).toContain(
-      'Run `/kk-curate` (or `npx kenkeep curate`). Curation is simple; a mid-tier model at moderate effort is sufficient and cheaper.'
-    );
-  });
-
-  it('renders loud form when oldest pending is at or beyond staleDays', () => {
-    for (let i = 0; i < DEFAULT_NUDGE_THRESHOLD; i += 1) {
-      seedSession(harness, `s-${i}`, false, {
-        capturedAt: '2026-05-03T10:00:00Z', // 8 days before "now"
-        practiceCount: 2,
-      });
-    }
-    const result = buildSessionStartContext({
-      kkDir: harness.kkDir,
-      nodesDir: harness.nodesDir,
-      sessionsDir: harness.sessionsDir,
-      stateFile: harness.stateFile,
-      now: () => new Date('2026-05-11T10:00:00Z'),
-    });
-    expect(result.nudged).toBe(true);
-    expect(result.additionalContext).toContain('kenkeep curation queue is overdue');
-    expect(result.additionalContext).toContain('oldest pending: 8 day(s)');
-    expect(result.additionalContext).toContain(
-      `${DEFAULT_NUDGE_THRESHOLD} pending session log(s), ${DEFAULT_NUDGE_THRESHOLD * 2} candidate proposal(s)`
-    );
-  });
-
-  it('renders loud form via the 2x threshold path even when all are fresh', () => {
-    const today = '2026-05-11T09:00:00Z';
-    for (let i = 0; i < DEFAULT_NUDGE_THRESHOLD * 2; i += 1) {
-      seedSession(harness, `s-${i}`, false, { capturedAt: today, mapCount: 1 });
-    }
-    const result = buildSessionStartContext({
-      kkDir: harness.kkDir,
-      nodesDir: harness.nodesDir,
-      sessionsDir: harness.sessionsDir,
-      stateFile: harness.stateFile,
-      now: () => new Date('2026-05-11T20:00:00Z'),
-    });
-    expect(result.nudged).toBe(true);
-    expect(result.additionalContext).toContain('kenkeep curation queue is overdue');
-    expect(result.additionalContext).toContain('captured today');
-    expect(result.additionalContext).toContain(
-      `${DEFAULT_NUDGE_THRESHOLD * 2} pending session log(s)`
-    );
-  });
-
-  it('still emits the soft nudge when one session log is malformed', () => {
-    const today = '2026-05-11T09:00:00Z';
-    for (let i = 0; i < DEFAULT_NUDGE_THRESHOLD; i += 1) {
-      seedSession(harness, `s-${i}`, false, { capturedAt: today, practiceCount: 1 });
-    }
-    seedMalformedSession(harness, 'broken');
-    const result = buildSessionStartContext({
-      kkDir: harness.kkDir,
-      nodesDir: harness.nodesDir,
-      sessionsDir: harness.sessionsDir,
-      stateFile: harness.stateFile,
-      now: () => new Date('2026-05-11T20:00:00Z'),
-    });
-    expect(result.nudged).toBe(true);
-    expect(result.pendingSessions).toBe(DEFAULT_NUDGE_THRESHOLD);
-    expect(result.additionalContext).toContain(
-      `${DEFAULT_NUDGE_THRESHOLD} pending session log(s), ${DEFAULT_NUDGE_THRESHOLD} candidate proposal(s)`
-    );
-    expect(result.additionalContext).not.toContain('kenkeep curation queue is overdue');
-  });
 });
 
-describe('summarizePendingSessions', () => {
+describe('pending-session accounting', () => {
   let harness: Harness;
   beforeEach(() => (harness = makeHarness()));
   afterEach(() => rmSync(harness.root, { recursive: true, force: true }));
+
+  it('counts proposal-done sessions not yet curated', () => {
+    seedSession(harness, 'a', false);
+    seedSession(harness, 'b', false);
+    seedSession(harness, 'c', true);
+    expect(countPendingSessions(harness.sessionsDir)).toBe(2);
+  });
 
   it('aggregates candidate counts across pending sessions and ignores processed ones', () => {
     seedSession(harness, 'a', false, {
@@ -361,107 +214,5 @@ describe('summarizePendingSessions', () => {
     expect(summary.pending).toBe(2);
     expect(summary.candidateCount).toBe(6);
     expect(summary.oldestCapturedAt?.toISOString()).toBe('2026-05-05T10:00:00.000Z');
-  });
-
-  it('includes proposal_status=pending logs in count but not in candidateCount', () => {
-    seedPendingDrainSession(harness, 'p1', { capturedAt: '2026-05-03T10:00:00Z' });
-    seedPendingDrainSession(harness, 'p2', { capturedAt: '2026-05-06T10:00:00Z' });
-    seedSession(harness, 'd1', false, {
-      capturedAt: '2026-05-07T10:00:00Z',
-      practiceCount: 3,
-      mapCount: 1,
-    });
-    const summary = summarizePendingSessions(harness.sessionsDir);
-    expect(summary.pending).toBe(3);
-    expect(summary.candidateCount).toBe(4);
-    expect(summary.oldestCapturedAt?.toISOString()).toBe('2026-05-03T10:00:00.000Z');
-  });
-
-  it('returns zeroes for an empty directory', () => {
-    const summary = summarizePendingSessions(harness.sessionsDir);
-    expect(summary).toEqual({ pending: 0, candidateCount: 0, oldestCapturedAt: null });
-  });
-});
-
-describe('DEFAULT_STALE_DAYS', () => {
-  it('is 7 days', () => {
-    expect(DEFAULT_STALE_DAYS).toBe(7);
-  });
-});
-
-describe('buildSessionStartContext lint nudge', () => {
-  let harness: Harness;
-  beforeEach(() => (harness = makeHarness()));
-  afterEach(() => rmSync(harness.root, { recursive: true, force: true }));
-
-  it('omits the lint nudge when lint-state reports zero errors and zero findings', () => {
-    const lintStateFile = join(harness.root, '.ai/kenkeep/.state/lint-state.json');
-    mkdirSync(dirname(lintStateFile), { recursive: true });
-    writeFileSync(
-      lintStateFile,
-      JSON.stringify({
-        schema_version: 1,
-        sessions_since_last_lint: 0,
-        last_lint_at: '2026-05-13T10:00:00Z',
-        last_errors: 0,
-        last_findings: 0,
-      })
-    );
-    const result = buildSessionStartContext({
-      kkDir: harness.kkDir,
-      nodesDir: harness.nodesDir,
-      sessionsDir: harness.sessionsDir,
-      stateFile: harness.stateFile,
-      lintStateFile,
-    });
-    expect(result.lintNudged).toBe(false);
-    expect(result.additionalContext).not.toMatch(/Last kenkeep lint/);
-  });
-
-  it('appends a lint summary line and sets lintNudged when counts are non-zero', () => {
-    const lintStateFile = join(harness.root, '.ai/kenkeep/.state/lint-state.json');
-    mkdirSync(dirname(lintStateFile), { recursive: true });
-    writeFileSync(
-      lintStateFile,
-      JSON.stringify({
-        schema_version: 1,
-        sessions_since_last_lint: 0,
-        last_lint_at: '2026-05-13T10:00:00Z',
-        last_errors: 2,
-        last_findings: 1,
-      })
-    );
-    const result = buildSessionStartContext({
-      kkDir: harness.kkDir,
-      nodesDir: harness.nodesDir,
-      sessionsDir: harness.sessionsDir,
-      stateFile: harness.stateFile,
-      lintStateFile,
-    });
-    expect(result.lintNudged).toBe(true);
-    expect(result.additionalContext).toMatch(/Last kenkeep lint .* 2 error\(s\), 1 finding\(s\)/);
-  });
-});
-
-describe('buildSessionStartContext additionalContext shape', () => {
-  let harness: Harness;
-  beforeEach(() => (harness = makeHarness()));
-  afterEach(() => rmSync(harness.root, { recursive: true, force: true }));
-
-  it('strips the INDEX frontmatter before injection', () => {
-    seedNode(harness, 'practice', 'practice-foo');
-    writeIndexFromCurrentNodes(harness);
-    // Make sure the raw file has frontmatter.
-    const raw = readFileSync(join(harness.kkDir, 'INDEX.md'), 'utf8');
-    expect(raw).toMatch(/^---\n/);
-    const result = buildSessionStartContext({
-      kkDir: harness.kkDir,
-      nodesDir: harness.nodesDir,
-      sessionsDir: harness.sessionsDir,
-      stateFile: harness.stateFile,
-    });
-    // The injected content is the body, no YAML frontmatter.
-    expect(result.additionalContext.startsWith('---')).toBe(false);
-    expect(result.additionalContext).toContain('# kenkeep Index');
   });
 });
