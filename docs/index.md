@@ -10,7 +10,7 @@ nav_order: 1
   <img src="{{ '/assets/images/kenkeep-hero.png' | relative_url }}" alt="kenkeep: AI coding sessions are curated into a reviewed, git-tracked knowledge library" />
 </p>
 
-Coding assistants forget about everything in past sessions. Kenkeep creates a system that salvages the gold nuggets in your past conversations, and saves them in an accessible location. This way, the assistant can use that important detail you shared two weeks ago, without you even worrying about it.
+Coding assistants forget about everything in past sessions. Kenkeep creates a system that **salvages the gold nuggets in your past conversations**, and discards the rest. This way, the assistant can use that important detail you shared two weeks ago, without you even worrying about it.
 
 Kenkeep is a **team-shared, git-native knowledge base** for AI coding assistants.
 

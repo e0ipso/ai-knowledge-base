@@ -26,7 +26,11 @@
 
 ---
 
-Coding assistants forget everything from past sessions. Your AI conversations produce a steady stream of project-specific knowledge (conventions, gotchas, named modules, decision rationale), and most of it evaporates when the session ends. kenkeep captures it, asks a human to curate it, commits it to the repo, and injects it back into every future session — on [Claude Code](https://docs.claude.com/en/docs/claude-code), [Codex CLI](https://developers.openai.com/codex/cli/), [Cursor](https://cursor.com/docs), [OpenCode](https://opencode.ai/), and [GitHub Copilot CLI](https://github.com/github/copilot-cli).
+Coding assistants forget about everything in past sessions. Kenkeep creates a system that **salvages the gold nuggets in your past conversations**, and discards the rest. This way, the assistant can use that important detail you shared two weeks ago, without you even worrying about it.
+
+Kenkeep is a **team-shared, git-native knowledge base** for AI coding assistants.
+
+Your AI conversations produce a steady stream of project-specific knowledge (conventions, gotchas, named modules, decision rationale), and most of it evaporates when the session ends. This tool captures it, asks a human to curate it, commits it to the repo, and injects it back into every future session.
 
 ## Why kenkeep
 
