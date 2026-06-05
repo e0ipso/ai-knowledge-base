@@ -152,3 +152,37 @@ Yes, this plan updates documentation. Required updates:
 - Do not run `curate` in CI; it launches the host harness and the LLM and is human-supervised by design.
 - Develop on branch `claude/cankeb-node-storage-4mgca`. Do not open a pull request.
 - Placement is the only new judgment. Structure changes belong to Plan 4.
+
+## Execution Blueprint
+
+**Validation Gates:**
+- Reference: `/config/hooks/POST_PHASE.md`
+
+### Phase 1: Folder-aware primitive and action schema
+**Parallel Tasks:**
+- Task 001: `node write` accepts a target home folder (presentation), id stays identity
+- Task 002: Add an optional `home_folder` field to the curator-action schema
+
+### Phase 2: Skill behavior and placement coverage
+**Parallel Tasks:**
+- Task 003: Curate skill relate ranks a home branch, writer places the leaf, summary reports placement (depends on: 001, 002)
+- Task 004: Integration tests for folder-aware placement, dedupe-update, and the root fallback (depends on: 001, 002)
+
+### Phase 3: Documentation
+**Parallel Tasks:**
+- Task 005: Document home-branch placement in user docs and KB nodes (depends on: 003)
+
+### Dependency Diagram
+
+```mermaid
+graph TD
+    001[Task 001: node write target folder] --> 003[Task 003: curate skill home branch]
+    001 --> 004[Task 004: placement integration tests]
+    002[Task 002: curator-action home_folder field] --> 003
+    002 --> 004
+    003 --> 005[Task 005: document home-branch placement]
+```
+
+### Execution Summary
+- Total Phases: 3
+- Total Tasks: 5

@@ -170,3 +170,32 @@ Yes, this plan updates documentation. Required updates:
 - Inside this source repo, run the CLI from `dist/cli.js`, not via `npx`.
 - Develop on branch `claude/cankeb-node-storage-4mgca`. Do not open a pull request.
 - This plan deliberately stops at deterministic index nodes. Curated folder-intent lines, placement, descent injection, rebalance, and migration are Plans 2 to 5.
+
+## Execution Blueprint
+
+### Dependency Diagram
+
+```mermaid
+graph TD
+    001[Task 1: Bump schema and reject flat layout] --> 002[Task 2: Topical folder tree and kind as facet]
+    002 --> 003[Task 3: nodes_hash excludes index.md]
+    002 --> 004[Task 4: Recursive per-folder index generator]
+    003 --> 004
+    004 --> 005[Task 5: index rebuild writes and stages tree]
+    004 --> 006[Task 6: Recursive determinism golden tests]
+    005 --> 006
+    005 --> 007[Task 7: Update tree storage documentation]
+```
+
+The graph is acyclic. No orphan or circular references.
+
+### Execution Phases
+
+- **Phase 1** (no dependencies): Task 1 (bump schema and reject flat layout).
+- **Phase 2** (depends on Phase 1): Task 2 (topical folder tree and kind as facet).
+- **Phase 3** (depends on Phase 2): Task 3 (nodes_hash over leaves only, excludes index.md).
+- **Phase 4** (depends on Phases 2 and 3): Task 4 (recursive per-folder index generator with metrics).
+- **Phase 5** (depends on Phase 4): Task 5 (index rebuild writes and stages the full tree, regenerates starter nodes).
+- **Phase 6** (depends on Phases 4 and 5, may run in parallel): Task 6 (recursive determinism golden tests) and Task 7 (update tree storage documentation).
+
+Every task appears in exactly one phase, and no task runs before its dependencies complete. Phase 1 contains only zero-dependency tasks.

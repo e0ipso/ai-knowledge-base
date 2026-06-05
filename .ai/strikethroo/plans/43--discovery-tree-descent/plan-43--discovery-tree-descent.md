@@ -142,3 +142,35 @@ Yes, this plan updates documentation. Required updates:
 - Hook behavior changes must be applied consistently across all harness adapters (`practice-hook-behavior-changes-must-be-applied-to-all-four-harness-adapters`).
 - Develop on branch `claude/cankeb-node-storage-4mgca`. Do not open a pull request.
 - Discoverability now rides on index-node summary quality; this plan uses Plan 1's deterministic rollups and does not add curated summaries.
+
+## Execution Blueprint
+
+### Dependency Diagram
+
+```mermaid
+graph TD
+    001[Task 1: Inject root index node and descent directive in the hook] --> 002[Task 2: Update static AGENTS.md kk-index pointer to descent]
+    001 --> 003[Task 3: Route root-only body through every harness channel and add per-harness tests]
+    001 --> 004[Task 4: Update documentation for root-only descent]
+    002 --> 004
+    003 --> 004
+```
+
+The graph is acyclic. Task 1 is the foundation (the shared directive constant and the root-only injection). Tasks 2 and 3 build on Task 1 in parallel. Task 4 documents the implemented behavior and depends on 1, 2, and 3.
+
+### Execution Phases
+
+**Phase 1 (no dependencies, run in parallel):**
+
+- Task 1: Inject only the root index node and rewrite the navigation directive to descent (`src/lib/session-start.ts`; exports the shared `KK_NAVIGATION_DIRECTIVE` constant).
+
+**Phase 2 (dependencies satisfied by Phase 1, run in parallel):**
+
+- Task 2: Update the static AGENTS.md kk-index pointer block to the descent framing, importing the shared directive constant (`src/commands/init.ts`).
+- Task 3: Route the root-only body through every harness channel and cover with per-harness SessionStart tests (`src/harnesses/*`).
+
+**Phase 3 (dependencies satisfied by Phases 1 and 2):**
+
+- Task 4: Update documentation to describe root-only injection and the descent model (`AGENTS.md`, `docs/how-it-works.md`, `docs/internals/hooks.md`).
+
+Every task is in exactly one phase, no task runs before its dependencies, and Phase 1 contains only the zero-dependency task.

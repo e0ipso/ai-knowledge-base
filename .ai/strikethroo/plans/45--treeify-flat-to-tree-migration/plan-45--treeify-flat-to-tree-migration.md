@@ -154,3 +154,40 @@ Yes, this plan updates documentation. Required updates:
 - Do not run treeify in CI; it launches the host harness and the LLM and is human-supervised.
 - Land this plan immediately after Plan 1 to close the window in which the repo's own flat KB is unreadable by the new code path.
 - Develop on branch `claude/cankeb-node-storage-4mgca`. Do not open a pull request.
+
+## Execution Blueprint
+
+**Validation Gates:**
+- Reference: `/config/hooks/POST_PHASE.md`
+
+### Phase 1: Deterministic treeify foundations
+**Parallel Tasks:**
+- Task 001: Deterministic treeify write primitive (place leaves, preserve ids and edges, bump schema_version, never overwrite)
+- Task 002: Treeify layout detection and refuse-on-already-migrated tree
+
+### Phase 2: Supervised launcher
+**Parallel Tasks:**
+- Task 003: Treeify supervised launcher: cluster leaves into topical folders, write placements, rebuild indexes, and report (depends on: 001, 002)
+
+### Phase 3: Verification and documentation
+**Parallel Tasks:**
+- Task 004: Tests for the treeify migration critical path and refuse-on-migrated tree (depends on: 003)
+- Task 005: Treeify migration documentation and uncommitted KB nodes (depends on: 003)
+
+### Dependency Diagram
+
+```mermaid
+graph TD
+    001[Task 001: Deterministic write primitive] --> 003[Task 003: Supervised launcher]
+    002[Task 002: Layout detection and refuse] --> 003
+    003 --> 004[Task 004: Migration and refuse tests]
+    003 --> 005[Task 005: Docs and KB nodes]
+```
+
+### Post-phase Actions
+
+After Phase 3 completes successfully, the plan's Self Validation section is satisfied: Task 004's tests cover the migration happy path, no-overwrite, refuse-on-migrated, the placement report, and post-migration dangling-ref checks (Self Validation steps 1, 2, 3, 5); Task 003 wires Plan 1's index rebuild (Self Validation step 4); Task 005 documents the migration path. The repository's own KB migration on a scratch copy (Self Validation step 6) remains a supervised human verification and is not baked into any task's automated acceptance criteria.
+
+### Execution Summary
+- Total Phases: 3
+- Total Tasks: 5

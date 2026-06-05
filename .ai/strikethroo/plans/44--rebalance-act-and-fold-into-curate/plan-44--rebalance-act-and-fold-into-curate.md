@@ -167,3 +167,56 @@ Yes, this plan updates documentation. Required updates:
 - Do not run curate (and therefore rebalance) in CI; it is human-supervised and launches the LLM.
 - If smaller review surface is desired, this plan can be executed as two task groups: the deterministic trigger and metrics consumer first, then the structural operations.
 - Develop on branch `claude/cankeb-node-storage-4mgca`. Do not open a pull request.
+
+## Execution Blueprint
+
+**Validation Gates:**
+- Reference: `/config/hooks/POST_PHASE.md`
+
+The deterministic core is built first and serially: the trigger (Task 1) defines
+the decision contract the move primitive (Task 2) executes, and both are wired
+into the curate skill (Task 3). Verification and documentation depend on the
+shipped behavior and run last. Task 4 (tests) and Task 5 (docs) are independent
+of each other and run in parallel once the skill phase lands. The plan's
+"two task groups" note maps onto this: the deterministic trigger first
+(group `deterministic-core`), then the structural operations and integration.
+
+```mermaid
+graph TD
+    001[Task 001: Deterministic hysteresis trigger] --> 002[Task 002: Content-stable move primitive + rebuild]
+    001 --> 003[Task 003: Fold rebalance phase into kk-curate]
+    002 --> 003
+    001 --> 004[Task 004: Tests - trigger, no-thrash, renames]
+    002 --> 004
+    003 --> 004
+    003 --> 005[Task 005: Documentation and KB nodes]
+```
+
+No circular dependencies; every task is in exactly one phase and runs only after
+its dependencies complete.
+
+### Phase 1: Deterministic trigger
+**Parallel Tasks:**
+- Task 001: Deterministic, LLM-free rebalance trigger over per-folder metrics with hysteresis
+
+### Phase 2: Deterministic move primitive
+**Parallel Tasks:**
+- Task 002: Content-byte-stable, id-stable move primitive and post-move rebuild
+
+### Phase 3: Curate skill integration
+**Parallel Tasks:**
+- Task 003: Fold the rebalance phase into kk-curate as its final, act-and-fold phase
+
+### Phase 4: Verification and documentation
+**Parallel Tasks:**
+- Task 004: Tests for trigger/hysteresis, no-thrash, rename/id stability, skip-when-balanced
+- Task 005: Documentation (docs, AGENTS.md) and KB nodes
+
+### Post-phase Actions
+After each phase, run the POST_PHASE validation gate. Do not proceed until the
+phase's tasks meet their acceptance criteria and `npm run typecheck` / `npm run
+lint` (and `npm test` for Phase 4) are green.
+
+### Execution Summary
+- Total Phases: 4
+- Total Tasks: 5
