@@ -64,9 +64,13 @@ Then code normally. When you want to turn captured material into knowledge nodes
 <img src="{{ '/assets/icons/message-square-plus.svg' | relative_url }}" width="28" height="28" alt="" />
 <h3>Add knowledge manually</h3>
 <p>At any time, during your LLM conversations you can use <code>/kk-add</code> to ensure the LLM remembers your message. Just casually mention it, and you are done.</p>
+<p>Example:</p>
 <pre><code>No, you got that wrong.
 
-This project aims to maximize code re-use, instead of duplication. Adapt and extend the abstractions to fit this use case. Also, /kk-add this.</code></pre>
+This project aims to maximize code
+re-use, instead of duplication. Adapt
+and extend the abstractions to fit
+this use case. Also, /kk-add this.</code></pre>
 </div>
 </div>
 
