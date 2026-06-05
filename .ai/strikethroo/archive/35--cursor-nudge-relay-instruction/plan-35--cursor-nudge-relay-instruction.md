@@ -154,3 +154,25 @@ the nudge mechanism at this level of detail.
 ### Technical Infrastructure
 
 - Node.js, npm, Cursor IDE (for manual validation)
+
+## Closure
+
+**Status**: Closed as already-implemented — no tasks generated, not executed.
+
+This plan's target state was already delivered by a later refactor on the same
+day it was written. Commit `05b352e` ("refactor: centralize category 2 harness
+pipelines", 2026-05-26) introduced `buildNudgeContent()` in
+`src/lib/session-start.ts`, which — when `result.nudged` is true — appends the
+ASCII-boxed "🚨 kenkeep curation is overdue" block and the `IMPORTANT: After
+completing your response, append the following block verbatim…` relay
+instruction. The Cursor session-start hook
+(`src/harnesses/cursor/hooks/kk-session-start.ts`) already consumes it via
+`buildNudgeContent(result)` and writes the result to
+`{ additional_context }`. The Claude hook does not use this helper, so Claude's
+`systemMessage` behavior is unchanged.
+
+The plan's implementation deliverable (criteria #1 and #2) is therefore
+satisfied in `main`. The only gap is a regression test asserting the relay
+instruction text; per the reviewer's decision (2026-06-04) this plan is closed
+without generating that task. If desired later, add a focused test against
+`buildNudgeContent` in `tests/lib/session-start.test.ts`.
