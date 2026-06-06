@@ -207,10 +207,10 @@ its dependencies complete.
 **Parallel Tasks:**
 - ✔️ Task 003: Fold the rebalance phase into kk-curate as its final, act-and-fold phase (completed)
 
-### Phase 4: Verification and documentation
+### ✅ Phase 4: Verification and documentation
 **Parallel Tasks:**
-- Task 004: Tests for trigger/hysteresis, no-thrash, rename/id stability, skip-when-balanced
-- Task 005: Documentation (docs, AGENTS.md) and KB nodes
+- ✔️ Task 004: Tests for trigger/hysteresis, no-thrash, rename/id stability, skip-when-balanced (completed)
+- ✔️ Task 005: Documentation (docs, AGENTS.md) and KB nodes (completed; KB nodes left uncommitted for human acceptance)
 
 ### Post-phase Actions
 After each phase, run the POST_PHASE validation gate. Do not proceed until the

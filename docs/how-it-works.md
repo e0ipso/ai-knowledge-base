@@ -23,9 +23,19 @@ As it relates each new note to its neighbors, the curator does two things in the
 
 When a proposed note contradicts one you already have, the curator never overwrites it silently. It records the conflict, and `/kk-curate` walks each one with you: accept the new note, reject it, or keep the conflict as a record. This walkthrough is the only way contradictions get resolved.
 
+### Rebalance (the final phase of curate)
+
+Curation alone makes the tree lopsided over time: folders grow too large, a single note accretes several concepts, branches go sparse, and genuinely new topics have no home. The last phase of `/kk-curate` keeps the tree healthy, and it adds no chore: there is no second command and no second nudge.
+
+A deterministic, LLM-free trigger reads the per-folder occupancy, tag-diversity, and note-size metrics that the rebuild already computes and decides, with a hysteresis margin, whether structural work is warranted. The margin is the safety mechanism: a split fires only when a folder is well past its high-water mark and a merge only when a branch is well below its low-water mark, with a deliberate gap between the two so a single borderline note cannot flip a folder back and forth across runs and the tree settles instead of thrashing. Most curate runs add a note or two, trip nothing, and skip the structural phase entirely at zero added cost.
+
+When a threshold trips, the LLM reasons over the affected branches only and performs one of four operations: split folder (cluster a folder's notes into subfolders), split leaf (a bloated note becomes a folder of an index node plus two or more notes), merge (collapse a sparse or redundant branch), or create branch (a novel top-level topic). The moves are applied by a deterministic primitive that preserves each note's content byte-for-byte, so `git` records a rename rather than a delete-plus-add, and keeps note ids stable so no cross reference is rewritten. Split leaf is the one exception: it mints new ids for its parts and records a redirect from the old id so references still resolve. After the moves, the affected `index.md` nodes and `nodes_hash` regenerate deterministically, and curate prints a structural summary mapping the diff.
+
 ## 3. Review (you decide)
 
 The files under `nodes/` are plain markdown. Review them with `git diff`, then keep with `git commit` or drop with `git restore <path>`. These notes shape every future session, so this is the one place a human stays in the loop.
+
+Structural moves from the rebalance phase land in this same diff (act-and-fold): note writes and structural renames are reviewed together. Because `git restore` is path-scoped, you can reject just the structural moves and keep the note writes, or the other way round. There is no checkpoint inside the run; the commit gate is the only gate, which is why the trigger carries real hysteresis margin.
 
 ## What's stored
 
