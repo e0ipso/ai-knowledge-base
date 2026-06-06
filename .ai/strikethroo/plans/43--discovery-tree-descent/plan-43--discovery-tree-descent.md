@@ -160,9 +160,9 @@ The graph is acyclic. Task 1 is the foundation (the shared directive constant an
 
 ### Execution Phases
 
-**Phase 1 (no dependencies, run in parallel):**
+**✅ Phase 1 (no dependencies, run in parallel):**
 
-- Task 1: Inject only the root index node and rewrite the navigation directive to descent (`src/lib/session-start.ts`; exports the shared `KK_NAVIGATION_DIRECTIVE` constant).
+- ✔️ Task 1 (completed): Inject only the root index node and rewrite the navigation directive to descent (`src/lib/session-start.ts`; exports the shared `KK_NAVIGATION_DIRECTIVE` constant).
 
 **Phase 2 (dependencies satisfied by Phase 1, run in parallel):**
 
