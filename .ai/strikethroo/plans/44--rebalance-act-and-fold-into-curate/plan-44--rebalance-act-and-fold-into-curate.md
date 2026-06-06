@@ -195,9 +195,9 @@ graph TD
 No circular dependencies; every task is in exactly one phase and runs only after
 its dependencies complete.
 
-### Phase 1: Deterministic trigger
+### ✅ Phase 1: Deterministic trigger
 **Parallel Tasks:**
-- Task 001: Deterministic, LLM-free rebalance trigger over per-folder metrics with hysteresis
+- ✔️ Task 001: Deterministic, LLM-free rebalance trigger over per-folder metrics with hysteresis (completed)
 
 ### Phase 2: Deterministic move primitive
 **Parallel Tasks:**

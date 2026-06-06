@@ -11,7 +11,7 @@ import { runLogsPrune } from './commands/logs-prune.js';
 import { runSessionLogUpdateProposalsCommand } from './commands/session-log-update-proposals.js';
 import { runNodeAddLauncher } from './commands/node-add.js';
 import { runNodeWriteCommand } from './commands/node-write.js';
-import { runRebalanceTrigger } from './commands/rebalance.js';
+import { runRebalanceMove, runRebalanceTrigger } from './commands/rebalance.js';
 import { runStatus } from './commands/status.js';
 import { runTreeify } from './commands/treeify.js';
 import { listHarnessIds } from './harnesses/registry.js';
@@ -191,6 +191,19 @@ async function main(): Promise<void> {
     .allowExcessArguments(true)
     .action(async () => {
       const code = await runRebalanceTrigger();
+      process.exit(code);
+    });
+  rebalanceGroup
+    .command('move')
+    .description(
+      'Deterministic move primitive: applies a caller-supplied operation plan (split-folder/split-leaf/merge/create-branch) as content-byte-stable, id-stable git renames (split-leaf mints new ids + a redirect), then rebuilds affected index nodes and nodes_hash. Reads the plan JSON from --input or stdin. Writes files only; never stages or commits. Prints a structural summary JSON.'
+    )
+    .option('--input <path>', 'path to the operation-plan JSON; reads stdin when omitted')
+    .allowExcessArguments(true)
+    .action(async (opts: { input?: string }) => {
+      const flags: Parameters<typeof runRebalanceMove>[0] = {};
+      if (opts.input !== undefined) flags.input = opts.input;
+      const code = await runRebalanceMove(flags);
       process.exit(code);
     });
 
