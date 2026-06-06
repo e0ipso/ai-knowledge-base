@@ -368,6 +368,15 @@ export interface WriteNodeArgs {
  */
 export function resolveLeafDir(nodesDir: string, relDir = ''): string {
   if (!relDir) return nodesDir;
+  // Reject an absolute placement up front: an absolute relDir (POSIX `/foo` or
+  // a platform-absolute path) is never a folder under `nodes/`. Joining it
+  // would silently neutralize the leading separator into a subfolder, so guard
+  // before `join` rather than relying on the post-join `relative` check.
+  if (isAbsolute(relDir) || relDir.startsWith('/')) {
+    throw new Error(
+      `home folder "${relDir}" escapes nodes/; placement must target a folder under nodes/`
+    );
+  }
   const resolved = join(nodesDir, ...relDir.split(posix.sep));
   const rel = relative(nodesDir, resolved);
   if (rel === '..' || rel.startsWith('..' + sep) || isAbsolute(rel)) {

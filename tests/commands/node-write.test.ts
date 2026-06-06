@@ -221,6 +221,90 @@ describe('node write primitive', () => {
     expect(readdirSync(join(cwd, '.ai/kenkeep/nodes'))).toEqual([]);
   });
 
+  it('places a leaf into --folder and keeps the id folder-independent', async () => {
+    // First write: into an existing topical folder under nodes/.
+    const out1 = capturingStdout();
+    const code1 = await runNodeWriteCommand(
+      {
+        kind: 'practice',
+        slug: 'placed-leaf',
+        flags: { title: 'Placed Leaf', summary: 'lives in a folder', folder: 'tooling/sub' },
+      },
+      { readStdin: async () => '# Placed\n\nbody', isTTY: () => false, writeStdout: out1.write }
+    );
+    expect(code1).toBe(0);
+    expect(out1.text()).toBe('practice-placed-leaf\n');
+    const placedPath = join(cwd, '.ai/kenkeep/nodes/tooling/sub/practice-placed-leaf.md');
+    expect(existsSync(placedPath)).toBe(true);
+    // The leaf is NOT at the root; placement routed it into the folder.
+    expect(existsSync(join(cwd, '.ai/kenkeep/nodes/practice-placed-leaf.md'))).toBe(false);
+
+    // Second write of the SAME kind+title with no folder: same derived id,
+    // different path. Identity is folder-independent.
+    const out2 = capturingStdout();
+    const code2 = await runNodeWriteCommand(
+      {
+        kind: 'practice',
+        slug: 'placed-leaf',
+        flags: { title: 'Placed Leaf', summary: 'same id at root' },
+      },
+      { readStdin: async () => '# Placed\n\nbody', isTTY: () => false, writeStdout: out2.write }
+    );
+    expect(code2).toBe(0);
+    // ensureUniqueId sees the folder-placed leaf already on disk (whole-tree
+    // scan), so the second write collides and resolves to -2. The id stays
+    // derived from kind+title and is independent of the folder.
+    expect(out2.text()).toBe('practice-placed-leaf-2\n');
+    expect(existsSync(join(cwd, '.ai/kenkeep/nodes/practice-placed-leaf-2.md'))).toBe(true);
+  });
+
+  it('root fallback: empty --folder writes the leaf at the nodes/ root (exit 0)', async () => {
+    const out = capturingStdout();
+    const code = await runNodeWriteCommand(
+      {
+        kind: 'practice',
+        slug: 'root-leaf',
+        flags: { title: 'Root Leaf', summary: 'no folder given', folder: '' },
+      },
+      { readStdin: async () => '# Root\n\nbody', isTTY: () => false, writeStdout: out.write }
+    );
+    expect(code).toBe(0);
+    expect(out.text()).toBe('practice-root-leaf\n');
+    expect(existsSync(join(cwd, '.ai/kenkeep/nodes/practice-root-leaf.md'))).toBe(true);
+  });
+
+  it('rejects a --folder that escapes nodes/ (traversal and absolute) with no write', async () => {
+    const before = readdirSync(join(cwd, '.ai/kenkeep/nodes'));
+
+    const out1 = capturingStdout();
+    const code1 = await runNodeWriteCommand(
+      {
+        kind: 'practice',
+        slug: 'escape-rel',
+        flags: { title: 'Escape Rel', summary: 'traversal', folder: '../escape' },
+      },
+      { readStdin: async () => '# x\n\nbody', isTTY: () => false, writeStdout: out1.write }
+    );
+    expect(code1).toBe(1);
+    expect(out1.text()).toBe('');
+
+    const out2 = capturingStdout();
+    const code2 = await runNodeWriteCommand(
+      {
+        kind: 'practice',
+        slug: 'escape-abs',
+        flags: { title: 'Escape Abs', summary: 'absolute', folder: '/etc/evil' },
+      },
+      { readStdin: async () => '# x\n\nbody', isTTY: () => false, writeStdout: out2.write }
+    );
+    expect(code2).toBe(1);
+    expect(out2.text()).toBe('');
+
+    // No file landed anywhere under nodes/, and nothing escaped it either.
+    expect(readdirSync(join(cwd, '.ai/kenkeep/nodes'))).toEqual(before);
+    expect(existsSync(join(cwd, '.ai/kenkeep/escape'))).toBe(false);
+  });
+
   it('serialises concurrent --source-doc writers via proper-lockfile', async () => {
     const out1 = capturingStdout();
     const out2 = capturingStdout();

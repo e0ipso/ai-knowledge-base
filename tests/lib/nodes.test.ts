@@ -9,6 +9,7 @@ import {
   InvalidNodeFrontmatterError,
   nodeFileExists,
   readAllNodes,
+  resolveLeafDir,
   slugify,
   writeNodeFile,
 } from '../../src/lib/nodes.js';
@@ -163,5 +164,52 @@ describe('nodes helpers', () => {
     });
     expect(inTopic).toBe(join(root, 'topic', 'sub', 'map-topical.md'));
     expect(nodeFileExists(root, 'map-topical')).toBe(true);
+  });
+
+  it('writeNodeFile updates a leaf in place by id at its folder, with no relocation', () => {
+    const fm: NodeFrontmatter = {
+      schema_version: 2,
+      id: 'practice-in-place',
+      title: 'In place',
+      kind: 'practice',
+      tags: [],
+      derived_from: [],
+      relates_to: [],
+      confidence: 'high',
+      summary: 'placed in a folder',
+    };
+    // Initial placement into an existing folder.
+    const first = writeNodeFile({
+      nodesDir: root,
+      frontmatter: fm,
+      body: '# Original\n\noriginal body',
+      relDir: 'storage',
+    });
+    expect(first).toBe(join(root, 'storage', 'practice-in-place.md'));
+
+    // Re-writing the same id at the same folder overwrites in place: same path,
+    // updated body, and no copy at the root or anywhere else (identity is the
+    // id; the filename stem stays <id>.md).
+    const second = writeNodeFile({
+      nodesDir: root,
+      frontmatter: { ...fm, summary: 'updated' },
+      body: '# Updated\n\nupdated body',
+      relDir: 'storage',
+    });
+    expect(second).toBe(first);
+    expect(readFileSync(first, 'utf8')).toContain('updated body');
+    expect(readAllNodes(root).filter(n => n.frontmatter.id === 'practice-in-place')).toHaveLength(1);
+    expect(nodeFileExists(root, 'practice-in-place')).toBe(true);
+  });
+
+  it('resolveLeafDir routes a relative folder under nodes/ and rejects escapes', () => {
+    // Relative folder resolves under nodes/.
+    expect(resolveLeafDir(root, 'practice/sub')).toBe(join(root, 'practice', 'sub'));
+    // Empty/omitted folder is the root fallback, not an error.
+    expect(resolveLeafDir(root, '')).toBe(root);
+    expect(resolveLeafDir(root)).toBe(root);
+    // A `..` traversal and an absolute path both escape nodes/ and are rejected.
+    expect(() => resolveLeafDir(root, '../escape')).toThrow(/escapes nodes\//);
+    expect(() => resolveLeafDir(root, '/etc/evil')).toThrow(/escapes nodes\//);
   });
 });
