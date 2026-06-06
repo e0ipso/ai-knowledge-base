@@ -158,19 +158,19 @@ Yes, this plan updates documentation. Required updates:
 **Validation Gates:**
 - Reference: `/config/hooks/POST_PHASE.md`
 
-### Phase 1: Folder-aware primitive and action schema
+### ✅ Phase 1: Folder-aware primitive and action schema
 **Parallel Tasks:**
-- Task 001: `node write` accepts a target home folder (presentation), id stays identity
-- Task 002: Add an optional `home_folder` field to the curator-action schema
+- ✔️ Task 001 (completed): `node write` accepts a target home folder (presentation), id stays identity
+- ✔️ Task 002 (completed): Add an optional `home_folder` field to the curator-action schema
 
-### Phase 2: Skill behavior and placement coverage
+### ✅ Phase 2: Skill behavior and placement coverage
 **Parallel Tasks:**
-- Task 003: Curate skill relate ranks a home branch, writer places the leaf, summary reports placement (depends on: 001, 002)
-- Task 004: Integration tests for folder-aware placement, dedupe-update, and the root fallback (depends on: 001, 002)
+- ✔️ Task 003 (completed): Curate skill relate ranks a home branch, writer places the leaf, summary reports placement (depends on: 001, 002)
+- ✔️ Task 004 (completed): Integration tests for folder-aware placement, dedupe-update, and the root fallback (depends on: 001, 002)
 
-### Phase 3: Documentation
+### ✅ Phase 3: Documentation
 **Parallel Tasks:**
-- Task 005: Document home-branch placement in user docs and KB nodes (depends on: 003)
+- ✔️ Task 005 (completed): Document home-branch placement in user docs and KB nodes (depends on: 003)
 
 ### Dependency Diagram
 
@@ -186,3 +186,35 @@ graph TD
 ### Execution Summary
 - Total Phases: 3
 - Total Tasks: 5
+
+## Execution Summary (Results)
+
+**Status**: Completed Successfully
+
+**Completed Date**: 2026-06-06
+
+**Results**:
+
+Curation now places each new leaf into its best-fitting existing folder, decided in the same relate reasoning pass that sets the cross edges, with identity kept on the node id and independent of placement.
+
+- Phase 1 (writer + schema): `node write` accepts `--folder <relpath>`; `writeNodeFile`/`resolveLeafDir` resolve the target folder under `nodes/`, default to the `nodes/` root when omitted (root fallback), and reject any folder that escapes `nodes/` (`..` traversal or absolute path) before any disk write. `CuratorActionSchema` gained an optional, nullable `home_folder` field that survives dedup unchanged.
+- Phase 2 (skill + tests): the `kk-curate` SKILL relate phase ranks the existing index nodes and records the home branch on the `add` action's `home_folder`; Step 5 threads it through as `--folder`; the root fallback, the no-structural-change constraint, whole-tree dedupe framing, and per-leaf placement reporting in the end-of-run summary are all documented in the skill. Integration tests cover folder routing, root fallback, traversal/absolute rejection, update-in-place by id, and `home_folder` passthrough through `curate-dedup`.
+- Phase 3 (docs): `docs/how-it-works.md` and `docs/daily-use.md` describe the home-branch step, the stable folder-independent id, the root fallback, the no-folder-creation rule, and the placement summary. KB nodes `map-curate-command`, `map-curator-action`, and a new practice node `practice-curator-places-leaf-into-existing-home-branch` are updated/authored and left uncommitted for human acceptance per kenkeep convention.
+
+Validation gates: `npm run build` OK; `npm run typecheck` clean; `npm run lint` (eslint + `lint:detect-harness`) clean; `npm test` 238 passed across 36 files (was 232; +6 new placement tests).
+
+**Noteworthy Events**:
+
+- A prior interrupted attempt had left partial, uncommitted work in `src/lib/nodes.ts` (a `resolveLeafDir` that referenced `isAbsolute` without importing it, so the tree did not typecheck) and `src/lib/schemas.ts` (`home_folder` added). This execution completed and corrected that work rather than discarding it: added the missing `isAbsolute` import, wired the `--folder` flag through `node-write.ts` and `cli.ts`, and committed Tasks 001/002 cleanly.
+- The Task 004 absolute-path rejection test surfaced a real gap in the partial guard: an absolute `--folder` such as `/etc/evil` was silently neutralized into a subfolder by `join` and slipped past the post-join `relative` check, so it was accepted instead of rejected. Hardened `resolveLeafDir` to reject an absolute `relDir` up front; the new tests fail without the guard and pass with it.
+- The `node write` primitive always uniquifies the derived id (`ensureUniqueId`), so it cannot truly overwrite-by-id; the genuine update-in-place semantics live in `writeNodeFile`. The update-in-place test was placed at the `writeNodeFile` level (in `tests/lib/nodes.test.ts`) accordingly, matching how a `modify` rewrites a leaf at its current path by id.
+- Per the program/kenkeep convention, KB node changes under `.ai/kenkeep/nodes/` were left as uncommitted working-tree changes for human acceptance (two modified map nodes plus one new practice node). The two pre-existing untracked KB nodes from plan 45 (`map-treeify-command`, `practice-treeify-is-supervised-and-never-overwrites`) were left untouched.
+- The self-hosted `.ai/kenkeep/` KB on disk is still in the flat `nodes/<kind>/` layout (schema_version 1), so `kenkeep lint` over it refuses with the old-layout guard. This is a pre-existing repo state (the supervised treeify migration has not been run on the self-hosted KB), outside this plan's scope; the new/edited KB nodes follow the existing on-disk sibling conventions. The plan's validation gates (`npm test`/`typecheck`/`lint`) are unaffected.
+- The `ENV_DETECTORS` heredoc in the curate SKILL was not touched, so the `lint:detect-harness` drift check stays green. Bundled `templates/` output is gitignored and was regenerated from source, not committed.
+- Branch and durability constraints honored: all work stayed on `claude/strikethrough-plans-41-45-aPS4y` (no feature branch created); each task was committed and pushed immediately after completion.
+
+**Necessary follow-ups**:
+
+- Human review and acceptance (via `git diff` then `git commit`, or `git restore` to reject) of the uncommitted KB node changes under `.ai/kenkeep/nodes/`.
+- The live LLM-driven curate placement behavior (a real run producing a clear-home leaf, a no-fit root-fallback leaf, an in-place update, and a contradiction) is human-supervised by design and is not run in CI; it is covered indirectly by the deterministic-primitive integration tests. Operators should spot-check placement quality in the curate end-of-run summary on the next real run.
+- Plan 4 (rebalance) owns relocating root-fallback leaves and any structural folder creation/splitting/merging; that is intentionally out of scope here.
