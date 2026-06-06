@@ -220,3 +220,81 @@ lint` (and `npm test` for Phase 4) are green.
 ### Execution Summary
 - Total Phases: 4
 - Total Tasks: 5
+
+## Execution Summary
+
+**Status**: Completed Successfully
+
+**Completed Date**: 2026-06-06
+
+**Results**
+
+All 5 tasks across 4 phases shipped. The rebalance homeostasis layer folds into
+`/kk-curate` as its final, act-and-fold phase:
+
+- **Deterministic trigger** (`src/lib/rebalance.ts`, `kenkeep rebalance trigger`):
+  a pure, LLM-free decision over Plan 1's per-folder metrics with named,
+  load-time-asserted hysteresis constants (`FOLDER_OCCUPANCY_MAX` split
+  high-water, `BRANCH_OCCUPANCY_MIN` merge low-water with a real gap,
+  `LEAF_SIZE_SPLIT_THRESHOLD` + `LEAF_CONCEPT_MIN` for split-leaf, and the
+  root-fallback create-branch signal). Prints a stable JSON decision or
+  `{"actions":[]}` so the LLM phase is skipped at zero cost.
+- **Move primitive** (`src/lib/rebalance-move.ts`, `kenkeep rebalance move`):
+  applies split-folder / merge / create-branch as content-byte-stable, id-stable
+  git renames (read Buffer, atomic tmp+rename, remove source, never
+  reserialize), and split-leaf as a folder of an index node plus 2+ new docs
+  with ids minted via `ensureUniqueId` and a redirect recorded in
+  `nodes/.redirects.json`. Drives Plan 1's deterministic rebuild; rejects
+  out-of-tree targets; never stages or commits.
+- **Curate integration** (Step 6b of `kk-curate/SKILL.md`): runs the trigger,
+  skips the clustering step entirely when balanced, and otherwise has the host
+  LLM propose ops on the affected branches only and apply them through the move
+  primitive, emitting a structural summary in one uncommitted diff.
+- **Tests** (`tests/lib/rebalance.test.ts`, `tests/commands/rebalance.test.ts`):
+  15 new tests covering trigger determinism + hysteresis gap, skip-when-balanced,
+  split-folder rename/id-stability + index regen, split-leaf ids + redirect,
+  post-move byte-stable rebuild, no-thrash, no-commit, and traversal rejection.
+  Suite is 260/260 (was 245).
+- **Docs**: `docs/how-it-works.md`, `docs/daily-use.md`, and `AGENTS.md` describe
+  rebalance, act-and-fold, and the capture/curation/rebalance/discovery pipeline.
+
+Validation gates at completion: `npm run typecheck` pass, `npm run lint`
+(including `lint:detect-harness`) pass, `npm test` 260/260 pass, `npm run build`
+pass. Self Validation drives confirmed: split on an over-full fixture records 14
+`R` renames with ids unchanged and index nodes regenerated; the second pass is a
+structural no-op (no thrash); the post-move rebuild is byte-stable.
+
+**Noteworthy Events**
+
+- Executed on the pre-existing program branch
+  `claude/strikethrough-plans-41-45-aPS4y` (plans 41/45/42/43 already landed); no
+  feature branch was created and no PR was opened, per the run constraints. Each
+  task was committed and pushed on completion for durability.
+- KB nodes were deliberately left **uncommitted** for human acceptance per
+  kenkeep convention: new `practice-rebalance-trigger-is-deterministic-and-hysteresis-gated`
+  and `map-rebalance-phase`, plus edits to `map-curate-command` and
+  `practice-review-nodes-via-git`. The 5 pre-existing uncommitted KB nodes from
+  plans 45/42 were left untouched.
+- The create-branch metric: Plan 1 exposes no dedicated "novel topic" metric, so
+  the trigger keys deterministically on the curate root-fallback signal (a leaf
+  at the `nodes/` root with zero `relates_to`/`derived_from` edges), documented
+  in `src/lib/rebalance.ts`.
+- The redirect "in history" is implemented as a `nodes/.redirects.json` ledger
+  (JSON, never a leaf, never hashed) recording old-id -> new-ids, so split-leaf
+  cross references still resolve while `nodes_hash` stays content-addressed.
+- The `practice-no-em-dashes` rule was honored for all newly added lines;
+  pre-existing em dashes in untouched lines of shared files were left as-is to
+  avoid unrelated churn.
+
+**Necessary follow-ups**
+
+- Threshold calibration (`FOLDER_OCCUPANCY_MAX`, `BRANCH_OCCUPANCY_MIN`,
+  `LEAF_SIZE_SPLIT_THRESHOLD`, `LEAF_CONCEPT_MIN`) is intentionally conservative;
+  tune against real dogfooded trees if folders trip too eagerly or too late.
+- A future reader could consult `nodes/.redirects.json` when resolving a stale id
+  in a cross reference; today the ledger is written but not yet read back by the
+  index/graph generators.
+- An explicit `kenkeep rebalance` power-user command remains optional and out of
+  scope, as the plan notes.
+- The KB nodes added by this plan await human review (`git diff` then keep or
+  delete) before they enter the committed knowledge base.
