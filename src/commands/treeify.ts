@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { resolveActiveHarness } from '../harnesses/detect.js';
 import { extractJsonPayload } from '../lib/json-extract.js';
 import { log } from '../lib/log.js';
-import { readAllNodesFlat } from '../lib/treeify-read.js';
+import { readAllNodesFlat, type FlatLeaf } from '../lib/treeify-read.js';
 import { findRepoRoot, repoPaths } from '../lib/paths.js';
 import { resolveSettings } from '../lib/settings.js';
 import {
@@ -15,27 +15,11 @@ import {
 import { runIndexRebuild } from './index-rebuild.js';
 
 /**
- * A flat leaf, summarized for the clustering prompt: its id and a few facets
- * the model needs to assign a topical folder. Edges are included so the model
- * can keep related nodes near each other; ids are the migration anchor and are
- * passed straight through to placements (never remapped).
- */
-export interface FlatLeafSummary {
-  id: string;
-  title: string;
-  kind: string;
-  tags: string[];
-  summary: string;
-  relates_to: string[];
-  sourcePath: string;
-}
-
-/**
  * Clustering function: given the flat leaves, return one placement per leaf
  * assigning it to a topical folder. Production execs the host harness; tests
  * inject a deterministic stub so the suite never spawns the harness or the LLM.
  */
-export type ClusterFn = (leaves: FlatLeafSummary[]) => TreeifyPlacement[] | Promise<TreeifyPlacement[]>;
+export type ClusterFn = (leaves: FlatLeaf[]) => TreeifyPlacement[] | Promise<TreeifyPlacement[]>;
 
 export interface TreeifyOptions {
   /**
@@ -98,23 +82,13 @@ export async function runTreeify(opts: TreeifyOptions = {}): Promise<number> {
     return 0;
   }
 
-  const summaries: FlatLeafSummary[] = leaves.map(leaf => ({
-    id: leaf.id,
-    title: leaf.title,
-    kind: leaf.kind,
-    tags: leaf.tags,
-    summary: leaf.summary,
-    relates_to: leaf.relates_to,
-    sourcePath: leaf.sourcePath,
-  }));
-
   const cluster = opts.cluster ?? makeHarnessCluster(opts.harness);
-  const proposed = await cluster(summaries);
+  const proposed = await cluster(leaves);
 
   // Ids are the anchor: every placement must name a known leaf, and every leaf
   // must be placed. Surface a clear error and make no writes otherwise (the
   // write primitive is all-or-nothing, but fail fast with a readable message).
-  const placements = reconcilePlacements(summaries, proposed);
+  const placements = reconcilePlacements(leaves, proposed);
 
   const results = writeTreeifyPlacements(paths.nodesDir, placements);
 
@@ -145,7 +119,7 @@ export async function runTreeify(opts: TreeifyOptions = {}): Promise<number> {
  * placement so a bad clustering result aborts before any write.
  */
 function reconcilePlacements(
-  leaves: FlatLeafSummary[],
+  leaves: FlatLeaf[],
   proposed: TreeifyPlacement[]
 ): TreeifyPlacement[] {
   const byId = new Map(leaves.map(l => [l.id, l]));
@@ -184,7 +158,7 @@ const CLUSTER_INSTRUCTIONS =
  * tests inject a stub instead).
  */
 function makeHarnessCluster(harnessFlag: string | undefined): ClusterFn {
-  return (leaves: FlatLeafSummary[]): TreeifyPlacement[] => {
+  return (leaves: FlatLeaf[]): TreeifyPlacement[] => {
     const root = findRepoRoot();
     const paths = repoPaths(root);
     const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
@@ -215,11 +189,8 @@ function makeHarnessCluster(harnessFlag: string | undefined): ClusterFn {
   };
 }
 
-/**
- * Parses a harness clustering response into placements. Exported for the
- * launcher; the host-harness path uses it after capturing stdout.
- */
-export function parsePlacements(raw: string): TreeifyPlacement[] {
+/** Parses a harness clustering response into placements. */
+function parsePlacements(raw: string): TreeifyPlacement[] {
   const json = extractJsonPayload(raw);
   const parsed = PlacementResponseSchema.parse(JSON.parse(json));
   // sourcePath is filled in by reconcilePlacements against the read leaves.

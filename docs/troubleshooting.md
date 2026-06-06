@@ -24,7 +24,7 @@ Session logs are stuck pending.
 
 - Background extraction runs at the start of the **next** Claude Code session. Open a new one.
 - Make sure `claude` is on PATH in the shell that runs the hook.
-- A stale `proposal-drain` lock can block extraction. Check `.ai/kenkeep/.state/state.json`; wait for the TTL (30 min) or clear the `lock` field manually. (Curate and bootstrap no longer hold a state lock. They run in a single host session, single-author by design.)
+- A stale `proposal-drain` lock can block extraction. Check `.ai/kenkeep/.state/state.json`; wait for the TTL (30 min) or clear the `lock` field manually. (Curate and bootstrap don't take a state lock — they run single-author in one host session.)
 
 ## `/kk-curate` says "no pending sessions"
 

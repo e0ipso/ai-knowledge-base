@@ -73,8 +73,8 @@ export function runLint(opts: LintOptions): LintResult {
   }
 
   // Every folder under nodes/ must carry a generated index.md (the table of
-  // contents for that folder). Directory placement is topical; kind no longer
-  // determines or constrains it.
+  // contents for that folder). Directory placement is topical and independent
+  // of kind.
   for (const dir of foldersUnder(opts.nodesDir)) {
     if (!existsSync(join(dir, INDEX_FILENAME))) {
       errors.push({
@@ -137,9 +137,8 @@ export function runLint(opts: LintOptions): LintResult {
 
 /**
  * Asserts filename/id agreement and that the leaf carries a stable, canonical
- * id (`<kind>-<slug>`). The kind prefix is part of the id (identity), but kind
- * no longer constrains directory placement, so the old kind/directory agreement
- * check is gone.
+ * id (`<kind>-<slug>`). The kind prefix is part of the id (identity); directory
+ * placement is topical and unconstrained by kind.
  */
 function checkSlugId(node: NodeFile): string | null {
   const { id, kind } = node.frontmatter;

@@ -113,9 +113,9 @@ function isDirectory(p: string): boolean {
  * are never treated as leaves. Directory entries are visited in deterministic
  * (lexicographic) order so downstream generation is byte-stable.
  *
- * `kind` is read from frontmatter only; it no longer constrains directory
- * placement. The old flat `nodes/<kind>/` layout is rejected up front via
- * `assertNotOldLayout` (clean break, no migrator).
+ * `kind` is a frontmatter facet only and does not constrain directory placement
+ * (placement is topical). `assertNotOldLayout` runs first and rejects the flat
+ * `nodes/<kind>/` layout.
  *
  * Aggregates parse and schema failures across the whole tree and throws a
  * single `InvalidNodeFrontmatterError` listing every offending file. Callers
@@ -188,18 +188,6 @@ function collectLeafNodes(
 
 function toPosixRel(rootDir: string, fullPath: string): string {
   return relative(rootDir, fullPath).split(sep).join(posix.sep);
-}
-
-/**
- * Builds an id -> current-relative-path map over the leaf set. Index
- * generation resolves cross-reference ids to the current path through this map
- * so relocation never breaks a reference ("path is presentation, id is
- * identity").
- */
-export function buildIdToPath(nodes: NodeFile[]): Map<string, string> {
-  const m = new Map<string, string>();
-  for (const n of nodes) m.set(n.frontmatter.id, n.relPath);
-  return m;
 }
 
 function formatFailures(failures: NodeLoadFailure[]): string {
@@ -300,9 +288,8 @@ export function slugify(input: string): string {
 }
 
 /**
- * Derives a node id from a kind and title. `kind` remains part of the id (the
- * id format `<kind>-<slug>` is identity and unchanged); it no longer determines
- * the on-disk directory.
+ * Derives a node id from a kind and title. The id format is `<kind>-<slug>`;
+ * `kind` is part of the id but does not determine the on-disk directory.
  */
 export function deriveNodeId(kind: NodeKind, title: string): string {
   return `${kind}-${slugify(title)}`;
@@ -319,8 +306,7 @@ export function nodeFilename(id: string): string {
 
 /**
  * Resolves the on-disk path for a leaf. `relDir` is the topical folder under
- * `nodes/` (POSIX-style, may be empty for the `nodes/` root). Directory
- * placement no longer derives from `kind`.
+ * `nodes/` (POSIX-style, may be empty for the `nodes/` root).
  */
 export function nodeFilePath(nodesDir: string, id: string, relDir = ''): string {
   const dir = relDir ? join(nodesDir, ...relDir.split(posix.sep)) : nodesDir;
@@ -328,8 +314,7 @@ export function nodeFilePath(nodesDir: string, id: string, relDir = ''): string 
 }
 
 /**
- * True if a leaf with `id` exists anywhere in the topical tree (placement is no
- * longer keyed by `kind`).
+ * True if a leaf with `id` exists anywhere in the topical tree.
  */
 export function nodeFileExists(nodesDir: string, id: string): boolean {
   return findNodeById(nodesDir, id) !== null;
@@ -350,8 +335,8 @@ export interface WriteNodeArgs {
   body: string;
   /**
    * Topical home folder under `nodes/` (POSIX-style, may be empty for the
-   * `nodes/` root). Directory placement no longer derives from `kind`; curation
-   * picks the best-fitting existing folder and threads it here. An empty or
+   * `nodes/` root). Curation picks the best-fitting existing folder and threads
+   * it here. An empty or
    * omitted value is the deliberate root fallback. A value that escapes `nodes/`
    * is rejected by `resolveLeafDir` before any disk write.
    */

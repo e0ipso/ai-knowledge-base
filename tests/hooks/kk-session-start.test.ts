@@ -1,5 +1,5 @@
 import { execFile } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import matter from 'gray-matter';
@@ -199,10 +199,4 @@ describe('per-harness SessionStart injection (tree descent)', () => {
     ).hookSpecificOutput.additionalContext;
     expect(ctx).toContain('kenkeep index is stale');
   });
-});
-
-// Keep tree-cleanup tidy if a sandbox leaks despite afterEach.
-afterEach(() => {
-  const stale = join(repoRoot, '.kk-session-start-leak');
-  if (existsSync(stale)) rmSync(stale, { recursive: true, force: true });
 });

@@ -126,8 +126,8 @@ catalog `INDEX.md` (the SessionStart entry point); `GRAPH.md` is the full edge
 listing.
 
 - **`kind` is a facet, not a directory.** `kind` (`map` / `practice`) drives only
-  the Conventions / Components rendering split; it no longer determines or
-  constrains directory placement. Folders are topical.
+  the Conventions / Components rendering split, not directory placement. Folders
+  are topical.
 - **Tree over DAG.** Containment is a tree (one parent folder per leaf). The
   `relates_to` / `depends_on` cross references stay a cross-tree DAG overlay,
   resolved by `id`.

@@ -11,7 +11,7 @@ import {
 import { dirname, isAbsolute, join, posix, relative, sep } from 'node:path';
 import matter from 'gray-matter';
 import { z } from 'zod';
-import { ensureUniqueId, INDEX_FILENAME, readAllNodes, slugify } from './nodes.js';
+import { deriveNodeId, ensureUniqueId, INDEX_FILENAME, readAllNodes } from './nodes.js';
 import { NodeFrontmatterSchema } from './schemas.js';
 
 /**
@@ -263,7 +263,7 @@ export function applyRebalancePlan(nodesDir: string, plan: RebalancePlan): Rebal
       mkdirSync(destDir, { recursive: true });
       const mintedIds: string[] = [];
       for (const child of op.children) {
-        const base = `${old.frontmatter.kind}-${slugify(child.title)}`;
+        const base = deriveNodeId(old.frontmatter.kind, child.title);
         const id = ensureUniqueId(existingIds, base);
         existingIds.add(id);
         mintedIds.push(id);

@@ -170,7 +170,6 @@ describe('index rebuild', () => {
     const result = await runCli(sandbox, ['index', 'rebuild', '--stage']);
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('already match nodes/');
-    // (the no-op short-circuit message)
     const { stdout } = await exec('git', ['diff', '--cached', '--name-only'], { cwd: sandbox });
     expect(stdout.trim()).toBe('');
   });

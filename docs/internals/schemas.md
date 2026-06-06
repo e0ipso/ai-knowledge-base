@@ -15,8 +15,8 @@ Every YAML frontmatter and JSON state file is validated by a Zod schema at read 
 ## Node (`nodes/<topic>/<id>.md`)
 
 Leaf nodes live in topical folders under `nodes/` at any depth; the filename is
-always `<id>.md`. Directory placement is topical and no longer derives from
-`kind`. Every folder under `nodes/` also carries a generated `index.md` (an
+always `<id>.md`. Directory placement is topical. Every folder under `nodes/`
+also carries a generated `index.md` (an
 index node, see below), which is never a leaf.
 
 ```yaml

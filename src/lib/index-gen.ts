@@ -2,7 +2,6 @@ import { writeFileSync } from 'node:fs';
 import { posix } from 'node:path';
 import matter from 'gray-matter';
 import {
-  buildIdToPath,
   computeNodesHash,
   hashLeaves,
   readAllNodes,
@@ -156,7 +155,7 @@ function deterministicIntent(relDir: string): string {
 
 /**
  * Generate one deterministic `index.md` body per directory under `nodesDir`,
- * recursively, as a pure function of the leaf set plus an injected `now`. Each
+ * recursively, as a pure function of the leaf set. Each
  * body rolls up its own directory only: child leaf nodes (title, summary, tags)
  * and child subfolders (a deterministic intent line plus rollup stats), ordered
  * by global graph in-degree then title.
@@ -167,7 +166,6 @@ function deterministicIntent(relDir: string): string {
 export function generateIndex(nodesDir: string): GeneratedIndex {
   const nodes = readAllNodes(nodesDir);
   const inDegree = computeInDegree(nodes);
-  const idToPath = buildIdToPath(nodes);
   const cmp = makeCatalogComparator(inDegree);
 
   const hash = computeNodesHash(nodesDir);
@@ -207,7 +205,6 @@ export function generateIndex(nodesDir: string): GeneratedIndex {
       subDirs,
       leavesByDir,
       inDegree,
-      idToPath,
       // Per-folder hash: a leaf edit only perturbs the hash recorded in that
       // leaf's own folder index, leaving unrelated folder indexes byte-stable.
       nodesHash: hashLeaves(leaves),
@@ -233,7 +230,6 @@ export function generateIndex(nodesDir: string): GeneratedIndex {
     subDirs: rootSubDirs,
     leavesByDir,
     inDegree,
-    idToPath,
     nodesHash: hash,
   });
 
@@ -252,7 +248,6 @@ interface RenderFolderArgs {
   subDirs: string[];
   leavesByDir: Map<string, NodeFile[]>;
   inDegree: Map<string, number>;
-  idToPath: Map<string, string>;
   nodesHash: string;
 }
 

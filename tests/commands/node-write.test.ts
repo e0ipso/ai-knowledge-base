@@ -27,8 +27,8 @@ function sandbox(): string {
       assistants: ['claude'],
     })
   );
-  // Topical tree: leaves live directly under nodes/ (placement is no longer
-  // keyed by kind). The node-write primitive defaults to the nodes/ root.
+  // Topical tree: leaves live directly under nodes/ (placement is topical,
+  // independent of kind). The node-write primitive defaults to the nodes/ root.
   mkdirSync(join(root, '.ai/kenkeep/nodes'), { recursive: true });
   return root;
 }
