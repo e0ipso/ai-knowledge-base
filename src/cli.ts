@@ -194,7 +194,7 @@ async function main(): Promise<void> {
   nodeGroup
     .command('write')
     .description(
-      'Headless primitive: atomically write a single node to nodes/<kind>/<id>.md with Zod-validated frontmatter and slug-collision resolution. Body read from stdin (default) or --from <path>. Prints the resolved id to stdout. When both --source-doc and --source-hash are passed, also updates bootstrap-state.json per-file hash map.'
+      'Headless primitive: atomically write a single node to nodes/<folder>/<id>.md (or nodes/<id>.md at the root when --folder is omitted) with Zod-validated frontmatter and slug-collision resolution. The folder is presentation only; the id is folder-independent. Body read from stdin (default) or --from <path>. Prints the resolved id to stdout. When both --source-doc and --source-hash are passed, also updates bootstrap-state.json per-file hash map.'
     )
     .argument('<kind>', 'node kind: practice or map')
     .argument('<slug>', 'proposed id base (kind prefix added automatically when missing)')
@@ -204,6 +204,10 @@ async function main(): Promise<void> {
     .option('--relates-to <list>', 'comma-separated node ids')
     .option('--confidence <level>', 'low, medium, or high (default: high)')
     .option('--from <path>', 'read body from <path> instead of stdin')
+    .option(
+      '--folder <relpath>',
+      'existing home folder under nodes/ (POSIX-style); omitted/empty lands the leaf at the nodes/ root'
+    )
     .option('--source-doc <relpath>', 'source markdown doc (repo-relative); requires --source-hash')
     .option('--source-hash <sha256>', 'sha256 hex digest of --source-doc; requires --source-doc')
     .action(
@@ -217,6 +221,7 @@ async function main(): Promise<void> {
           relatesTo?: string;
           confidence?: string;
           from?: string;
+          folder?: string;
           sourceDoc?: string;
           sourceHash?: string;
         }
@@ -228,6 +233,7 @@ async function main(): Promise<void> {
         if (opts.relatesTo !== undefined) flags.relatesTo = opts.relatesTo;
         if (opts.confidence !== undefined) flags.confidence = opts.confidence;
         if (opts.from !== undefined) flags.from = opts.from;
+        if (opts.folder !== undefined) flags.folder = opts.folder;
         if (opts.sourceDoc !== undefined) flags.sourceDoc = opts.sourceDoc;
         if (opts.sourceHash !== undefined) flags.sourceHash = opts.sourceHash;
         const code = await runNodeWriteCommand({ kind, slug, flags });

@@ -27,6 +27,12 @@ export interface NodeWriteFlags {
   from?: string;
   sourceDoc?: string;
   sourceHash?: string;
+  /**
+   * Target home folder relative to `nodes/` (POSIX-style). When omitted or
+   * empty, the leaf lands at the `nodes/` root (the deliberate root fallback).
+   * Placement is presentation only; the resolved id is folder-independent.
+   */
+  folder?: string;
 }
 
 export interface NodeWriteDeps {
@@ -45,10 +51,13 @@ export interface NodeWriteArgs {
 }
 
 /**
- * Headless primitive: write a single node to `nodes/<kind>/<id>.md` with
- * atomic tmp+rename, Zod-validated frontmatter, slug-collision resolution
- * via `ensureUniqueId`, and (optionally) folded `bootstrap-state.json`
- * hash-map update.
+ * Headless primitive: write a single node to `nodes/<folder>/<id>.md` (or
+ * `nodes/<id>.md` at the root when `--folder` is omitted) with atomic
+ * tmp+rename, Zod-validated frontmatter, slug-collision resolution via
+ * `ensureUniqueId` over the whole tree, and (optionally) folded
+ * `bootstrap-state.json` hash-map update. The folder is presentation only; the
+ * id is identity and is independent of placement. A folder that escapes
+ * `nodes/` is rejected before any disk write.
  *
  * Body source: stdin by default, or `--from <path>`. Pick one.
  *
@@ -136,8 +145,12 @@ export async function runNodeWriteCommand(
       throw new Error(`frontmatter validation failed:\n${lines.join('\n')}`);
     }
 
-    // 1) Write the node file (atomic tmp+rename inside writeNodeFile).
-    writeNodeFile({ nodesDir: paths.nodesDir, frontmatter: validated.data, body });
+    // 1) Write the node file (atomic tmp+rename inside writeNodeFile). The
+    //    folder is presentation: a non-empty `--folder` places the leaf into
+    //    that existing folder under `nodes/`; empty/omitted lands at the root.
+    //    `writeNodeFile` rejects a folder that escapes `nodes/` before any write.
+    const relDir = (args.flags.folder ?? '').trim();
+    writeNodeFile({ nodesDir: paths.nodesDir, frontmatter: validated.data, body, relDir });
 
     // 2) If both source flags were provided, fold the per-file hash-map
     //    update into the same invocation. Separate atomic write; if this

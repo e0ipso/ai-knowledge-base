@@ -8,7 +8,7 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
-import { dirname, join, posix, relative, sep } from 'node:path';
+import { dirname, isAbsolute, join, posix, relative, sep } from 'node:path';
 import matter from 'gray-matter';
 import { z } from 'zod';
 import {
@@ -349,23 +349,46 @@ export interface WriteNodeArgs {
   frontmatter: NodeFrontmatter;
   body: string;
   /**
-   * Topical folder under `nodes/` (POSIX-style, may be empty for the `nodes/`
-   * root). Directory placement no longer derives from `kind`. Curation-driven
-   * home-branch placement arrives in a later plan; until then leaves default to
-   * the `nodes/` root.
+   * Topical home folder under `nodes/` (POSIX-style, may be empty for the
+   * `nodes/` root). Directory placement no longer derives from `kind`; curation
+   * picks the best-fitting existing folder and threads it here. An empty or
+   * omitted value is the deliberate root fallback. A value that escapes `nodes/`
+   * is rejected by `resolveLeafDir` before any disk write.
    */
   relDir?: string;
+}
+
+/**
+ * Resolves and validates a target leaf directory under `nodesDir`. The home
+ * folder is presentation: it may name any existing topical folder, but it must
+ * stay within `nodes/`. A folder that escapes `nodes/` (absolute path or `..`
+ * traversal) is rejected so a caller-supplied placement can never write outside
+ * the knowledge base. Returns the absolute directory; the empty/omitted folder
+ * resolves to the `nodes/` root (the deliberate root fallback, not an error).
+ */
+export function resolveLeafDir(nodesDir: string, relDir = ''): string {
+  if (!relDir) return nodesDir;
+  const resolved = join(nodesDir, ...relDir.split(posix.sep));
+  const rel = relative(nodesDir, resolved);
+  if (rel === '..' || rel.startsWith('..' + sep) || isAbsolute(rel)) {
+    throw new Error(
+      `home folder "${relDir}" escapes nodes/; placement must target a folder under nodes/`
+    );
+  }
+  return resolved;
 }
 
 /**
  * Atomically writes a leaf to `nodes/<relDir>/<id>.md` (or `nodes/<id>.md` when
  * `relDir` is empty). Validates frontmatter, writes to a tmp sibling, then
  * renames into place. Returns the absolute path. The directory is topical and
- * independent of `kind`.
+ * independent of `kind`. A `relDir` that escapes `nodes/` is rejected before any
+ * disk write.
  */
 export function writeNodeFile(args: WriteNodeArgs): string {
   const validated = NodeFrontmatterSchema.parse(args.frontmatter);
-  const filePath = nodeFilePath(args.nodesDir, validated.id, args.relDir ?? '');
+  const targetDir = resolveLeafDir(args.nodesDir, args.relDir ?? '');
+  const filePath = join(targetDir, nodeFilename(validated.id));
   mkdirSync(dirname(filePath), { recursive: true });
   const tmp = `${filePath}.tmp`;
   const out = matter.stringify(args.body.trimEnd() + '\n', validated);
