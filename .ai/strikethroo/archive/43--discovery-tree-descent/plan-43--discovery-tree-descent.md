@@ -174,3 +174,32 @@ The graph is acyclic. Task 1 is the foundation (the shared directive constant an
 - ✔️ Task 4 (completed): Update documentation to describe root-only injection and the descent model (`AGENTS.md`, `docs/how-it-works.md`, `docs/internals/hooks.md`).
 
 Every task is in exactly one phase, no task runs before its dependencies, and Phase 1 contains only the zero-dependency task.
+
+## Execution Summary
+
+- **Status**: Completed Successfully
+- **Completed Date**: 2026-06-06
+
+### Results
+
+The discovery surface now enters at the root index node and descends on demand.
+
+- `src/lib/session-start.ts` exports `KK_NAVIGATION_DIRECTIVE` (the single descent directive source) and injects it in place of the grep-the-flat-catalog directive. The injected body remains the root index node (`.ai/kenkeep/INDEX.md`, the top-level catalog of branches and root-level leaves carrying the global `nodes_hash`); deep leaves surface only as subfolder rollup counts, so the payload is bounded and independent of total node count. The `nodes_hash` drift/staleness line, the curation-queue nudge (quiet and loud variants), and the lint summary are preserved unchanged, as is the `SessionStartResult` contract and the `buildNudgeContent` / `summarizePendingSessions` / `countPendingSessions` signatures.
+- `src/commands/init.ts` rewrites the static `kenkeep:kk-index` pointer block (written by both init and upgrade via the shared `updateAgentsMd` helper) to the descent framing, importing `KK_NAVIGATION_DIRECTIVE` so the hook surface and the always-on file surface share one source of truth. The block markers and the `.ai/kenkeep/INDEX.md` link are preserved, keeping upgrade idempotent.
+- All five harness adapters route the shared root-only body and descent directive through their native channels with no event-name translation: `additionalContext` (Claude, Codex), `additional_context` (Cursor relay), `.opencode/AGENTS.md` (OpenCode), and the `.github/copilot-instructions.md` sentinel block (Copilot, which now also carries the shared descent directive). A new `tests/hooks/kk-session-start.test.ts` integration suite (7 tests) asserts root-only injection, the descent directive, bounded payload growth as deep leaves are added, and the staleness line on `nodes_hash` drift across all channels.
+- `AGENTS.md`, `docs/how-it-works.md`, and `docs/internals/hooks.md` describe root-only injection and the descent model; the dogfooded kk-index pointer block was regenerated to the descent framing; all grep-the-flat-catalog references were removed.
+
+Validation gates (run via the pre-commit suite and out of band): `npm run typecheck` pass, `npm run lint` pass, `npm test` pass (245 tests across 37 files, +7 new).
+
+Commits on `claude/strikethrough-plans-41-45-aPS4y`: `7ab5ca9` (Task 1), `8875e09` (Tasks 2 and 3), `08d946d` (Task 4). All pushed to origin.
+
+### Noteworthy Events
+
+- The recursive root index node from Plan 1 is persisted at `.ai/kenkeep/INDEX.md` (the root folder's `index.md` mirror stamped with the global `nodes_hash`). Because that file already is the root index node, the substantive Task 1 change was the directive swap and the shared-constant export rather than a new file load; the existing `loadIndex` path was retained and its intent re-documented. The drift check therefore stays meaningful (global hash vs. live `nodes/` hash).
+- Copilot's SessionStart path does not use `additionalContext`; it writes the root index node into the `.github/copilot-instructions.md` sentinel block via `readIndexContent`. To keep the descent model consistent across all adapters (`practice-hook-behavior-changes-must-be-applied-to-all-four-harness-adapters`), that path now appends the shared `KK_NAVIGATION_DIRECTIVE` to the injected content.
+- The committed working tree's `.ai/kenkeep/INDEX.md` is still in the pre-tree flat layout and `nodes/index.md` files are absent: the live KB has not yet been migrated by the supervised treeify command, and the KB nodes are left uncommitted for human acceptance per kenkeep convention. This plan operates on the generator output and test fixtures, not on the live KB content, so no migration was performed here.
+- Pre-existing em dashes remain in untouched lines of `AGENTS.md` and in the preserved `buildNudgeContent` status line; no new em dashes were introduced in any changed text, and the lint gate passes.
+
+### Necessary follow-ups
+
+- None for this plan. Richer curated index-node summaries (to mitigate under-disclosure when a branch's deterministic rollup is thin) are explicitly later work, as noted in the plan's risk section. The live KB migration to the tree layout remains a separate supervised treeify step.
