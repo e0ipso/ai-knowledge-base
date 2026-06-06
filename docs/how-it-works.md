@@ -19,6 +19,8 @@ When a session ends, a hook saves the transcript to `.ai/kenkeep/_sessions/`. Yo
 
 Run `/kk-curate` (the system nudges you once transcripts pile up). It reads the captured sessions, drafts proposed notes, writes them under `.ai/kenkeep/nodes/`, then rebuilds the per-folder `index.md` table-of-contents tree (and the root catalog `INDEX.md`) plus `GRAPH.md`.
 
+As it relates each new note to its neighbors, the curator does two things in the same pass: it sets the note's cross edges (which existing notes it links to) and it picks the note's home branch (the existing folder under `nodes/` whose subtree fits best). The note is written into that folder. Identity is the note id and is independent of where the note lives, so the same note could sit in any folder and its links never move. When no existing folder fits well, the note lands at the `nodes/` root; a later pass relocates it. Curation places notes into existing folders only and never creates, splits, or merges folders.
+
 When a proposed note contradicts one you already have, the curator never overwrites it silently. It records the conflict, and `/kk-curate` walks each one with you: accept the new note, reject it, or keep the conflict as a record. This walkthrough is the only way contradictions get resolved.
 
 ## 3. Review (you decide)

@@ -49,10 +49,12 @@ The curator reads every captured session that's been processed but not yet curat
 
 | Decision | Effect |
 |---|---|
-| **add** | Writes `nodes/<kind>/<id>.md`. Fails loud if the file already exists. |
-| **modify** | Overwrites the target node. Fails loud if `target_node_id` is missing on disk. |
+| **add** | Writes the new note into its home branch, the best-fitting existing folder under `nodes/` (or the `nodes/` root when nothing fits). The note id is independent of the folder. |
+| **modify** | Updates the target note in place at its current path by id, with no relocation. Fails loud if `target_node_id` is missing on disk. |
 | **contradict** | Records the conflict under `.ai/kenkeep/conflicts/<id>.md` with `status: pending`; writes nothing to `nodes/`. |
 | **drop** | No change. |
+
+The curator names where each new note lives: as it relates a note to its neighbors, the same reasoning pass picks the home branch. Curation places notes into existing folders only and never creates, splits, or merges folders. The end-of-run summary lists the placement decision per written note (the folder it landed in, or `root fallback`) so you can review placement alongside content.
 
 ### Fast path
 
