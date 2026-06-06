@@ -187,6 +187,15 @@ export const CuratorActionSchema = z.object({
   target_node_id: z.string().nullable(),
   proposed_node: CuratorProposedNodeSchema.nullable(),
   rationale: z.string(),
+  /**
+   * Chosen existing folder relative to `nodes/` for a new-leaf `add` (the home
+   * branch picked by the relate ranking). Absent, null, or empty selects the
+   * `nodes/` root fallback. Placement is presentation only and never changes the
+   * node id; `modify`, `contradict`, and `drop` actions never set it. The
+   * writer's `--folder` guard owns traversal rejection, so this field only
+   * carries the value through dedup.
+   */
+  home_folder: z.string().nullable().optional(),
 });
 export type CuratorAction = z.infer<typeof CuratorActionSchema>;
 
