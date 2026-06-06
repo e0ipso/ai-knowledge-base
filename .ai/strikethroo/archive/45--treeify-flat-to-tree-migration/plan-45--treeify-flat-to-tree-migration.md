@@ -169,10 +169,10 @@ Yes, this plan updates documentation. Required updates:
 **Parallel Tasks:**
 - ✔️ Task 003: Treeify supervised launcher: cluster leaves into topical folders, write placements, rebuild indexes, and report (depends on: 001, 002) — `completed`
 
-### Phase 3: Verification and documentation
+### Phase 3: Verification and documentation ✅
 **Parallel Tasks:**
-- Task 004: Tests for the treeify migration critical path and refuse-on-migrated tree (depends on: 003)
-- Task 005: Treeify migration documentation and uncommitted KB nodes (depends on: 003)
+- ✔️ Task 004: Tests for the treeify migration critical path and refuse-on-migrated tree (depends on: 003) — `completed`
+- ✔️ Task 005: Treeify migration documentation and uncommitted KB nodes (depends on: 003) — `completed`
 
 ### Dependency Diagram
 
@@ -191,3 +191,29 @@ After Phase 3 completes successfully, the plan's Self Validation section is sati
 ### Execution Summary
 - Total Phases: 3
 - Total Tasks: 5
+
+## Execution Summary
+
+**Status**: Completed Successfully
+**Completed Date**: 2026-06-06
+
+### Results
+
+Plan 45 landed across three phases. Phases 1 and 2 (the deterministic write primitive, layout detection / refuse-on-migrated-tree, and the supervised launcher) were implemented and committed before this run (`5ad3f21`, `06305ff`); this run resumed at Phase 3 after a container suspension, verified the unvalidated phases 1-2 code, and completed the verification and documentation phase.
+
+- **Task 004 (tests).** Added `tests/commands/treeify.test.ts`: four integration tests driving the real `runTreeify` launcher with an injected deterministic clustering stub (no host harness, no LLM) against a freshly `init`-ed flat-KB fixture. They assert the happy path (every leaf placed in its topical folder, `id` unchanged, `relates_to` / `depends_on` / `derived_from` edges unchanged, only `schema_version` bumped, no other frontmatter key added or changed, and a `id -> folder` report line per leaf), the all-or-nothing no-overwrite abort (a pre-occupied target throws `TreeifyTargetExistsError` with zero writes), the refuse-on-already-migrated path (nonzero exit, clustering never invoked, zero filesystem changes), and a post-migration dangling-ref check reusing doctor's `collectDanglingDerivedFrom`. Committed as `320fd54`.
+- **Task 005 (docs + KB nodes).** Added a "Migrate an existing flat knowledge base" section to `docs/installation.md`, two troubleshooting entries to `docs/troubleshooting.md` (refuse-on-already-migrated and the `git restore` discard path for an interrupted run), and an `AGENTS.md` note that existing flat KBs cross the layout change via the one-time supervised `treeify` rather than re-bootstrapping. Authored two KB nodes in the existing flat-node format: `map-treeify-command` and `practice-treeify-is-supervised-and-never-overwrites`, left uncommitted on disk for human acceptance per the supervised model. Docs/AGENTS.md committed as `15457fa`; the two KB nodes remain untracked.
+
+Validation gates all green: `npm run typecheck` passes, `npm run lint` passes (eslint + detect-harness drift), `npm test` passes 232/232 across 36 files (228 baseline + 4 new treeify tests). No em dashes in any added line. The built CLI `treeify` command was smoke-verified to refuse on an already-migrated tree with the expected message (Self Validation step 5).
+
+### Noteworthy Events
+
+- **Resumed mid-blueprint after suspension.** A previous agent was killed after committing phases 1-2 with no validation gates ever run. This run treated the phases 1-2 treeify code as unverified, ran the full gates as a baseline, and found it correct: typecheck, lint, and all 228 baseline tests passed unchanged. No bugs were found in the tasks 1-3 code; no fixes were required.
+- **One test-expectation correction during authoring.** The happy-path test initially asserted the old `nodes/practice` and `nodes/map` directories were absent after migration. The write primitive removes the moved leaf files but leaves the now-empty parent directories, so the assertion was corrected to check that each leaf's old `nodes/<kind>/<id>.md` file is gone (the load-bearing invariant) rather than the directory. This was a test bug, not a production bug.
+- **KB nodes intentionally left uncommitted.** Per task 5's acceptance criteria and the constitution's human-in-the-loop rule, the two new KB nodes were written to disk but not staged or committed; the maintainer accepts them by `git commit` or rejects by deleting them. The flat node format (`schema_version: 1`, `nodes/<kind>/`) was used to match every existing node in this repository's own not-yet-migrated KB.
+- **Branch.** Executed entirely on the existing `claude/strikethrough-plans-41-45-aPS4y` branch; no feature branch was created, and each task was committed and pushed immediately to survive any further suspension.
+
+### Necessary follow-ups
+
+- **Supervised self-migration (Self Validation step 6).** The plan defers migrating this repository's own flat `.ai/kenkeep/nodes/` to a supervised human run; it is not a task gate. A maintainer should run `npx kenkeep treeify` on a scratch copy (or this repo) and review the result before the flat KB is migrated for real.
+- **Accept or reject the two new KB nodes.** `map-treeify-command` and `practice-treeify-is-supervised-and-never-overwrites` await human review on disk.
