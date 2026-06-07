@@ -66,14 +66,14 @@ Before a significant release - schema bump, capture/curate/consume behavior chan
 
 ## Schema-version bump policy
 
-Every frontmatter and JSON state file in the system carries `schema_version: 1`. The policy is **strict**: any breaking change to the on-disk shape gets a clean break - there are no migrators, no compatibility shims, and no legacy code paths. Users on the old shape re-initialize.
+Every frontmatter and JSON state file in the system carries a `schema_version`. The policy is **strict**: any breaking change to the on-disk shape gets a clean break - no compatibility shims and no legacy code paths in the readers. The reader rejects the old shape and users on it re-initialize.
 
 Concretely:
 
 - **Bump `schema_version`** when: removing a field; renaming a field; changing the semantics of a field; making a previously-optional field required.
 - **Do not bump** when: adding an optional field; adding a new enum case; relaxing a constraint.
 
-When you bump, the reader rejects v1 files with a clear error directing the user to re-run `init`. Do not write a migrator.
+When you bump, the reader rejects older files with a clear error directing the user to re-run `init`.
 
 ## Prompt versioning
 

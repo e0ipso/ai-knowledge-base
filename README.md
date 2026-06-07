@@ -11,7 +11,6 @@
 
 <p align="center">
   <a href="https://www.npmjs.com/package/kenkeep"><img src="https://img.shields.io/npm/v/kenkeep?style=flat-square&label=npm&color=D14781&labelColor=2b2230" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/kenkeep"><img src="https://img.shields.io/npm/dm/kenkeep?style=flat-square&color=D14781&labelColor=2b2230" alt="npm downloads"></a>
   <a href="https://github.com/e0ipso/kenkeep/actions/workflows/test.yml"><img src="https://img.shields.io/github/actions/workflow/status/e0ipso/kenkeep/test.yml?style=flat-square&label=tests&color=D14781&labelColor=2b2230" alt="tests"></a>
   <a href="package.json"><img src="https://img.shields.io/node/v/kenkeep?style=flat-square&color=D14781&labelColor=2b2230" alt="node version"></a>
   <a href="LICENSE"><img src="https://img.shields.io/npm/l/kenkeep?style=flat-square&color=D14781&labelColor=2b2230" alt="MIT license"></a>

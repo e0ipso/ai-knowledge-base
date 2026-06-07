@@ -8,12 +8,12 @@ import { runIndexRebuild } from './commands/index-rebuild.js';
 import { runInit } from './commands/init.js';
 import { runLintCommand } from './commands/lint.js';
 import { runLogsPrune } from './commands/logs-prune.js';
+import { runMigrate } from './commands/migrate.js';
 import { runSessionLogUpdateProposalsCommand } from './commands/session-log-update-proposals.js';
 import { runNodeAddLauncher } from './commands/node-add.js';
 import { runNodeWriteCommand } from './commands/node-write.js';
 import { runRebalanceMove, runRebalanceTrigger } from './commands/rebalance.js';
 import { runStatus } from './commands/status.js';
-import { runTreeify } from './commands/treeify.js';
 import { listHarnessIds } from './harnesses/registry.js';
 import { log } from './lib/log.js';
 import { packageVersion } from './lib/version.js';
@@ -167,16 +167,17 @@ async function main(): Promise<void> {
       runBootstrapLauncher(launchOpts);
     });
 
+  // Hidden: brings an on-disk knowledge base up to the current storage schema.
+  // Reads the version on disk, runs the matching step(s), rebuilds indexes, and
+  // stops for review. Writes files only; accept by commit or reject by restore.
   program
-    .command('treeify')
-    .description(
-      'One-time supervised migration of an existing flat nodes/<kind>/ knowledge base into the nested topical tree layout. Clusters leaves into folders (via the active harness), preserves ids and edges, bumps schema_version, rebuilds indexes, and stops. Writes files only; review with `git diff` and accept by commit or reject by `git restore`. Refuses on an already-migrated tree.'
-    )
+    .command('migrate', { hidden: true })
+    .description('Bring the on-disk knowledge base up to the current storage schema.')
     .action(async () => {
-      const treeifyOpts: Parameters<typeof runTreeify>[0] = {};
+      const migrateOpts: Parameters<typeof runMigrate>[0] = {};
       const harnessFlag = getHarnessFlag();
-      if (harnessFlag !== undefined) treeifyOpts.harness = harnessFlag;
-      const code = await runTreeify(treeifyOpts);
+      if (harnessFlag !== undefined) migrateOpts.harness = harnessFlag;
+      const code = await runMigrate(migrateOpts);
       process.exit(code);
     });
 

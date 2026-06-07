@@ -13,7 +13,7 @@ export function atomicWriteJson(file: string, data: unknown): void {
  * Atomically writes a string to `file`: ensures the parent directory exists,
  * writes to a tmp sibling, then renames into place so an interrupted run never
  * leaves a partially written file. Mirrors the leaf-write pattern in
- * `nodes.ts` for callers (e.g. treeify) that already hold serialized content.
+ * `nodes.ts` for callers that already hold serialized content.
  */
 export function atomicWriteFile(file: string, content: string): void {
   mkdirSync(dirname(file), { recursive: true });

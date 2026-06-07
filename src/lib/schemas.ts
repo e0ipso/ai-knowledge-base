@@ -4,9 +4,7 @@ import { z } from 'zod';
  * Schema version for node, index, and graph artifacts. At version 2, `kind` is a
  * frontmatter facet that does not determine directory placement, leaves live in a
  * nested topical folder tree, and every folder carries a generated `index.md`. The
- * reader rejects any `schema_version: 1` artifact and points the user to re-init;
- * there is no migrator (see `practice-strict-schema-version-bump-policy`). The
- * `treeify` command migrates existing flat knowledge bases.
+ * reader rejects any `schema_version: 1` artifact and points the user to re-init.
  */
 export const NODE_SCHEMA_VERSION = 2;
 

@@ -14,10 +14,7 @@ Every YAML frontmatter and JSON state file is validated by a Zod schema at read 
 
 ## Node (`nodes/<topic>/<id>.md`)
 
-Leaf nodes live in topical folders under `nodes/` at any depth; the filename is
-always `<id>.md`. Directory placement is topical. Every folder under `nodes/`
-also carries a generated `index.md` (an
-index node, see below), which is never a leaf.
+Leaf nodes live in topical folders under `nodes/` at any depth; the filename is always `<id>.md`. Every folder under `nodes/` also carries a generated `index.md` (an index node, see below), which is never a leaf.
 
 ```yaml
 ---
@@ -39,7 +36,7 @@ Validated by `NodeFrontmatterSchema`. Git history is the timeline of record; the
 
 | Field | Meaning |
 |---|---|
-| `schema_version` | Integer schema marker. A mismatch is a parse failure; the reader rejects the old flat layout / `schema_version: 1` and points to re-init (no migrator). |
+| `schema_version` | Integer schema marker. A mismatch is a parse failure; the reader rejects the old flat layout / `schema_version: 1` and points to re-init. |
 | `id` | Stable identifier `<kind>-<slug>`. Referenced by `relates_to`, `depends_on`, `derived_from`, and `target_node_id` on curator actions. All cross references are by `id`; path is presentation. |
 | `title` | Human-readable label rendered in the folder's index node. |
 | `kind` | `practice` (how we build) or `map` (what exists). A pure facet: drives only the Conventions / Components rendering split, NOT directory placement. |
@@ -165,13 +162,7 @@ nodes_hash: sha256:<hex>
 node_count: 47
 ```
 
-Validated by `IndexFrontmatterSchema` / `GraphFrontmatterSchema`. Every folder
-under `nodes/` carries a generated `index.md` index node: a deterministic
-table-of-contents rollup of that folder's child leaves and immediate
-subfolders, ordered by global graph in-degree then title. The `nodes/` root
-index node is mirrored at the top-level catalog `INDEX.md`. `node_count` on a
-folder's index node is that folder's direct leaf count. Index nodes are
-generated artifacts and are excluded from `nodes_hash`.
+Validated by `IndexFrontmatterSchema` / `GraphFrontmatterSchema`. Every folder under `nodes/` carries a generated `index.md` index node — a deterministic table-of-contents rollup of its child leaves and immediate subfolders, ordered by graph in-degree then title; the `nodes/` root index node is mirrored at the top-level catalog `INDEX.md`. `node_count` is the folder's direct leaf count. Index nodes are generated artifacts, excluded from `nodes_hash`.
 
 ### `nodes_hash` algorithm
 
@@ -184,9 +175,7 @@ Deterministic, mtime-independent. Defined in `computeNodesHash` (`src/lib/nodes.
 5. Join with `\n`.
 6. `nodes_hash = sha256(joined)`.
 
-Generated `index.md` files are excluded so the hash is not self-referential: a
-rebuild rewrites every `index.md`, and if those fed the hash, every rebuild
-would change it and break source-drift detection.
+Generated `index.md` files are excluded so the hash isn't self-referential: a rebuild rewrites every `index.md`, and if those fed the hash, every rebuild would change it and break drift detection.
 
 ## State files
 
