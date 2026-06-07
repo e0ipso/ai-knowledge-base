@@ -1,6 +1,6 @@
 ---
 schema_version: 2
-nodes_hash: 'sha256:38f594660a11ebdef1c01d829343bc885ca29e3494e206f51d50e2c9951a39f0'
+nodes_hash: 'sha256:5afee27d6ac5b71d4a0f8f14670bb604d34c1b3d988abed821868e81f24e979a'
 node_count: 57
 ---
 # kenkeep Graph
@@ -370,9 +370,10 @@ Total nodes: 57
 ## practice-document-model-recommendations-with-harness-agnostic-framing-2
 
 - **kind:** practice
-- **title:** Document model recommendations with harness-agnostic framing
+- **title:** Avoid harness favoritism in examples and recommendations
 - **path:** conventions/practice-document-model-recommendations-with-harness-agnostic-framing-2.md
-- **tags:** documentation, harness, models, recommendations
+- **tags:** documentation, harness, models, recommendations, examples, configuration
+- **relates_to:** map-config-yaml
 
 ## practice-dont-run-llm-pipelines-in-ci
 

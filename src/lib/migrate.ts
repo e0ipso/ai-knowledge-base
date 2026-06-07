@@ -11,6 +11,12 @@ import { INDEX_FILENAME } from './nodes.js';
 export interface MigrationStep {
   readonly from: number;
   readonly to: number;
+  /**
+   * True when `run()` drives an LLM-backed harness. The dispatcher refuses the
+   * migration unless an explicit `--harness` was passed, so an LLM step never
+   * silently falls back to env/config-resolved harness selection.
+   */
+  readonly requiresHarness: boolean;
   /** Applies the step to the working tree; returns human-readable report lines. */
   run(): Promise<string[]>;
 }

@@ -200,6 +200,38 @@ describe('migrate (deterministic primitives)', () => {
     expect(report).toContain('practice-gamma -> storage');
   });
 
+  it('refuses an LLM-backed migration when no --harness is passed, and changes nothing', async () => {
+    const nodesDir = await makeFlatKb(sandbox);
+    expect(detectSchemaVersion(nodesDir)).toBe(1);
+
+    // Snapshot the flat tree to prove the guard fires before any write.
+    const snapshot = new Map<string, string>();
+    for (const leaf of collectLeaves(nodesDir)) {
+      snapshot.set(relative(nodesDir, leaf), readFileSync(leaf, 'utf8'));
+    }
+
+    process.chdir(sandbox);
+    const errs: string[] = [];
+    const origErr = console.error;
+    console.error = (...a: unknown[]) => errs.push(a.join(' '));
+    let code: number;
+    try {
+      // No `cluster` override (so the step is LLM-backed) and no harness flag:
+      // the dispatcher must refuse before spawning the harness.
+      code = await runMigrate({});
+    } finally {
+      console.error = origErr;
+    }
+
+    expect(code).toBe(1);
+    expect(errs.join('\n')).toContain('--harness');
+    // The flat KB is untouched: still version 1, nothing moved into a folder.
+    expect(detectSchemaVersion(nodesDir)).toBe(1);
+    for (const [rel, content] of snapshot) {
+      expect(readFileSync(join(nodesDir, rel), 'utf8')).toBe(content);
+    }
+  });
+
   it('refuses to overwrite an existing target and leaves the KB unchanged (all-or-nothing)', async () => {
     const nodesDir = await makeFlatKb(sandbox);
 
