@@ -1,6 +1,7 @@
 import { execFileSync, type ExecFileSyncOptions } from 'node:child_process';
 import { z } from 'zod';
 import { resolveActiveHarness } from '../harnesses/detect.js';
+import { listHarnessIds } from '../harnesses/registry.js';
 import { extractJsonPayload } from '../lib/json-extract.js';
 import { log } from '../lib/log.js';
 import { detectSchemaVersion, planMigration, type MigrationStep } from '../lib/migrate.js';
@@ -47,6 +48,18 @@ export async function runMigrate(opts: MigrateOptions = {}): Promise<number> {
 
   const plan = planMigration(buildSteps(opts), current, NODE_SCHEMA_VERSION);
 
+  // An LLM-backed step must not silently pick a harness from the env or config:
+  // fail fast unless the caller named one explicitly with `--harness`.
+  const harnessProvided = typeof opts.harness === 'string' && opts.harness.trim() !== '';
+  if (!harnessProvided && plan.some(step => step.requiresHarness)) {
+    log.error(
+      'This migration clusters nodes with an LLM in your coding agent and needs an ' +
+        'explicit harness. Re-run as `kenkeep --harness <id> migrate` (one of: ' +
+        `${listHarnessIds().join(', ')}).`
+    );
+    return 1;
+  }
+
   const report: string[] = [];
   for (const step of plan) {
     report.push(...(await step.run()));
@@ -80,6 +93,9 @@ function flatToTreeStep(opts: MigrateOptions): MigrationStep {
   return {
     from: 1,
     to: 2,
+    // The clustering step shells out to the host harness, except when a
+    // deterministic `cluster` override is injected (the test path).
+    requiresHarness: opts.cluster === undefined,
     async run(): Promise<string[]> {
       const paths = repoPaths(findRepoRoot());
       const leaves = readAllNodesFlat(paths.nodesDir);

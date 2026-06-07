@@ -173,6 +173,12 @@ async function main(): Promise<void> {
   program
     .command('migrate', { hidden: true })
     .description('Bring the on-disk knowledge base up to the current storage schema.')
+    .addHelpText(
+      'after',
+      `\nMigrations that cluster nodes run an LLM in your coding agent and require an\n` +
+        `explicit harness, passed as a global flag before the subcommand:\n` +
+        `  kenkeep --harness <id> migrate   (one of: ${listHarnessIds().join(', ')})\n`
+    )
     .action(async () => {
       const migrateOpts: Parameters<typeof runMigrate>[0] = {};
       const harnessFlag = getHarnessFlag();
