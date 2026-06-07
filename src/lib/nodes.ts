@@ -58,10 +58,8 @@ export class InvalidNodeFrontmatterError extends Error {
 
 /**
  * Thrown when the on-disk knowledge base uses the old flat `nodes/<kind>/`
- * layout (or `schema_version: 1`). The tree-storage clean break (plan 41,
- * `practice-strict-schema-version-bump-policy`) rejects the old shape outright
- * rather than misparsing it; there is no migrator. The message points the user
- * to re-init.
+ * layout (or `schema_version: 1`). The reader rejects the old shape outright
+ * rather than misparsing it; the message points the user to re-init.
  */
 export class OldLayoutError extends Error {
   constructor(detail: string) {
@@ -69,7 +67,7 @@ export class OldLayoutError extends Error {
       `${detail} kenkeep now stores nodes in a nested topical folder tree ` +
         `(schema_version ${NODE_SCHEMA_VERSION}); the old flat nodes/<kind>/ layout is no ` +
         `longer readable. Re-initialize with \`npx kenkeep init --upgrade\` (or remove the ` +
-        `old nodes/ tree and re-init). There is no automatic migration in this version.`
+        `old nodes/ tree and re-init).`
     );
     this.name = 'OldLayoutError';
   }

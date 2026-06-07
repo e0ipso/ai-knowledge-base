@@ -49,18 +49,18 @@ The curator reads every captured session that's been processed but not yet curat
 
 | Decision | Effect |
 |---|---|
-| **add** | Writes the new note into its home branch, the best-fitting existing folder under `nodes/` (or the `nodes/` root when nothing fits). The note id is independent of the folder. |
-| **modify** | Updates the target note in place at its current path by id, with no relocation. Fails loud if `target_node_id` is missing on disk. |
+| **add** | Writes the new note into the best-fitting existing folder under `nodes/` (or the `nodes/` root when nothing fits). The note id is independent of the folder. |
+| **modify** | Updates the target note in place by id; no relocation. Fails loud if `target_node_id` is missing on disk. |
 | **contradict** | Records the conflict under `.ai/kenkeep/conflicts/<id>.md` with `status: pending`; writes nothing to `nodes/`. |
 | **drop** | No change. |
 
-The curator names where each new note lives: as it relates a note to its neighbors, the same reasoning pass picks the home branch. Curation places notes into existing folders only and never creates, splits, or merges folders. The end-of-run summary lists the placement decision per written note (the folder it landed in, or `root fallback`) so you can review placement alongside content.
+The home folder is chosen in the same pass that links a note to its neighbors. Curation only places notes in existing folders; it never creates, splits, or merges them. The end-of-run summary lists each written note's placement (its folder, or `root fallback`) so you can review placement alongside content.
 
 ### Rebalance (act-and-fold)
 
-Structural upkeep folds into curate as its last phase; there is no separate command and no extra nudge. A deterministic, LLM-free trigger checks the per-folder metrics with a hysteresis margin. If nothing trips, the phase is skipped and curate ends exactly as before. If a threshold trips, the LLM splits a folder, splits a bloated note, merges a sparse branch, or creates a branch for a novel top-level topic, on the affected branches only.
+Structural upkeep folds into curate as its last phase — no separate command, no extra nudge. A deterministic, LLM-free trigger checks the per-folder metrics with a hysteresis margin; if nothing trips, the phase is skipped. When a threshold trips, the LLM splits a folder, splits a bloated note, merges a sparse branch, or creates a branch for a new topic, on the affected branches only.
 
-The structural changes land in the **same** working-tree diff as the note writes (act-and-fold). The only review gate is the one you already use: `git diff` to inspect, then `git commit` to accept everything, or a path-scoped `git restore <path>` to reject just the structural moves while keeping the note writes (or the reverse). Moves preserve content byte-for-byte, so `git diff --summary` shows them as `R` renames rather than churn; ids stay stable so cross references survive. Curate prints a structural summary as a legend for the diff. To undo a whole rebalance, restore the moved paths; to keep it, commit.
+The moves land in the **same** diff as the note writes (act-and-fold), reviewed with the gate you already use: `git diff` to inspect, `git commit` to accept, or a path-scoped `git restore <path>` to reject just the moves. They preserve content byte-for-byte, so `git diff --summary` shows them as `R` renames; ids stay stable, so cross references survive. Curate prints a structural summary as a legend for the diff.
 
 ### Fast path
 

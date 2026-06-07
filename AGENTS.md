@@ -57,32 +57,13 @@ PRD.md                    # authoritative product spec
 
 ### Knowledge base storage (tree over DAG)
 
-The knowledge base is a nested topical folder **tree**. Leaf nodes (today's
-documents) live in topical folders under `.ai/kenkeep/nodes/`, at any depth.
-Every folder carries a generated `index.md` (an **index node**): a deterministic
-table-of-contents rollup of that folder's child leaves (title, summary, tags)
-and its immediate subfolders (a deterministic intent line plus rollup stats),
-ordered by global graph in-degree then title. The top-level catalog mirrors the
-`nodes/` root index node at `.ai/kenkeep/INDEX.md` (the SessionStart-injected
-entry point); `.ai/kenkeep/GRAPH.md` is the full edge listing. SessionStart
-injects **only** the root index node, a bounded payload independent of total
-node count, plus a descent navigation directive: enter at the root, pick one or
-more relevant branches by intent and tags, read their branch index nodes,
-descend only as deep as the task needs, open only confirmed-relevant leaves, and
-follow `relates_to` / `depends_on` cross edges to reach related leaves in other
-branches. Multiple branches can be relevant and the agent chooses depth.
+Leaf nodes (the documents) live in topical folders under `.ai/kenkeep/nodes/` at any depth. Every folder carries a generated `index.md` (an **index node**): a deterministic table-of-contents rollup of its child leaves and immediate subfolders, ordered by graph in-degree then title. The `nodes/` root index node is mirrored at `.ai/kenkeep/INDEX.md` (the SessionStart entry point); `.ai/kenkeep/GRAPH.md` is the full edge listing.
 
-`kind` (`map` / `practice`) is a pure frontmatter facet: it drives only the
-Conventions / Components rendering split, **not** directory placement. Folders
-are topical and free of `kind`.
-
-Containment is a tree (each leaf has exactly one parent folder), while the
-`relates_to` / `depends_on` cross references stay a cross-tree **DAG overlay**,
-always resolved by `id`. **Path is presentation; `id` is identity.** No node
-references another by path; index generation resolves each `id` to its current
-path, so relocation never breaks a reference. `nodes_hash` is computed over leaf
-nodes only and excludes every generated `index.md` (a hash over generated
-artifacts would be self-referential).
+- **`kind` is a facet, not a directory.** `kind` (`map` / `practice`) drives only the Conventions / Components rendering split; folders are topical and free of `kind`.
+- **Tree over DAG.** Each leaf has one parent folder; `relates_to` / `depends_on` stay a cross-tree DAG overlay, resolved by `id`.
+- **Path is presentation; `id` is identity.** No node references another by path — index generation resolves each `id` to its current path, so relocation never breaks a reference.
+- **`nodes_hash` excludes generated `index.md`.** It covers leaf nodes only; hashing generated artifacts would be self-referential.
+- **SessionStart injects only the root index node** — bounded, independent of node count — plus a descent directive: pick relevant branches by intent and tags, read their index nodes, descend only as deep as the task needs, open only confirmed-relevant leaves, follow cross edges.
 
 ## Conventions
 
@@ -96,15 +77,12 @@ artifacts would be self-referential).
 
 ### Schema versions
 
-Node, index, and graph artifacts carry `schema_version: 2` (bumped for the tree
-storage clean break: `kind` became a facet and leaves moved into a topical
-folder tree); other frontmatter and JSON state files still carry
-`schema_version: 1`. Policy is **[strict — clean break, no migrators](.ai/kenkeep/nodes/practice/practice-strict-schema-version-bump-policy.md)**:
+Node, index, and graph artifacts carry `schema_version: 2` (the tree-storage clean break); other frontmatter and JSON state files carry `schema_version: 1`. Policy is **[strict — clean break](.ai/kenkeep/nodes/practice/practice-strict-schema-version-bump-policy.md)**:
 
 - **Bump** when removing/renaming a field, changing field semantics, or making an optional field required.
 - **Do not bump** when adding optional fields, adding enum cases, or relaxing constraints.
 
-When you bump, the reader rejects the old shape with a clear error pointing the user to re-run `init`. **Do not write a migrator, compatibility shim, or legacy code path.** The node reader rejects the old flat `nodes/<kind>/` layout (or `schema_version: 1` nodes) outright and points the user to re-init. Existing knowledge bases cross this one layout change with the one-time supervised `treeify` command, not by re-bootstrapping: `treeify` clusters the flat leaves into the topical tree, preserving every id and edge and bumping `schema_version`, then stops for review (`git diff` to inspect, `git commit` to accept, `git restore` to reject). It refuses on an already-migrated tree. This is the migration itself, not an ongoing runtime shim. See [map-treeify-command](.ai/kenkeep/nodes/map/map-treeify-command.md) and [practice-treeify-is-supervised-and-never-overwrites](.ai/kenkeep/nodes/practice/practice-treeify-is-supervised-and-never-overwrites.md).
+When you bump, the reader rejects the old shape with a clear error pointing the user to re-run `init`. The node reader rejects the old flat `nodes/<kind>/` layout (or `schema_version: 1` nodes) outright and points the user to re-init.
 
 ### Prompt versioning
 
@@ -116,10 +94,7 @@ Each `src/templates-source/prompts/*.md` and `src/templates-source/claude/comman
 - One logical change per PR. Branch from `main`. Doc updates land in the same PR as the code change.
 - No manual tagging, no manual `npm publish`. Do not bump `version` in `package.json` by hand.
 
-### Capture, curation, rebalance, and discovery pipeline
-
-The lifecycle is capture (automatic, on session end) then curation (you run `/kk-curate`), with rebalance folded in as curate's final phase, and discovery (the SessionStart-injected root index node plus the descent directive) feeding the tree back into every session. Capture and discovery run on their own; you trigger curation and review the resulting diff.
-
+### Capture, curation, and rebalance pipeline
 
 - **[`KENKEEP_BUILDER_INTERNAL=1` must be set on the harness child the CLI launchers exec](.ai/kenkeep/nodes/practice/practice-recursion-guard-kk-builder-internal.md)** (`bootstrap`, `curate`, `node add` all exec `<harness> -p "/kk-<name>"`). The proposal-drain hook also propagates it onto its headless child. Without the guard, the spawned session's own SessionStart hooks fire and you get infinite recursion.
 - **Proposal extraction is two-tier.** Async `SessionStart` hooks drain pending session logs via the headless CLI when eligible (non-Claude harness + CLI binary on PATH). `/kk-curate` extracts any still-`pending` logs inline (Step 0), then runs curation — whether that queue is partial or the full set.
@@ -127,7 +102,7 @@ The lifecycle is capture (automatic, on session end) then curation (you run `/kk
 - The `session-log update-proposals` CLI primitive writes validated proposal JSON into session log frontmatter. Used by the `/kk-curate` inline extraction step; deterministic, no LLM.
 - **Capture writes session logs directly.** The capture hook parses the transcript and writes `_sessions/*.md` without built-in secret scanning. End users may configure pre-commit or CI secret scanners separately. See [map-capture-hook](.ai/kenkeep/nodes/map/map-capture-hook.md).
 - **[The curator never auto-resolves contradictions.](.ai/kenkeep/nodes/practice/practice-curator-never-auto-resolves-contradictions.md)** It writes one markdown file per conflict under [`.ai/kenkeep/conflicts/<run-id>-<n>.md`](.ai/kenkeep/nodes/map/map-conflict-files.md) and lets the `kk-curate` skill walk them with the human.
-- **Rebalance is curate's final phase, act-and-fold, never a separate command.** A deterministic, LLM-free trigger (`rebalance trigger`) reads the per-folder metrics with a hysteresis margin; when nothing trips the LLM phase is skipped at zero cost. When it fires, the LLM proposes split-folder / split-leaf / merge / create-branch on the affected branches only, and the deterministic `rebalance move` primitive applies them as content-byte-stable, id-stable git renames (split-leaf mints new ids plus a `nodes/.redirects.json` redirect), then drives the rebuild. Structural and curation changes share one uncommitted diff; the human accepts by `git commit` or rejects just the structural moves with a path-scoped `git restore`. The trigger and the post-move rebuild stay deterministic; non-determinism is quarantined to the clustering decision behind the commit gate. See [map-rebalance-phase](.ai/kenkeep/nodes/map/map-rebalance-phase.md) and [practice-rebalance-trigger-is-deterministic-and-hysteresis-gated](.ai/kenkeep/nodes/practice/practice-rebalance-trigger-is-deterministic-and-hysteresis-gated.md).
+- **Rebalance is curate's final phase, act-and-fold, never a separate command.** A deterministic, LLM-free trigger (`rebalance trigger`) reads the per-folder metrics with a hysteresis margin; nothing trips → the LLM phase is skipped at zero cost. When it fires, the LLM proposes split-folder / split-leaf / merge / create-branch on the affected branches only, and the deterministic `rebalance move` primitive applies them as byte-stable, id-stable git renames (split-leaf mints new ids plus a `nodes/.redirects.json` redirect) and drives the rebuild. Structural and curation changes share one uncommitted diff — accept by `git commit`, reject just the moves with a path-scoped `git restore`. Non-determinism is quarantined to the clustering decision behind the commit gate. See [map-rebalance-phase](.ai/kenkeep/nodes/map/map-rebalance-phase.md) and [practice-rebalance-trigger-is-deterministic-and-hysteresis-gated](.ai/kenkeep/nodes/practice/practice-rebalance-trigger-is-deterministic-and-hysteresis-gated.md).
 - **[Bootstrap never overwrites existing nodes.](.ai/kenkeep/nodes/practice/practice-bootstrap-never-overwrites-existing-nodes.md)** Collisions are skipped and reported. Incremental bootstrap behaves the same. Bootstrap is also [supervised and judgmental, not exhaustive](.ai/kenkeep/nodes/practice/practice-bootstrap-is-supervised-and-judgmental.md).
 - **Bootstrap scope is controlled by `.kkignore` at the repo root plus an optional `--from <scope>` on the launcher.** `bootstrap` walks the repo root by default; `--from <subdir>` narrows the walk. `init` writes a `.kkignore` stub on first run (and on `init --upgrade` when the file is missing) that denies the registered harnesses' instruction directories. Harness memory ingestion (`CLAUDE.md` and friends, via `listMemoryFiles()`) bypasses `.kkignore` entirely.
 - **[Do not run `curate` or `bootstrap` in CI.](.ai/kenkeep/nodes/practice/practice-dont-run-llm-pipelines-in-ci.md)** They launch the host harness in `-p` mode and run the LLM — human-supervised by design.

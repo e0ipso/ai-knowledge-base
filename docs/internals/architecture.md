@@ -115,33 +115,13 @@ Running two `curate` (or `bootstrap`) launchers against the same repo concurrent
 
 ## Knowledge base storage (tree over DAG)
 
-The knowledge base is a nested topical folder **tree**, not a flat two-bucket
-layout. Leaf nodes (the documents) live in topical folders under
-`.ai/kenkeep/nodes/` at any depth. Every folder carries a generated `index.md`
-(an **index node**): a deterministic table-of-contents rollup of that folder's
-child leaves (title, summary, tags) and its immediate subfolders (a
-deterministic intent line plus rollup statistics), ordered by global graph
-in-degree then title. The `nodes/` root index node is mirrored at the top-level
-catalog `INDEX.md` (the SessionStart entry point); `GRAPH.md` is the full edge
-listing.
+Leaf nodes (the documents) live in topical folders under `.ai/kenkeep/nodes/` at any depth. Every folder carries a generated `index.md` (an **index node**): a deterministic table-of-contents rollup of its child leaves and immediate subfolders, ordered by graph in-degree then title. The `nodes/` root index node is mirrored at the top-level catalog `INDEX.md` (the SessionStart entry point); `GRAPH.md` is the full edge listing.
 
-- **`kind` is a facet, not a directory.** `kind` (`map` / `practice`) drives only
-  the Conventions / Components rendering split, not directory placement. Folders
-  are topical.
-- **Tree over DAG.** Containment is a tree (one parent folder per leaf). The
-  `relates_to` / `depends_on` cross references stay a cross-tree DAG overlay,
-  resolved by `id`.
-- **Path is presentation; `id` is identity.** No node references another by path.
-  Index generation resolves each `id` to its current path, so relocation never
-  breaks a reference. `generateIndex` returns one `index.md` body per directory
-  plus per-folder metrics (occupancy, tag diversity, leaf size) for later
-  consumption.
-- **`nodes_hash` excludes generated `index.md`.** The hash covers leaf nodes only;
-  hashing the generated index nodes would be self-referential and perturb the
-  hash on every rebuild.
-- **Clean break, no migrator.** Node/index/graph artifacts are `schema_version: 2`.
-  The reader rejects the old flat `nodes/<kind>/` layout (or `schema_version: 1`)
-  with a re-init message; a one-time flat-to-tree migration is a separate plan.
+- **`kind` is a facet, not a directory.** `kind` (`map` / `practice`) drives only the Conventions / Components rendering split; folders are topical.
+- **Tree over DAG.** Containment is a tree (one parent folder per leaf); `relates_to` / `depends_on` stay a cross-tree DAG overlay, resolved by `id`.
+- **Path is presentation; `id` is identity.** No node references another by path; index generation resolves each `id` to its current path, so relocation never breaks a reference. `generateIndex` returns one `index.md` body per directory plus per-folder metrics (occupancy, tag diversity, leaf size).
+- **`nodes_hash` excludes generated `index.md`.** The hash covers leaf nodes only; hashing the generated index nodes would be self-referential.
+- **Clean break.** Node/index/graph artifacts are `schema_version: 2`; the reader rejects the old flat `nodes/<kind>/` layout (or `schema_version: 1`) with a re-init message.
 
 ## Determinism contract
 
