@@ -1,9 +1,10 @@
-import { writeFileSync } from 'node:fs';
-import { posix } from 'node:path';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, posix } from 'node:path';
 import matter from 'gray-matter';
 import {
   computeNodesHash,
   hashLeaves,
+  INDEX_FILENAME,
   readAllNodes,
   type NodeFile,
 } from './nodes.js';
@@ -143,6 +144,8 @@ interface RenderRootCatalogArgs {
   inDegree: Map<string, number>;
   /** GLOBAL hash over the whole leaf set, stamped into the frontmatter. */
   nodesHash: string;
+  /** Self-preserved root summary, carried verbatim from the prior ENTRY.md. */
+  summary?: string | undefined;
 }
 
 /**
@@ -163,7 +166,7 @@ interface RenderRootCatalogArgs {
  * SessionStart/doctor staleness checks keep working unchanged.
  */
 function renderRootCatalog(args: RenderRootCatalogArgs): string {
-  const { allNodes, rootLeaves, rootSubDirs, leavesByDir, inDegree, nodesHash } = args;
+  const { allNodes, rootLeaves, rootSubDirs, leavesByDir, inDegree, nodesHash, summary } = args;
   const cmp = makeCatalogComparator(inDegree);
 
   const parts: string[] = [];
@@ -215,10 +218,13 @@ function renderRootCatalog(args: RenderRootCatalogArgs): string {
   }
 
   const body = parts.join('\n');
+  // The summary is the only non-deterministic field; emit no key when absent so
+  // an un-summarized root never stamps `summary: ""`.
   const fm = IndexFrontmatterSchema.parse({
     schema_version: NODE_SCHEMA_VERSION,
     nodes_hash: `sha256:${nodesHash}`,
     node_count: allNodes.length,
+    ...(summary ? { summary } : {}),
   });
   return matter.stringify(body, fm);
 }
@@ -248,6 +254,58 @@ function deterministicIntent(relDir: string): string {
 }
 
 /**
+ * Read a single self-preserved folder `summary` from an on-disk index file.
+ * Returns the trimmed non-empty summary, or `undefined` when the file is
+ * missing, unparseable, fails `IndexFrontmatterSchema`, or carries no/empty
+ * summary. Tolerant by design: a missing summary is the normal brand-new-folder
+ * case, not an error.
+ */
+function harvestSummary(file: string): string | undefined {
+  if (!existsSync(file)) return undefined;
+  let parsed: ReturnType<typeof matter>;
+  try {
+    parsed = matter(readFileSync(file, 'utf8'));
+  } catch {
+    return undefined;
+  }
+  const fm = IndexFrontmatterSchema.safeParse(parsed.data);
+  if (!fm.success) return undefined;
+  const summary = fm.data.summary?.trim();
+  return summary ? summary : undefined;
+}
+
+/**
+ * Snapshot every folder's existing `index.md` summary (keyed by POSIX relDir)
+ * plus the root entry-catalog summary, BEFORE any file is regenerated. Because
+ * `index rebuild` (and the curator/`node add`/rebalance rebuilds) call
+ * `generateIndex` and only write the returned bodies afterwards, reading here
+ * sees the pre-rebuild on-disk state — the snapshot the self-preserve contract
+ * requires (Risk: "self-preserve ordering during a single rebuild").
+ *
+ * The root summary lives in `ENTRY.md` frontmatter, which sits OUTSIDE
+ * `nodesDir` at `<kkDir>/ENTRY.md`; the caller threads its path as `entryFile`.
+ * The root folder (`relDir === ''`) maps to that file; every other folder maps
+ * to `nodes/<dir>/index.md`.
+ */
+function harvestFolderSummaries(
+  nodesDir: string,
+  dirs: Iterable<string>,
+  entryFile?: string
+): Map<string, string> {
+  const summaries = new Map<string, string>();
+  for (const dir of dirs) {
+    const file =
+      dir === ''
+        ? entryFile
+        : join(nodesDir, ...dir.split('/'), INDEX_FILENAME);
+    if (!file) continue;
+    const summary = harvestSummary(file);
+    if (summary !== undefined) summaries.set(dir, summary);
+  }
+  return summaries;
+}
+
+/**
  * Generate one deterministic `index.md` body per directory under `nodesDir`,
  * recursively, as a pure function of the leaf set. Each
  * body rolls up its own directory only: child leaf nodes (title, summary, tags)
@@ -256,8 +314,14 @@ function deterministicIntent(relDir: string): string {
  *
  * "Path is presentation, id is identity": every leaf renders its current path
  * (resolved by id), so later relocation never breaks a reference.
+ *
+ * The single non-deterministic input is each folder's self-preserved `summary`:
+ * harvested from the pre-rebuild on-disk files (`entryFile` for the root,
+ * `nodes/<dir>/index.md` for every other folder) and re-stamped verbatim into
+ * the regenerated frontmatter. `generateIndex` never invents or mutates a
+ * summary; absent it emits no `summary` key.
  */
-export function generateIndex(nodesDir: string): GeneratedIndex {
+export function generateIndex(nodesDir: string, entryFile?: string): GeneratedIndex {
   const nodes = readAllNodes(nodesDir);
   const inDegree = computeInDegree(nodes);
   const cmp = makeCatalogComparator(inDegree);
@@ -276,6 +340,11 @@ export function generateIndex(nodesDir: string): GeneratedIndex {
       dirs.add(acc);
     }
   }
+
+  // Self-preserve: harvest every folder's existing summary (and the root
+  // catalog's) from the pre-rebuild on-disk files before any body is rendered,
+  // so a folder's one-line description survives the otherwise-total rebuild.
+  const harvestedSummaries = harvestFolderSummaries(nodesDir, dirs, entryFile);
 
   const leavesByDir = new Map<string, NodeFile[]>();
   for (const dir of dirs) leavesByDir.set(dir, []);
@@ -301,7 +370,10 @@ export function generateIndex(nodesDir: string): GeneratedIndex {
       inDegree,
       // Per-folder hash: a leaf edit only perturbs the hash recorded in that
       // leaf's own folder index, leaving unrelated folder indexes byte-stable.
+      // The (later) whole-tree `## By topic` block is rendered into the body but
+      // is NOT fed into hashLeaves, so cross-tree churn never moves this hash.
       nodesHash: hashLeaves(leaves),
+      summary: harvestedSummaries.get(dir),
     });
     const metrics: FolderMetrics = {
       occupancy: leaves.length,
@@ -325,6 +397,7 @@ export function generateIndex(nodesDir: string): GeneratedIndex {
     leavesByDir,
     inDegree,
     nodesHash: hash,
+    summary: harvestedSummaries.get(''),
   });
 
   return { folders, rootCatalog, nodesHash: hash, nodeCount };
@@ -343,10 +416,12 @@ interface RenderFolderArgs {
   leavesByDir: Map<string, NodeFile[]>;
   inDegree: Map<string, number>;
   nodesHash: string;
+  /** Self-preserved folder summary, carried verbatim from the prior index.md. */
+  summary?: string | undefined;
 }
 
 function renderFolderIndex(args: RenderFolderArgs): string {
-  const { relDir, leaves, subDirs, leavesByDir, inDegree } = args;
+  const { relDir, leaves, subDirs, leavesByDir, inDegree, summary } = args;
   const cmp = makeCatalogComparator(inDegree);
 
   const byKind: Record<'practice' | 'map', NodeFile[]> = { practice: [], map: [] };
@@ -397,10 +472,13 @@ function renderFolderIndex(args: RenderFolderArgs): string {
   parts.push(renderTagIndex(leaves, inDegree));
 
   const body = parts.join('\n');
+  // The summary is the only non-deterministic field; emit no key when absent so
+  // an un-summarized folder never stamps `summary: ""`.
   const fm = IndexFrontmatterSchema.parse({
     schema_version: NODE_SCHEMA_VERSION,
     nodes_hash: `sha256:${args.nodesHash}`,
     node_count: leaves.length,
+    ...(summary ? { summary } : {}),
   });
   return matter.stringify(body, fm);
 }
