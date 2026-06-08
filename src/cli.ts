@@ -236,7 +236,8 @@ async function main(): Promise<void> {
     .option('--title <title>', 'short title (≤ 80 chars)')
     .option('--summary <summary>', 'one-line summary (≤ 140 chars)')
     .option('--tags <list>', 'comma-separated tags')
-    .option('--relates-to <list>', 'comma-separated node ids')
+    .option('--relates-to <list>', 'comma-separated node ids (loose cross edges)')
+    .option('--depends-on <list>', 'comma-separated node ids this node depends on')
     .option('--confidence <level>', 'low, medium, or high (default: high)')
     .option('--from <path>', 'read body from <path> instead of stdin')
     .option(
@@ -254,6 +255,7 @@ async function main(): Promise<void> {
           summary?: string;
           tags?: string;
           relatesTo?: string;
+          dependsOn?: string;
           confidence?: string;
           from?: string;
           folder?: string;
@@ -266,6 +268,7 @@ async function main(): Promise<void> {
         if (opts.summary !== undefined) flags.summary = opts.summary;
         if (opts.tags !== undefined) flags.tags = opts.tags;
         if (opts.relatesTo !== undefined) flags.relatesTo = opts.relatesTo;
+        if (opts.dependsOn !== undefined) flags.dependsOn = opts.dependsOn;
         if (opts.confidence !== undefined) flags.confidence = opts.confidence;
         if (opts.from !== undefined) flags.from = opts.from;
         if (opts.folder !== undefined) flags.folder = opts.folder;

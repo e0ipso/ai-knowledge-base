@@ -152,6 +152,11 @@ export const NodeFrontmatterSchema = z.object({
   tags: z.array(z.string()),
   derived_from: z.array(z.string()),
   relates_to: z.array(z.string()),
+  // Cross-tree edges resolved by id. `relates_to` is a loose association;
+  // `depends_on` records that this node genuinely depends on another. Both are
+  // rendered in GRAPH.md and dangling-checked by lint. Defaulted so nodes
+  // written before the field existed still parse.
+  depends_on: z.array(z.string()).default([]),
   confidence: ConfidenceSchema,
   summary: z.string(),
 });
@@ -173,6 +178,7 @@ export const CuratorProposedNodeSchema = z
     body: z.string(),
     confidence: ConfidenceSchema,
     relates_to: z.array(z.string()),
+    depends_on: z.array(z.string()).default([]),
   })
   .strict();
 export type CuratorProposedNode = z.infer<typeof CuratorProposedNodeSchema>;

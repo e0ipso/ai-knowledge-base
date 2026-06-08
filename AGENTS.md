@@ -79,7 +79,7 @@ Node, index, and graph artifacts carry `schema_version: 2` (the tree-storage cle
 - **Bump** when removing/renaming a field, changing field semantics, or making an optional field required.
 - **Do not bump** when adding optional fields, adding enum cases, or relaxing constraints.
 
-When you bump, the reader rejects the old shape with a clear error pointing the user to re-run `init` — the node reader rejects the old flat `nodes/<kind>/` layout (or `schema_version: 1` nodes) outright.
+When you bump, the reader rejects the old shape with a clear error pointing the user to run `npx kenkeep --harness <id> migrate` — the node reader rejects the old flat `nodes/<kind>/` layout (or `schema_version: 1` nodes) outright. Migration preserves every node's id and edges; re-running `init` would not migrate existing nodes.
 
 ### Prompt versioning
 

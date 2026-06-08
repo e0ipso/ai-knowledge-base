@@ -1,6 +1,6 @@
 ---
 name: kk-add
-description: Capture a kenkeep node manually from the current session. Writes a new node directly under `.ai/kenkeep/nodes/<kind>/`. The reviewer accepts by leaving the file in place and rejects by deleting it. Use when the user wants to record a project convention, gotcha, rationale, or named-thing into the project knowledge base.
+description: Capture a kenkeep node manually from the current session. Writes a new node directly under `.ai/kenkeep/nodes/`. The reviewer accepts by leaving the file in place and rejects by deleting it. Use when the user wants to record a project convention, gotcha, rationale, or named-thing into the project knowledge base.
 ---
 
 <!-- Version: 3 -->
@@ -11,11 +11,11 @@ Capture one piece of knowledge into the project knowledge base. You draft the no
 
 Ask the user for seven values (do not invent any): **kind** (`practice` or `map`), **title** (≤ 80 chars), **summary** (≤ 140 chars), **tags** (comma-separated), **body** (full markdown; for practice include the rationale), **relates_to** (comma-separated node ids, may be empty), **confidence** (`high`/`medium`/`low`, default `high`).
 
-Before invoking, skim `.ai/kenkeep/INDEX.md` (already in context) for an overlapping node. If one exists, offer to edit it, refine the candidate's title, or drop the capture instead. Push back if the candidate is: code that speaks for itself, history, a debugging recipe, in-flight plan/task content, or general programming knowledge.
+Before invoking, skim `.ai/kenkeep/ENTRY.md` (already in context) and grep `nodes/` for an overlapping node. If one exists, offer to edit it, refine the candidate's title, or drop the capture instead. Push back if the candidate is: code that speaks for itself, history, a debugging recipe, in-flight plan/task content, or general programming knowledge.
 
 ## Resolve the active harness
 
-Substitute your own best-guess id for `<hint>` based on the runtime you are running inside (one of `claude`, `codex`, `cursor`, `opencode`). Run the materialization block exactly as-is (it lazy-writes `/tmp/kk-detect-harness.mjs` on first invocation):
+Substitute your own best-guess id for `<hint>` based on the runtime you are running inside (one of `claude`, `codex`, `copilot`, `cursor`, `opencode`). Run the materialization block exactly as-is (it lazy-writes `/tmp/kk-detect-harness.mjs` on first invocation):
 
 ```bash
 if [ ! -f /tmp/kk-detect-harness.mjs ]; then
@@ -25,7 +25,7 @@ cat << 'EOF' > /tmp/kk-detect-harness.mjs
 // Mirrors src/harnesses/detect.ts resolveWithHint priority.
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-const REGISTERED = ['claude', 'codex', 'cursor', 'opencode'];
+const REGISTERED = ['claude', 'codex', 'copilot', 'cursor', 'opencode'];
 const ENV_DETECTORS = [
   { env: 'CURSOR_VERSION', value: '*nonempty*', harness: 'cursor' },
   { env: 'CLAUDECODE', value: '1', harness: 'claude' },
@@ -124,4 +124,4 @@ EOF
 
 **Slug-collision behavior.** If a node with the proposed slug already exists on disk, `ensureUniqueId` auto-suffixes with `-2`, `-3`, etc., so the printed id may differ from your input slug. This is non-fatal — surface the printed id to the user verbatim so they review the right file. Only hard schema failures (missing `--title`, malformed `--confidence`, etc.) make the command exit non-zero.
 
-After it returns, give the user the printed id and its file path (`nodes/<kind>/<id>.md`), and remind them to review and accept (leave) or reject (`rm`) the file.
+After it returns, give the user the printed id and its file path (`nodes/<id>.md` at the root, since this skill does not pass `--folder`), and remind them to review and accept (leave) or reject (`rm`) the file.

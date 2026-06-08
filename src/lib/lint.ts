@@ -1,9 +1,11 @@
 import { existsSync, readdirSync } from 'node:fs';
 import { join, posix, relative, sep } from 'node:path';
 import { INDEX_FILENAME, readAllNodes, slugify, type NodeFile } from './nodes.js';
+import { readRedirectsLedger, resolveRedirect } from './redirects.js';
 
 export type LintRule =
   | 'dangling-edge'
+  | 'redirected-edge'
   | 'slug-id-mismatch'
   | 'tag-near-duplicate'
   | 'orphan'
@@ -34,8 +36,7 @@ export function runLint(opts: LintOptions): LintResult {
 
   const incomingRefs = new Map<string, Set<string>>();
   for (const node of nodes) {
-    const refs = node.frontmatter.relates_to;
-    for (const ref of refs) {
+    for (const ref of edgeRefs(node)) {
       let set = incomingRefs.get(ref);
       if (!set) {
         set = new Set<string>();
@@ -45,10 +46,23 @@ export function runLint(opts: LintOptions): LintResult {
     }
   }
 
+  // A cross edge (relates_to or depends_on) to a retired id is not a hard
+  // dangling error when the redirects ledger still resolves it to live ids; it
+  // is a fixable finding (repoint the edge). Only an edge that resolves nowhere
+  // is a dangling-edge error.
+  const ledger = readRedirectsLedger(opts.nodesDir);
   for (const node of nodes) {
-    const refs = node.frontmatter.relates_to;
-    for (const ref of refs) {
-      if (!idSet.has(ref)) {
+    for (const ref of edgeRefs(node)) {
+      if (idSet.has(ref)) continue;
+      const live = resolveRedirect(ledger, idSet, ref);
+      if (live.length > 0) {
+        findings.push({
+          rule: 'redirected-edge',
+          file: node.path,
+          message: `edge to retired node ${ref}; superseded by ${live.join(', ')}`,
+          action: `Repoint the edge to ${live.join(', ')}; ${ref} was split or retired and only the redirect ledger still resolves it.`,
+        });
+      } else {
         errors.push({
           rule: 'dangling-edge',
           file: node.path,
@@ -113,7 +127,7 @@ export function runLint(opts: LintOptions): LintResult {
   }
 
   for (const node of nodes) {
-    const outgoing = node.frontmatter.relates_to.length;
+    const outgoing = edgeRefs(node).length;
     const incoming = incomingRefs.get(node.frontmatter.id);
     const incomingFromOthers = incoming
       ? [...incoming].filter(src => src !== node.frontmatter.id).length
@@ -133,6 +147,15 @@ export function runLint(opts: LintOptions): LintResult {
   findings.sort(compareEntries);
 
   return { errors, findings };
+}
+
+/**
+ * Every outgoing cross edge of a leaf, by id: `relates_to` (loose) followed by
+ * `depends_on` (dependency). Both are id-resolved overlay edges, so lint treats
+ * them identically for dangling/redirect detection and orphan counting.
+ */
+function edgeRefs(node: NodeFile): string[] {
+  return [...node.frontmatter.relates_to, ...node.frontmatter.depends_on];
 }
 
 /**

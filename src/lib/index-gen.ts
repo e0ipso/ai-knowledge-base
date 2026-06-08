@@ -451,6 +451,7 @@ export function generateGraph(nodesDir: string): GeneratedGraph {
       lines.push(`- **path:** ${n.relPath}`);
       if (fm.tags.length > 0) lines.push(`- **tags:** ${fm.tags.join(', ')}`);
       if (fm.relates_to.length > 0) lines.push(`- **relates_to:** ${fm.relates_to.join(', ')}`);
+      if (fm.depends_on.length > 0) lines.push(`- **depends_on:** ${fm.depends_on.join(', ')}`);
       if (fm.derived_from.length > 0)
         lines.push(`- **derived_from:** ${fm.derived_from.join(', ')}`);
       lines.push('');

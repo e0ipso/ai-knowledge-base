@@ -27,6 +27,7 @@ function writeNode(
     tags: overrides.tags ?? [],
     derived_from: overrides.derived_from ?? [],
     relates_to: overrides.relates_to ?? [],
+    depends_on: overrides.depends_on ?? [],
     confidence: overrides.confidence ?? 'high',
     summary: overrides.summary ?? 's',
   };
@@ -106,5 +107,44 @@ describe('lint command', () => {
     const combined = result.stdout + result.stderr;
     expect(combined).toContain('slug-id-mismatch');
     expect(combined).toContain('practice-NotASlug.md');
+  });
+
+  it('treats a dangling depends_on edge as an error, like relates_to', async () => {
+    writeNode(sandbox, 'practice', 'practice-src', {
+      id: 'practice-src',
+      depends_on: ['practice-ghost'],
+    });
+    writeNode(sandbox, 'practice', 'practice-anchor', {
+      id: 'practice-anchor',
+      relates_to: ['practice-src'],
+    });
+    const result = await runCli(sandbox, ['lint', '--verbose']);
+    expect(result.exitCode).toBe(1);
+    const combined = result.stdout + result.stderr;
+    expect(combined).toContain('dangling-edge');
+    expect(combined).toContain('practice-ghost');
+  });
+
+  it('resolves an edge to a retired id via the redirects ledger as a finding, not a dangling error', async () => {
+    writeNode(sandbox, 'practice', 'practice-new', { id: 'practice-new' });
+    writeNode(sandbox, 'practice', 'practice-anchor', {
+      id: 'practice-anchor',
+      relates_to: ['practice-retired'],
+    });
+    // The retired id is gone from disk but the ledger maps it to the live id.
+    writeFileSync(
+      join(sandbox, '.ai/kenkeep/nodes/.redirects.json'),
+      `${JSON.stringify({ 'practice-retired': ['practice-new'] }, null, 2)}\n`
+    );
+
+    const result = await runCli(sandbox, ['lint', '--verbose']);
+    // A redirected edge is fixable guidance, not a hard error: exit stays 0.
+    expect(result.exitCode).toBe(0);
+    const combined = result.stdout + result.stderr;
+    expect(combined).toContain('redirected-edge');
+    expect(combined).toContain('practice-new');
+    // No hard dangling error fired for the retired id (the summary still prints
+    // a `dangling-edge: 0` count line, so assert on the error message itself).
+    expect(combined).not.toContain('references unknown node practice-retired');
   });
 });
