@@ -265,6 +265,20 @@ describe('generateIndex self-preserves the folder summary', () => {
     expect(summaryOf(generateIndex(root).folders.get('topic')!.content)).toBe(authored);
   });
 
+  it('reports non-root folders lacking a summary (warn, never block), excluding the root', () => {
+    seedNodes(root, [
+      { dir: 'has', kind: 'map', id: 'map-a', title: 'A', summary: 's' },
+      { dir: 'missing', kind: 'map', id: 'map-b', title: 'B', summary: 's' },
+      { dir: 'also-missing', kind: 'map', id: 'map-c', title: 'C', summary: 's' },
+    ]);
+    writeFolderIndexWithSummary('has', 'this folder has a summary');
+    const out = generateIndex(root);
+    // Sorted, only the un-summarized non-root folders; the root is never listed.
+    expect(out.foldersMissingSummary).toEqual(['also-missing', 'missing']);
+    expect(out.foldersMissingSummary).not.toContain('');
+    expect(out.foldersMissingSummary).not.toContain('has');
+  });
+
   it('editing one leaf leaves every unrelated folder summary byte-stable', () => {
     seedNodes(root, [
       { dir: 'a', kind: 'practice', id: 'practice-a', title: 'A', summary: 'v1', tags: ['x'] },
