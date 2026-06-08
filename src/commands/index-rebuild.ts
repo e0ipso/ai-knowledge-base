@@ -103,6 +103,17 @@ export async function runIndexRebuild(opts: IndexRebuildOptions = {}): Promise<n
     `Regenerated ${index.folders.size} index.md file(s) and GRAPH.md from ${index.nodeCount} node(s).`
   );
 
+  // Warn, never block: list folders that fell back to the Title-cased name
+  // because they carry no self-preserved summary. The rebuild still exits zero;
+  // summaries are authored only at the migrate/rebalance clustering moments (or
+  // by hand), and the parent index renders the name fallback meanwhile.
+  if (index.foldersMissingSummary.length > 0) {
+    log.warn(
+      `${index.foldersMissingSummary.length} folder(s) have no summary (rendering the ` +
+        `Title-cased name fallback): ${index.foldersMissingSummary.join(', ')}.`
+    );
+  }
+
   if (opts.stage) {
     stageIfInGitRepo(root, written);
   }

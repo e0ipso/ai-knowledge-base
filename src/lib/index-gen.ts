@@ -72,6 +72,14 @@ export interface GeneratedIndex {
   /** Global hash over the whole leaf set (excludes generated index.md). */
   nodesHash: string;
   nodeCount: number;
+  /**
+   * Non-root folders (POSIX relDir) that rendered the Title-cased name fallback
+   * because they carry no self-preserved `summary`. The "warn, never block"
+   * contract: `index rebuild` lists these and still exits zero. Sorted, so the
+   * warning is deterministic. The root catalog is excluded (its summary lives in
+   * `ENTRY.md` and is optional).
+   */
+  foldersMissingSummary: string[];
 }
 
 export interface GeneratedGraph {
@@ -491,7 +499,14 @@ export function generateIndex(nodesDir: string, entryFile?: string): GeneratedIn
     folderSummaries: harvestedSummaries,
   });
 
-  return { folders, rootCatalog, nodesHash: hash, nodeCount };
+  // "Warn, never block": collect the non-root folders that fell back to the
+  // Title-cased name because they carry no self-preserved summary, so the
+  // caller (`index rebuild`) can list them and still exit zero.
+  const foldersMissingSummary = [...dirs]
+    .filter(dir => dir !== '' && !harvestedSummaries.has(dir))
+    .sort((a, b) => a.localeCompare(b));
+
+  return { folders, rootCatalog, nodesHash: hash, nodeCount, foldersMissingSummary };
 }
 
 function distinctTagCount(leaves: NodeFile[]): number {

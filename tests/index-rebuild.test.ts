@@ -52,6 +52,20 @@ describe('index rebuild', () => {
     expect(graph).toContain('## map-bar');
   });
 
+  it('warns naming folders that lack a summary (name fallback) and still exits zero', async () => {
+    // writeNode places each leaf in its own topical folder with no summary, so
+    // every such folder falls back to the Title-cased name. Warn, never block.
+    writeNode(sandbox, 'practice', 'practice-foo');
+    const result = await runCli(sandbox, ['index', 'rebuild']);
+    expect(result.exitCode).toBe(0); // warn, never block
+    const out = result.stdout + result.stderr;
+    expect(out).toMatch(/folder\(s\) have no summary/);
+    expect(out).toContain('practice-foo'); // the offending folder is named
+    // The parent (root catalog) renders the Title-cased name fallback pointer.
+    const entry = readFileSync(join(sandbox, '.ai/kenkeep/ENTRY.md'), 'utf8');
+    expect(entry).toContain('for more information on Practice Foo.');
+  });
+
   it('errors when the repo is not initialized', async () => {
     const other = makeSandbox();
     try {
