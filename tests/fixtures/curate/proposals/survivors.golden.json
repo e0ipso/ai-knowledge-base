@@ -13,7 +13,8 @@
       "summary": "high summary",
       "body": "high body",
       "confidence": "high",
-      "relates_to": []
+      "relates_to": [],
+      "depends_on": []
     },
     "rationale": "second add, higher confidence"
   },
@@ -30,7 +31,8 @@
       "summary": "bar high",
       "body": "bar high body",
       "confidence": "high",
-      "relates_to": []
+      "relates_to": [],
+      "depends_on": []
     },
     "rationale": "second modify, higher confidence"
   },

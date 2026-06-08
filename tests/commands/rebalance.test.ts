@@ -162,6 +162,37 @@ describe('rebalance trigger and move (integration)', () => {
     expect(ledger['practice-bloated']).toEqual(splitMove.newIds);
   });
 
+  it('applies a multi-operation plan against the live tree (no stale snapshot)', async () => {
+    // Two leaves in a sparse folder that a LATER op in the same plan relocates.
+    writeLeaf(sandbox, 'sparse', 'practice-a1');
+    writeLeaf(sandbox, 'sparse', 'practice-a2');
+    writeLeaf(sandbox, '', 'practice-keep');
+    await runCli(sandbox, ['index', 'rebuild']);
+    await gitCommitAll(sandbox, 'baseline');
+
+    // op1 merges sparse/ into the root; op2 then pulls one of those just-moved
+    // leaves into a brand-new branch. op2 resolves only if op1's relocation is
+    // visible — a single up-front snapshot would carry the stale sparse/ path
+    // and throw "source leaf not found", failing the whole move.
+    const plan = {
+      operations: [
+        { operation: 'merge', branch: 'sparse', into: '' },
+        { operation: 'create-branch', folder: 'regrouped', ids: ['practice-a1'] },
+      ],
+    };
+    const summary = await move(sandbox, plan);
+
+    expect(summary.moves.some(m => m.operation === 'merge' && m.id === 'practice-a2')).toBe(true);
+    expect(
+      summary.moves.some(m => m.operation === 'create-branch' && m.id === 'practice-a1')
+    ).toBe(true);
+
+    // Final placement: a1 in the new branch, a2 at the root, sparse/ removed.
+    expect(existsSync(join(nodesDir(sandbox), 'regrouped', 'practice-a1.md'))).toBe(true);
+    expect(existsSync(join(nodesDir(sandbox), 'practice-a2.md'))).toBe(true);
+    expect(existsSync(join(nodesDir(sandbox), 'sparse'))).toBe(false);
+  });
+
   it('post-move rebuild is byte-stable (a second rebuild is a no-op)', async () => {
     for (let i = 1; i <= FOLDER_OCCUPANCY_MAX + 2; i += 1) writeLeaf(sandbox, 'over-full', `practice-leaf-${i}`);
     await runCli(sandbox, ['index', 'rebuild']);

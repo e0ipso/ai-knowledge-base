@@ -69,6 +69,41 @@ describe('doctor', () => {
     expect(combined).toContain('skipped');
   });
 
+  it('surfaces the migrate hint (not a crash) on a legacy flat nodes/<kind>/ layout', async () => {
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    // Recreate the old flat layout: a nodes/practice/ bucket holding a leaf and
+    // no per-folder index.md. The reader rejects this as OldLayoutError.
+    const flatDir = join(sandbox, '.ai/kenkeep/nodes/practice');
+    mkdirSync(flatDir, { recursive: true });
+    writeFileSync(
+      join(flatDir, 'practice-old.md'),
+      [
+        '---',
+        'schema_version: 1',
+        'id: practice-old',
+        'title: "legacy node"',
+        'kind: practice',
+        'tags: []',
+        'derived_from: []',
+        'relates_to: []',
+        'confidence: high',
+        'summary: legacy',
+        '---',
+        '',
+        'body',
+      ].join('\n')
+    );
+
+    const result = await runCli(sandbox, ['doctor']);
+
+    expect(result.exitCode).toBe(1);
+    const combined = result.stdout + result.stderr;
+    expect(combined).toContain('node frontmatter valid');
+    expect(combined).toContain('migrate');
+    // The dangling check is skipped because nodes cannot be enumerated.
+    expect(combined).toContain('skipped');
+  });
+
   it('reports a missing kk-lint-tick.cjs as an error in the Claude hooks check', async () => {
     await runCli(sandbox, ['init', '--harnesses', 'claude']);
     rmSync(join(sandbox, '.claude/hooks/kk-lint-tick.cjs'));

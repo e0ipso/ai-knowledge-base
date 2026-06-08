@@ -121,7 +121,7 @@ Leaf nodes (the documents) live in topical folders under `.ai/kenkeep/nodes/` at
 - **Tree over DAG.** Containment is a tree (one parent folder per leaf); `relates_to` / `depends_on` stay a cross-tree DAG overlay, resolved by `id`.
 - **Path is presentation; `id` is identity.** No node references another by path; index generation resolves each `id` to its current path, so relocation never breaks a reference. `generateIndex` returns one `index.md` body per directory plus per-folder metrics (occupancy, tag diversity, leaf size).
 - **`nodes_hash` excludes generated `index.md`.** The hash covers leaf nodes only; hashing the generated index nodes would be self-referential.
-- **Clean break.** Node/index/graph artifacts are `schema_version: 2`; the reader rejects the old flat `nodes/<kind>/` layout (or `schema_version: 1`) with a re-init message.
+- **Clean break.** Node/index/graph artifacts are `schema_version: 2`; the reader rejects the old flat `nodes/<kind>/` layout (or `schema_version: 1`) with a migrate message (`npx kenkeep --harness <id> migrate`), which preserves ids and edges.
 
 ## Determinism contract
 

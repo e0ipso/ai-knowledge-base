@@ -3,7 +3,7 @@ name: kk-curate
 description: Curate pending session logs into kenkeep nodes by reading sessions in-host, drafting curator actions, then deduping and persisting via the kenkeep primitives. Resolves any surfaced contradictions interactively with the user. Use when the user wants to process accumulated session captures, or when the SessionStart nudge reports pending session logs.
 ---
 
-<!-- Version: 1 -->
+<!-- Version: 2 -->
 
 # kk-curate
 
@@ -161,14 +161,14 @@ Each sub-agent receives instructions like the following (inline the rule restate
 >     - **modify**: an existing node covers the same scope and the candidate refines it without negating it; verify `target_node_id` exists on disk first; rewrite the merged body in present-tense end-state (no "previously…" prose).
 >     - **contradict**: candidate directly negates an existing valid node (both cannot be true at the same scope); set `target_node_id` to the tightest-scope match.
 >     - **drop**: near-rephrasing, low-signal, general programming knowledge, change-oriented framing, maintenance/lifecycle actions, project story or any plan/ticket/issue reference, incidental one-off facts dressed up as practices, or non-productive provenance signals; `target_node_id: null`, `proposed_node: null`.
-> - Hard constraints: never cross the practice/map boundary; `proposed_node` keys are exactly `title|kind|tags|summary|body|confidence|relates_to` (any other key will be rejected downstream).
+> - Hard constraints: never cross the practice/map boundary; `proposed_node` keys are `title|kind|tags|summary|body|confidence|relates_to` plus an optional `depends_on` (any other key will be rejected downstream).
 > - Write the actions as a JSON array (top-level) to the absolute path `<DRAFT_PATH>`. The file must contain exactly the JSON array, nothing else.
 > - Return the path on success.
 
 After every sub-agent returns, the **collector turn** runs entirely in the orchestrator's context:
 
 1. For each batch `N`, read its draft file and parse it as JSON.
-2. If parsing fails OR the result is not an array OR any element has unknown keys in `proposed_node` (the schema requires exactly `title|kind|tags|summary|body|confidence|relates_to`), surface to the user: `batch N produced invalid output, skipped`, append a `{"event":"invalid", ...}` line to that batch's `.jsonl`, and continue. **Never abort the run** — partial progress across surviving batches is more valuable than re-running everything.
+2. If parsing fails OR the result is not an array OR any element has unknown keys in `proposed_node` (the schema requires `title|kind|tags|summary|body|confidence|relates_to` and allows an optional `depends_on`), surface to the user: `batch N produced invalid output, skipped`, append a `{"event":"invalid", ...}` line to that batch's `.jsonl`, and continue. **Never abort the run** — partial progress across surviving batches is more valuable than re-running everything.
 3. For each valid batch, append a `{"event":"validated","count":<n>}` line to its `.jsonl`, then concatenate its actions into a single in-memory array.
 4. Mint `$PROPOSALS` now (Step 3's `mktemp` is shared between paths — on the parallel path, do it here, then skip the re-mint in Step 3) and write the concatenated array to it so the rest of the skill is unchanged. A concise idiom:
 
@@ -321,7 +321,7 @@ Field semantics by action:
 | `home_folder` | optional (chosen folder, or omit for root) | omit | omit | omit |
 | `rationale` | required | required | required | required |
 
-The `proposed_node` object (for add/modify/contradict) has **exactly** these keys (no `id`, no `derived_from` — the wrapper stamps both):
+The `proposed_node` object (for add/modify/contradict) has these keys (no `id`, no `derived_from` — the wrapper stamps both):
 
 - `title`: from candidate or refined
 - `kind`: `"practice"` or `"map"`
@@ -330,6 +330,7 @@ The `proposed_node` object (for add/modify/contradict) has **exactly** these key
 - `body`: full markdown body (1–4 short paragraphs)
 - `confidence`: `"low"` | `"medium"` | `"high"`
 - `relates_to`: array of node ids this should link to (especially important for exception-style additions)
+- `depends_on`: optional array of node ids this node genuinely depends on; omit or `[]` when there is no hard dependency
 
 Any other key in `proposed_node` will be rejected by the dedup primitive's schema validation.
 
@@ -385,13 +386,13 @@ For each `add` or `modify`:
    ```bash
    npx --yes kenkeep@latest node write <kind> <slug> \
      --title "<title>" --summary "<summary>" \
-     --tags "<tag1,tag2,...>" --relates-to "<id1,id2,...>" \
+     --tags "<tag1,tag2,...>" --relates-to "<id1,id2,...>" [--depends-on "<id1,id2,...>"] \
      --confidence <high|medium|low> [--folder "<home_folder>"] <<'EOF'
    <body markdown>
    EOF
    ```
 
-   Include `--folder` only for an `add` with a non-empty `home_folder`; omit it for the root fallback and for every `modify`. Do **not** pass `--source-doc` / `--source-hash` here; those flags exist for bootstrap's per-file hash map and do not apply to curated content.
+   Include `--folder` only for an `add` with a non-empty `home_folder`; omit it for the root fallback and for every `modify`. Pass `--depends-on` only when the `proposed_node` set a non-empty `depends_on`; omit it otherwise. Do **not** pass `--source-doc` / `--source-hash` here; those flags exist for bootstrap's per-file hash map and do not apply to curated content.
 
 4. Capture the printed id and the placement (the chosen `home_folder`, or "root fallback" when `--folder` was omitted on an `add`); you report these in Step 7. For `modify`, the printed id should match `target_node_id`; if it does not (because the target was missing on disk and `ensureUniqueId` minted a fresh id), surface this as a warning: the modify was effectively an `add`, and the user should know.
 
@@ -495,7 +496,7 @@ Iterate in that order. Two consecutive conflicts that share the same non-null `t
 For every pending conflict:
 
 1. Read the conflict file. Frontmatter exposes `id`, `status`, `target_node_id`, `proposed_kind`, `proposed_title`, `proposed_confidence`, `candidate_origin`, `run_id`, `detected_at`. The body has two sections: `## Rationale` and `## Proposed node`.
-2. If `target_node_id` is set and this is the first conflict in its group, read `nodes/<proposed_kind>/<target_node_id>.md` and show its title, summary, and the relevant body excerpt ONCE.
+2. If `target_node_id` is set and this is the first conflict in its group, resolve the existing node by id — `Glob` `nodes/**/<target_node_id>.md` (placement is topical, so the node is not at a kind-derived path) — then read it and show its title, summary, and the relevant body excerpt ONCE.
 3. Show the proposed contradiction concisely: `proposed_title`, `proposed_confidence`, the rationale, and the proposed body.
 
 ### 7c. Compute the default
@@ -538,7 +539,7 @@ Parse the reply with these rules:
 
 Map the chosen reply to actions:
 
-- `y` (Accept proposal): rewrite `nodes/<proposed_kind>/<target_node_id>.md` with the proposed body and frontmatter (use `node write` against the existing `target_node_id` as the slug, or `Write` directly if you have the full frontmatter assembled), then `rm .ai/kenkeep/conflicts/<id>.md`.
+- `y` (Accept proposal): rewrite the existing `target_node_id` node in place at its current path — `Glob` `nodes/**/<target_node_id>.md` to locate it (placement is topical) — with the proposed body and frontmatter (use `node write` against the existing `target_node_id` as the slug, which updates in place by id, or `Write` directly to the resolved path if you have the full frontmatter assembled), then `rm .ai/kenkeep/conflicts/<id>.md`.
 - `n` (Reject proposal): `rm .ai/kenkeep/conflicts/<id>.md`. The existing node is unchanged.
 - `s` (Skip): leave the conflict file alone. It re-surfaces on the next curate pass with `status: pending` intact. Do not edit or delete the file.
 - `k` (Keep as record): leave the conflict file on disk as a historical record for later review. The existing node is unchanged. Use this rarely.

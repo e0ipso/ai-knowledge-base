@@ -8,6 +8,7 @@ import {
   computeNodesHash,
   formatIssue,
   InvalidNodeFrontmatterError,
+  OldLayoutError,
   readAllNodes,
 } from '../lib/nodes.js';
 import { findRepoRoot, repoPaths } from '../lib/paths.js';
@@ -181,6 +182,12 @@ function checkNodeFrontmatter(nodesDir: string): FrontmatterCheck {
         canEnumerate: false,
         error: e,
       };
+    }
+    // A flat v1 layout (or schema_version 1) is a clean-break condition, not a
+    // crash: surface the same actionable migrate guidance the reader carries
+    // and skip downstream checks that depend on enumerating nodes.
+    if (e instanceof OldLayoutError) {
+      return { result: err(e.message), canEnumerate: false };
     }
     throw e;
   }

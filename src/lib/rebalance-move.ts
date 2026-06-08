@@ -12,20 +12,8 @@ import { dirname, isAbsolute, join, posix, relative, sep } from 'node:path';
 import matter from 'gray-matter';
 import { z } from 'zod';
 import { deriveNodeId, ensureUniqueId, INDEX_FILENAME, readAllNodes } from './nodes.js';
+import { readRedirectsLedger, writeRedirectsLedger } from './redirects.js';
 import { NodeFrontmatterSchema } from './schemas.js';
-
-/**
- * The redirects ledger filename, stored at the `nodes/` root as
- * `nodes/.redirects.json`. It is the "redirect in history" the plan requires:
- * when split-leaf retires an old id, the ledger records `old id -> [new ids]`
- * so a cross reference to the retired id can still be resolved. It is JSON, not
- * a leaf `.md`, so the node reader and the content hash both ignore it (it is
- * never a node and never perturbs `nodes_hash`).
- */
-export const REDIRECTS_FILENAME = '.redirects.json';
-
-const RedirectsLedgerSchema = z.record(z.string(), z.array(z.string()));
-export type RedirectsLedger = z.infer<typeof RedirectsLedgerSchema>;
 
 /**
  * One sub-document produced by a split-leaf: a brand new leaf carved out of the
@@ -168,27 +156,6 @@ function removeIfEmptyOfLeaves(dir: string): void {
   }
 }
 
-function readLedger(nodesDir: string): RedirectsLedger {
-  const file = join(nodesDir, REDIRECTS_FILENAME);
-  if (!existsSync(file)) return {};
-  try {
-    const parsed = RedirectsLedgerSchema.safeParse(JSON.parse(readFileSync(file, 'utf8')));
-    return parsed.success ? parsed.data : {};
-  } catch {
-    return {};
-  }
-}
-
-function writeLedger(nodesDir: string, ledger: RedirectsLedger): void {
-  const file = join(nodesDir, REDIRECTS_FILENAME);
-  const sortedKeys = Object.keys(ledger).sort();
-  const ordered: RedirectsLedger = {};
-  for (const k of sortedKeys) ordered[k] = ledger[k] ?? [];
-  const tmp = `${file}.tmp`;
-  writeFileSync(tmp, `${JSON.stringify(ordered, null, 2)}\n`);
-  renameSync(tmp, file);
-}
-
 /**
  * Apply a deterministic rebalance operation plan to the tree under `nodesDir`.
  * Moves preserve content byte-for-byte (git renames), ids stay stable for
@@ -196,20 +163,30 @@ function writeLedger(nodesDir: string, ledger: RedirectsLedger): void {
  * redirect for the retired id. This function does NOT rebuild indexes and does
  * NOT touch git; the command wrapper drives the deterministic rebuild and the
  * human accepts by commit / rejects by path-scoped restore.
+ *
+ * The tree is re-read from disk before every operation. A plan is a sequence,
+ * and each operation mutates the tree (relocations, removed folders, minted
+ * leaves), so a single snapshot captured up front would carry stale paths into
+ * later operations — a merge could miss leaves an earlier op moved into its
+ * source, and a leaf already relocated would no longer resolve. Re-resolving
+ * per operation keeps every op working against the live tree and lets minted
+ * split-leaf ids participate in later collision checks.
  */
 export function applyRebalancePlan(nodesDir: string, plan: RebalancePlan): RebalanceMoveResult[] {
-  const nodes = readAllNodes(nodesDir);
-  const byId = new Map(nodes.map(n => [n.frontmatter.id, n]));
-  const existingIds = new Set(nodes.map(n => n.frontmatter.id));
   const results: RebalanceMoveResult[] = [];
 
-  const leafFor = (id: string): (typeof nodes)[number] => {
-    const leaf = byId.get(id);
-    if (!leaf) throw new Error(`rebalance: no leaf with id "${id}" exists in the tree`);
-    return leaf;
-  };
-
   for (const op of plan.operations) {
+    // Re-read the live tree for this operation so it never acts on paths a
+    // prior operation already invalidated.
+    const nodes = readAllNodes(nodesDir);
+    const byId = new Map(nodes.map(n => [n.frontmatter.id, n]));
+    const existingIds = new Set(nodes.map(n => n.frontmatter.id));
+    const leafFor = (id: string): (typeof nodes)[number] => {
+      const leaf = byId.get(id);
+      if (!leaf) throw new Error(`rebalance: no leaf with id "${id}" exists in the tree`);
+      return leaf;
+    };
+
     if (op.operation === 'split-folder') {
       // Validate the branch resolves under nodes/ (rejects traversal).
       resolveFolder(nodesDir, op.branch);
@@ -290,9 +267,9 @@ export function applyRebalancePlan(nodesDir: string, plan: RebalancePlan): Rebal
       }
       // Retire the old leaf and record the redirect in history.
       rmSync(old.path);
-      const ledger = readLedger(nodesDir);
+      const ledger = readRedirectsLedger(nodesDir);
       ledger[old.frontmatter.id] = mintedIds;
-      writeLedger(nodesDir, ledger);
+      writeRedirectsLedger(nodesDir, ledger);
       results.push({
         operation: 'split-leaf',
         redirectFrom: op.leafId,

@@ -23,6 +23,7 @@ export interface NodeWriteFlags {
   summary?: string;
   tags?: string;
   relatesTo?: string;
+  dependsOn?: string;
   confidence?: string;
   from?: string;
   sourceDoc?: string;
@@ -114,6 +115,7 @@ export async function runNodeWriteCommand(
     }
     const tags = parseList(args.flags.tags ?? '');
     const relatesTo = parseList(args.flags.relatesTo ?? '');
+    const dependsOn = parseList(args.flags.dependsOn ?? '');
     const confidence: Confidence = args.flags.confidence
       ? parseConfidence(args.flags.confidence)
       : 'high';
@@ -134,6 +136,7 @@ export async function runNodeWriteCommand(
       tags,
       derived_from: [],
       relates_to: relatesTo,
+      depends_on: dependsOn,
       confidence,
       summary,
     };
