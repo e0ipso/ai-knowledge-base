@@ -449,11 +449,11 @@ graph TD
 - ✔️ Task 004 (completed): Extend the v1→v2 migrate clustering to author a folder `summary` per created folder (depends on: 001)
 - ✔️ Task 005 (completed): Extend rebalance ops to author a `summary` per new folder and update the kk-curate clustering step (depends on: 001)
 
-### Phase 3: Integration, de-duplication, and docs
+### ✅ Phase 3: Integration, de-duplication, and docs
 **Parallel Tasks:**
-- Task 003: Stop SessionStart (and copilot hooks-config) from double-emitting the descent directive (depends on: 002)
-- Task 006: Update human- and AI-facing docs for folder summaries and the actionable index format (depends on: 002, 004, 005)
-- Task 007: Backfill this repo's tree — revert `.ai/kenkeep` to flat v1 and re-run the extended migrate (depends on: 002, 004)
+- ✔️ Task 003 (completed): Stop SessionStart (and copilot hooks-config) from double-emitting the descent directive (depends on: 002)
+- ✔️ Task 006 (completed): Update human- and AI-facing docs for folder summaries and the actionable index format (depends on: 002, 004, 005)
+- ✔️ Task 007 (completed): Backfill this repo's tree — revert `.ai/kenkeep` to flat v1 and re-run the extended migrate (depends on: 002, 004)
 
 ### Post-phase Actions
 - After each phase, run `npm run build` and the full `vitest` suite; the phase gate is green build + green tests. Phase 3 additionally requires the dogfood `git diff` review (Task 007) to be inspected and accepted.
@@ -462,3 +462,33 @@ graph TD
 - Total Phases: 3
 - Total Tasks: 7
 
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-06-09
+
+### Results
+
+All 7 tasks across 3 phases were executed and their validation gates passed (green build + green lint + 283 passing vitest tests at completion).
+
+- **Phase 1 — Summary primitive (Task 1).** Added an optional `summary` to `IndexFrontmatterSchema`. `generateIndex` harvests each folder's prior on-disk `index.md` summary (and the root `ENTRY.md` via an explicit `entryFile` parameter threaded from `runIndexRebuild`) before regenerating and re-stamps it verbatim, so it survives the otherwise-total rebuild. It is the only non-deterministic field; the per-folder `nodes_hash` still covers only that folder's own leaves.
+- **Phase 2 — Rendering + authoring (Tasks 2, 4, 5).** Reworked `index.md`/`ENTRY.md` rendering: imperative `Load …`/`Open …` pointers that splice the target's summary (Title-cased name fallback), an embedded descent directive, a parent breadcrumb on non-root indexes, no body statistics, and a proximity-ranked `## By topic` (per direct-leaf tag, ≤3 whole-tree nodes by summed tag-Jaccard centrality, tie-broken by in-degree then title; excluded from the per-folder hash). The v1→v2 migrate clustering and the rebalance `split-folder`/`create-branch`/`split-leaf` ops now author a per-created-folder summary, stamped into the new folder's `index.md` frontmatter by a shared `stampFolderSummary` so the next rebuild self-preserves it (`merge` authors none). The kk-curate SKILL.md (installed copy + template source) documents the new field and phrasing contract.
+- **Phase 3 — Integration, de-dup, docs, backfill (Tasks 3, 6, 7).** SessionStart and the copilot hooks-config stop double-emitting the directive (a substring guard appends it only for the legacy `INDEX.md` fallback), so the injected catalog carries it exactly once. AGENTS.md, `docs/how-it-works.md`, `docs/internals/architecture.md`, and `docs/internals/prompts.md` were updated to match the shipped behavior with no schema-bump claims. This repo's dogfood `.ai/kenkeep` tree was reverted to flat v1 and re-migrated through the real (claude) harness: 57 leaves were re-clustered into 11 topical branches, each receiving an authored summary, and the regenerated artifacts carry the new actionable format.
+
+All eight plan **Self Validation** steps were executed and pass: ENTRY/index format inspection, single-leaf-edit localization, migrate summary authoring, rebalance author-then-preserve, missing-summary warn + name fallback + exit 0, two-rebuild byte-stability, SessionStart directive exactly once, and the full vitest suite.
+
+### Noteworthy Events
+
+- **No general-purpose sub-agent dispatch tool was available**, so phases were executed directly and sequentially in strict dependency order rather than via parallel agents. The dependency graph and all lifecycle hooks/gates were honored; the only difference from the skill's "parallel agents" wording is sequential execution within each phase.
+- **Deferred micro-decision (a)** — how `generateIndex` receives the root `ENTRY.md` summary — was resolved with the recommended default: an explicit `entryFile?` parameter wired from `runIndexRebuild` (keeps `generateIndex` the single self-preserve owner).
+- **Deferred micro-decision (b)** — how authored summaries land before the first rebuild — was resolved with the recommended default: a shared `stampFolderSummary` writes a minimal `index.md` immediately after placement so self-preserve carries it. Tasks 4 and 5 use the identical approach.
+- **Gap closed during POST_EXECUTION validation:** the plan's Success Criterion 6 / Self Validation #5 requires `index rebuild` to *warn and name* folders lacking a summary, which neither Task 1 nor Task 2 had wired. Added `GeneratedIndex.foldersMissingSummary` and a non-fatal warning in `runIndexRebuild` (with tests), completing the "warn, never block" contract.
+- **`RebalanceOpSchema` summary fields are required** (`z.string()`) on the folder-creating ops, matching the task spec; all existing hand-written op-plan test fixtures were updated to carry summaries.
+- **Dead code removed** (`rollupStats`/`RollupStats` and the now-unused `leavesByDir` plumbing in the root catalog) so the renderer carries no statistics scaffolding.
+- **Pre-existing dangling `derived_from` references** (11, pointing at `docs/cli-reference.md` and external URLs) are surfaced by `doctor` after the backfill. These existed verbatim in the committed baseline KB and were preserved unchanged by the migrate; they are a KB data-hygiene matter outside this plan's scope (index rendering and folder summaries), and `doctor`'s dangling check is not a build/test gate.
+
+### Necessary follow-ups
+
+- Optionally clean up the 11 pre-existing dangling `derived_from` references in the dogfood KB leaves (unrelated to this plan; a separate data-hygiene task).
+- The dogfood tree's installed-version marker (0.26.4 vs package 1.1.0) is stale — a routine `npx kenkeep init --upgrade`, also out of scope here.
