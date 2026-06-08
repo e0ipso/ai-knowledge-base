@@ -1,11 +1,11 @@
 ---
 schema_version: 2
-nodes_hash: 'sha256:4ca63ce73ab3fac036c7dbe45d4f57d5a6190fc5bf373894ffe48dc1616818b1'
+nodes_hash: 'sha256:be18cfbdef71d3222c0cdf3c6617616acd79d69a1ed832b68c9523cad96e50a6'
 node_count: 8
 ---
 # kenkeep Index: curation
 
-_8 node(s) in this folder • ~2778 estimated tokens_
+_8 node(s) in this folder • ~2781 estimated tokens_
 
 ## Subfolders
 _None._

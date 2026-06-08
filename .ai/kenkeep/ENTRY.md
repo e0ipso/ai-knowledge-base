@@ -1,11 +1,11 @@
 ---
 schema_version: 2
-nodes_hash: 'sha256:aa5ac264481a900eda5294fde3f0d3cf2f5cdc5ee43d6fd13fdf90db491ab29b'
+nodes_hash: 'sha256:c6d2fa9073118a82e4d10d01ecdd7090225b87a1e41760754635a59e971c5893'
 node_count: 57
 ---
 # kenkeep
 
-_57 node(s) across 8 branch(es) • ~20599 estimated tokens (whole tree)_
+_57 node(s) across 8 branch(es) • ~20719 estimated tokens (whole tree)_
 
 ## Branches
 - **bootstrap/** [`nodes/bootstrap/index.md`] Bootstrap (6)

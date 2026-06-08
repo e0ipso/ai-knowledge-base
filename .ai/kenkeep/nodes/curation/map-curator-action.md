@@ -35,8 +35,8 @@ suggested_resolution: supersede | keep_both | reject | null
 
 Wrapper application (`src/lib/curate.ts`):
 
-- `add` — writes `nodes/<kind>/<id>.md`. Existing file → records an `add_collision` failure, writes nothing.
-- `modify` — overwrites `nodes/<kind>/<target_node_id>.md`. Missing target → records a `modify_missing_target` failure.
+- `add` — writes `nodes/<folder>/<id>.md`. Existing file → records an `add_collision` failure, writes nothing.
+- `modify` — overwrites `nodes/<folder>/<target_node_id>.md`. Missing target → records a `modify_missing_target` failure.
 - `contradict` — writes one conflict file under `.ai/kenkeep/conflicts/`. Never touches `nodes/`.
 - `drop` — no-op.
 

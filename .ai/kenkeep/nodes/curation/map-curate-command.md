@@ -30,8 +30,8 @@ npx kenkeep curate [--batch-size <n>] [--timeout <ms>]
 
 Execs the active harness against the `/kk-curate` skill (`<harness> -p "/kk-curate"`), reads every session log that has been extracted (`proposal_status: done`) but not yet curated (no `curator_processed_at`), and applies the curator's decisions directly to `nodes/`:
 
-- **add** → writes `nodes/<kind>/<id>.md`. Fails loud (recorded as `add_collision`) if the file already exists.
-- **modify** → overwrites `nodes/<kind>/<target_node_id>.md`. Fails loud (recorded as `modify_missing_target`) if the target is missing.
+- **add** → writes `nodes/<folder>/<id>.md`. Fails loud (recorded as `add_collision`) if the file already exists.
+- **modify** → overwrites `nodes/<folder>/<target_node_id>.md`. Fails loud (recorded as `modify_missing_target`) if the target is missing.
 - **contradict** → writes nothing to `nodes/`. Records one markdown file per conflict under `.ai/kenkeep/conflicts/`.
 - **drop** → no change.
 

@@ -35,6 +35,6 @@ The skill surveys markdown, splits content into `practice` and `map` nodes, and 
 
 Unlike `bootstrap-incremental`, the skill runs through the `Task` tool (a sub-agent), not a headless subprocess. Consequence: it honors `bootstrapModel.name` on a best-effort basis but ignores `bootstrapModel.effort` because the `Task` tool has no `effort` parameter.
 
-Reviewer workflow: `git diff nodes/`, accept individual files with `git add nodes/<kind>/<file>.md && git commit`, reject the rest with `git restore nodes/<kind>/<file>.md`.
+Reviewer workflow: `git diff nodes/`, accept individual files with `git add nodes/<folder>/<file>.md && git commit`, reject the rest with `git restore nodes/<folder>/<file>.md`.
 
 For re-runs after editing docs, use the headless `bootstrap-incremental` CLI instead (hash-aware, deterministic chunking).

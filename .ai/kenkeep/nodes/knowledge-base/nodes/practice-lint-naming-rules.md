@@ -16,15 +16,15 @@ relates_to:
 depends_on: []
 confidence: high
 summary: >-
-  Every node's id must equal <kind>-<slug>; the filename must be <id>.md under
-  nodes/<kind>/. Lint reports mismatches as errors.
+  Every node's id must equal <kind>-<slug>; the filename must be <id>.md in its
+  topical folder under nodes/. Lint reports mismatches as errors.
 ---
 
 # Node naming: id, filename, and kind must agree
 
 The `lint` command (`npx kenkeep lint`) runs four no-LLM checks. The hard rules:
 
-- **Slug / id naming** — every node's frontmatter `id` must equal `<kind>-<slug>`. The filename must be `<id>.md` under `nodes/<kind>/`. Mismatches are errors (exit code 1).
+- **Slug / id naming** — every node's frontmatter `id` must equal `<kind>-<slug>`. The filename must be `<id>.md` (in its topical folder under `nodes/`). Mismatches are errors (exit code 1).
 - **Dangling structured edges** — any `relates_to` or `depends_on` reference that does not resolve to a node id is reported as an error.
 
 The other two lint checks produce findings (not errors):

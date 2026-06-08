@@ -32,7 +32,7 @@ Created by `init`. Same layout across all three harnesses.
 
 | Path | Purpose |
 |---|---|
-| `nodes/{practice,map}/` | Canonical knowledge nodes. Reviewed via `git diff`, accepted via `git commit`. |
+| `nodes/` (nested topical folders) | Canonical knowledge nodes. Reviewed via `git diff`, accepted via `git commit`. |
 | `ENTRY.md` | Entry catalog: whole-tree totals + top-level branch list. Injected into every new session. Regenerated deterministically. |
 | `GRAPH.md` | Full edge listing. Not injected; read on demand. Regenerated deterministically. |
 | `_sessions/<YYYYMMDD-HHmm-<sessionId>>.md` | Per-session checkpoint (redacted transcript + frontmatter). |
