@@ -208,6 +208,16 @@ export const IndexFrontmatterSchema = z.object({
   schema_version: z.literal(NODE_SCHEMA_VERSION),
   nodes_hash: z.string(),
   node_count: z.number().int().nonnegative(),
+  /**
+   * One-line, self-preserved folder description. The single non-deterministic
+   * field on a generated index: `generateIndex` harvests the prior on-disk value
+   * before regenerating and re-stamps it, so a folder's summary survives the
+   * otherwise-total rebuild. It is authored only at the two quarantined LLM
+   * clustering moments (v1->v2 migrate, rebalance split/create) or by hand;
+   * deterministic code never invents or mutates it. Optional so a brand-new or
+   * un-summarized folder (and any transitional file) still parses.
+   */
+  summary: z.string().optional(),
 });
 export type IndexFrontmatter = z.infer<typeof IndexFrontmatterSchema>;
 

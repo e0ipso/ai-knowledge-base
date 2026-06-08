@@ -78,7 +78,9 @@ export async function runIndexRebuild(opts: IndexRebuildOptions = {}): Promise<n
     return 0;
   }
 
-  const index = generateIndex(paths.nodesDir);
+  // Pass the entry-catalog path so generateIndex can harvest and self-preserve
+  // the root summary (it lives in ENTRY.md frontmatter, outside nodes/).
+  const index = generateIndex(paths.nodesDir, indexFile);
   const graph = generateGraph(paths.nodesDir);
 
   const written = writeFolderIndexes(paths.nodesDir, index);

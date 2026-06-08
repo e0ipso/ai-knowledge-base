@@ -177,6 +177,115 @@ describe('generateIndex (recursive per-folder)', () => {
   });
 });
 
+/**
+ * The folder `summary` is the single non-deterministic input: harvested from the
+ * pre-rebuild on-disk index.md / ENTRY.md and re-stamped verbatim, so it
+ * survives the otherwise-total rebuild. These tests cover that round-trip and
+ * the cross-folder hash localization that keeps it safe.
+ */
+describe('generateIndex self-preserves the folder summary', () => {
+  let root: string;
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'kk-summary-'));
+  });
+  afterEach(() => rmSync(root, { recursive: true, force: true }));
+
+  /** Write a folder's index.md to disk with a self-preserve `summary`. */
+  function writeFolderIndexWithSummary(dir: string, summary: string): void {
+    const d = dir ? join(root, ...dir.split('/')) : root;
+    mkdirSync(d, { recursive: true });
+    const body = matter.stringify('# placeholder\n', {
+      schema_version: 2,
+      nodes_hash: 'sha256:placeholder',
+      node_count: 0,
+      summary,
+    });
+    writeFileSync(join(d, 'index.md'), body);
+  }
+
+  function summaryOf(content: string): string | undefined {
+    return matter(content).data.summary as string | undefined;
+  }
+
+  it('carries a prior folder summary across a rebuild and emits no key when absent', () => {
+    seedNodes(root, [
+      { dir: 'topic', kind: 'map', id: 'map-a', title: 'A', summary: 'leaf summary' },
+      { dir: 'bare', kind: 'map', id: 'map-b', title: 'B', summary: 'leaf summary' },
+    ]);
+    // Author a summary into one folder's index.md; leave the other bare.
+    writeFolderIndexWithSummary('topic', 'how we cluster topical knowledge');
+
+    const out = generateIndex(root);
+    // The authored summary is carried verbatim into the regenerated frontmatter.
+    expect(summaryOf(out.folders.get('topic')!.content)).toBe('how we cluster topical knowledge');
+    // A folder with no prior index.md emits no summary key (not summary: "").
+    const bare = out.folders.get('bare')!.content;
+    expect(summaryOf(bare)).toBeUndefined();
+    expect(bare).not.toContain('summary:');
+  });
+
+  it('treats an empty-string summary as absent (no key emitted)', () => {
+    seedNodes(root, [{ dir: 'topic', kind: 'map', id: 'map-a', title: 'A', summary: 's' }]);
+    writeFolderIndexWithSummary('topic', '   ');
+    const content = generateIndex(root).folders.get('topic')!.content;
+    expect(summaryOf(content)).toBeUndefined();
+    expect(content).not.toContain('summary:');
+  });
+
+  it('self-preserves the ROOT summary harvested from the entry catalog (entryFile)', () => {
+    // ENTRY.md lives OUTSIDE nodesDir (in kkDir) in production; mirror that here
+    // by giving generateIndex a dedicated nodes/ subdir and a sibling ENTRY.md.
+    const nodesDir = join(root, 'nodes');
+    seedNodes(nodesDir, [{ dir: 'topic', kind: 'map', id: 'map-a', title: 'A', summary: 's' }]);
+    const entryFile = join(root, 'ENTRY.md');
+    writeFileSync(
+      entryFile,
+      matter.stringify('# kenkeep\n', {
+        schema_version: 2,
+        nodes_hash: 'sha256:placeholder',
+        node_count: 1,
+        summary: 'the whole knowledge base on disk',
+      })
+    );
+    const out = generateIndex(nodesDir, entryFile);
+    expect(summaryOf(out.rootCatalog)).toBe('the whole knowledge base on disk');
+    // Without the entryFile the root summary cannot be harvested (no key).
+    const noEntry = generateIndex(nodesDir);
+    expect(summaryOf(noEntry.rootCatalog)).toBeUndefined();
+  });
+
+  it('never invents or mutates a summary (carried byte-for-byte)', () => {
+    seedNodes(root, [{ dir: 'topic', kind: 'map', id: 'map-a', title: 'A', summary: 's' }]);
+    const authored = 'verbatim text with punctuation: keep it.';
+    writeFolderIndexWithSummary('topic', authored);
+    expect(summaryOf(generateIndex(root).folders.get('topic')!.content)).toBe(authored);
+  });
+
+  it('editing one leaf leaves every unrelated folder summary byte-stable', () => {
+    seedNodes(root, [
+      { dir: 'a', kind: 'practice', id: 'practice-a', title: 'A', summary: 'v1', tags: ['x'] },
+      { dir: 'b', kind: 'map', id: 'map-b', title: 'B', summary: 'v1', tags: ['y'] },
+    ]);
+    writeFolderIndexWithSummary('a', 'summary for folder a');
+    writeFolderIndexWithSummary('b', 'summary for folder b');
+
+    const before = generateIndex(root);
+    const bSummaryBefore = summaryOf(before.folders.get('b')!.content);
+    const bHashBefore = matter(before.folders.get('b')!.content).data.nodes_hash;
+
+    // Edit a leaf in folder a only.
+    seedNodes(root, [
+      { dir: 'a', kind: 'practice', id: 'practice-a', title: 'A', summary: 'v2', tags: ['x'] },
+    ]);
+
+    const after = generateIndex(root);
+    // Folder b's summary AND its per-folder nodes_hash are untouched: a leaf edit
+    // in folder a perturbs neither (hash localization + self-preserve).
+    expect(summaryOf(after.folders.get('b')!.content)).toBe(bSummaryBefore);
+    expect(matter(after.folders.get('b')!.content).data.nodes_hash).toBe(bHashBefore);
+  });
+});
+
 describe('computeNodesHash stability (leaves only, excludes index.md)', () => {
   let root: string;
   beforeEach(() => {
