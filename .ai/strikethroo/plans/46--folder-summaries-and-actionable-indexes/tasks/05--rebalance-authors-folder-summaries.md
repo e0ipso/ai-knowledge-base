@@ -2,7 +2,7 @@
 id: 5
 group: "authoring"
 dependencies: [1]
-status: "pending"
+status: "completed"
 created: 2026-06-08
 skills:
   - typescript

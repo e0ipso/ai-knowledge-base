@@ -110,16 +110,28 @@ async function makeFlatKb(sandbox: string): Promise<string> {
 
 /**
  * Deterministic clustering stub injected in place of the host-harness LLM call.
- * Places each leaf into a fixed topical folder so the suite never spawns the
- * harness or the model.
+ * Places each leaf into a fixed topical folder and authors one summary per
+ * distinct folder, so the suite never spawns the harness or the model while
+ * still exercising the summary-authoring path.
  */
 function stubCluster(folderById: Record<string, string>) {
-  return (leaves: { id: string; sourcePath: string }[]): Placement[] =>
-    leaves.map(l => ({
+  return (
+    leaves: { id: string; sourcePath: string }[]
+  ): {
+    placements: Placement[];
+    folderSummaries: Record<string, string>;
+  } => {
+    const placements = leaves.map(l => ({
       id: l.id,
       sourcePath: l.sourcePath,
       targetFolder: folderById[l.id] ?? 'misc',
     }));
+    const folderSummaries: Record<string, string> = {};
+    for (const folder of new Set(placements.map(p => p.targetFolder))) {
+      if (folder !== '') folderSummaries[folder] = `things related to ${folder}`;
+    }
+    return { placements, folderSummaries };
+  };
 }
 
 describe('migrate (deterministic primitives)', () => {
@@ -198,6 +210,18 @@ describe('migrate (deterministic primitives)', () => {
     expect(report).toContain('practice-alpha -> workflow');
     expect(report).toContain('map-beta -> workflow');
     expect(report).toContain('practice-gamma -> storage');
+
+    // Success Criterion 4: every created folder's index.md frontmatter carries
+    // the authored, non-empty summary, and the post-step rebuild self-preserved
+    // it (the stamp survives the deterministic regeneration).
+    for (const folder of ['workflow', 'storage']) {
+      const indexPath = join(nodesDir, folder, 'index.md');
+      expect(existsSync(indexPath), `${folder}/index.md exists`).toBe(true);
+      const fm = parseFm(indexPath);
+      expect(typeof fm.summary).toBe('string');
+      expect((fm.summary as string).length).toBeGreaterThan(0);
+      expect(fm.summary).toBe(`things related to ${folder}`);
+    }
   });
 
   it('refuses an LLM-backed migration when no --harness is passed, and changes nothing', async () => {
@@ -322,7 +346,7 @@ describe('migrate (deterministic primitives)', () => {
       code = await runMigrate({
         cluster: () => {
           cluster_called = true;
-          return [];
+          return { placements: [], folderSummaries: {} };
         },
       });
     } finally {

@@ -13,6 +13,7 @@ import matter from 'gray-matter';
 import { z } from 'zod';
 import { MIGRATE_COMMAND_HINT } from './migrate-guidance.js';
 import {
+  IndexFrontmatterSchema,
   NODE_SCHEMA_VERSION,
   NodeFrontmatterSchema,
   type NodeFrontmatter,
@@ -390,4 +391,41 @@ export function writeNodeFile(args: WriteNodeArgs): string {
   writeFileSync(tmp, out);
   renameSync(tmp, filePath);
   return filePath;
+}
+
+/**
+ * Stamp an authored one-line `summary` into a folder's `index.md` frontmatter so
+ * the next deterministic rebuild self-preserves it (the index harvest in
+ * `generateIndex`). This is the write half of the two sanctioned authoring
+ * moments — the v1->v2 migrate clustering and the rebalance clustering — where
+ * an LLM invents the summary and deterministic code only persists it. The body
+ * is a disposable placeholder: the rebuild regenerates it and carries the
+ * frontmatter `summary` forward.
+ *
+ * A blank summary is a no-op (nothing to author). When an `index.md` already
+ * exists, only its `summary` is updated; `nodes_hash`/`node_count` are left as
+ * placeholders that the imminent rebuild overwrites. `dirRel` is a POSIX-style
+ * folder under `nodesDir` and must stay within it.
+ */
+export function stampFolderSummary(nodesDir: string, dirRel: string, summary: string): void {
+  const trimmed = summary.trim();
+  if (trimmed === '') return;
+  const dir = resolveLeafDir(nodesDir, dirRel);
+  mkdirSync(dir, { recursive: true });
+  const file = join(dir, INDEX_FILENAME);
+  let body = '# placeholder\n';
+  const base: Record<string, unknown> = {
+    schema_version: NODE_SCHEMA_VERSION,
+    nodes_hash: 'sha256:pending',
+    node_count: 0,
+  };
+  if (existsSync(file)) {
+    const parsed = matter(readFileSync(file, 'utf8'));
+    body = parsed.content;
+    Object.assign(base, parsed.data);
+  }
+  const fm = IndexFrontmatterSchema.parse({ ...base, summary: trimmed });
+  const tmp = `${file}.tmp`;
+  writeFileSync(tmp, matter.stringify(body, fm));
+  renameSync(tmp, file);
 }

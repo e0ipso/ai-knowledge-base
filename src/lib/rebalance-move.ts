@@ -11,7 +11,13 @@ import {
 import { dirname, isAbsolute, join, posix, relative, sep } from 'node:path';
 import matter from 'gray-matter';
 import { z } from 'zod';
-import { deriveNodeId, ensureUniqueId, INDEX_FILENAME, readAllNodes } from './nodes.js';
+import {
+  deriveNodeId,
+  ensureUniqueId,
+  INDEX_FILENAME,
+  readAllNodes,
+  stampFolderSummary,
+} from './nodes.js';
 import { readRedirectsLedger, writeRedirectsLedger } from './redirects.js';
 import { NodeFrontmatterSchema } from './schemas.js';
 
@@ -39,14 +45,20 @@ const SplitLeafChildSchema = z
  *
  * Operations:
  *   - split-folder: relocate named child leaves of `branch` into subfolders
- *     under it (groups: subfolder name -> leaf ids). Ids unchanged.
+ *     under it (groups: subfolder name -> leaf ids, plus a one-line `summary`
+ *     authored for each new subfolder). Ids unchanged.
  *   - merge: relocate every leaf of the sparse `branch` into `into`. Ids
- *     unchanged. The now-empty source folder is removed.
- *   - create-branch: relocate named leaves into a new top-level folder. Ids
- *     unchanged.
- *   - split-leaf: replace one bloated leaf (`leafId`) with a folder of an index
- *     node plus two or more new sub-documents. New ids minted; a redirect from
- *     the old id is recorded.
+ *     unchanged. The now-empty source folder is removed. Creates no folder, so
+ *     it authors no summary; the destination keeps its self-preserved summary.
+ *   - create-branch: relocate named leaves into a new top-level folder (with an
+ *     authored `summary` for it). Ids unchanged.
+ *   - split-leaf: replace one bloated leaf (`leafId`) with a folder (carrying an
+ *     authored `summary`) of an index node plus two or more new sub-documents.
+ *     New ids minted; a redirect from the old id is recorded.
+ *
+ * The per-new-folder `summary` is the semantic, LLM-authored field of the
+ * rebalance clustering step; `applyRebalancePlan` stamps it into the new
+ * folder's `index.md` frontmatter so the subsequent rebuild self-preserves it.
  */
 export const RebalanceOpSchema = z.discriminatedUnion('operation', [
   z
@@ -54,7 +66,13 @@ export const RebalanceOpSchema = z.discriminatedUnion('operation', [
       operation: z.literal('split-folder'),
       branch: z.string().min(1),
       groups: z.array(
-        z.object({ subfolder: z.string().min(1), ids: z.array(z.string().min(1)).min(1) }).strict()
+        z
+          .object({
+            subfolder: z.string().min(1),
+            summary: z.string(),
+            ids: z.array(z.string().min(1)).min(1),
+          })
+          .strict()
       ),
     })
     .strict(),
@@ -69,6 +87,7 @@ export const RebalanceOpSchema = z.discriminatedUnion('operation', [
     .object({
       operation: z.literal('create-branch'),
       folder: z.string().min(1),
+      summary: z.string(),
       ids: z.array(z.string().min(1)).min(1),
     })
     .strict(),
@@ -77,6 +96,7 @@ export const RebalanceOpSchema = z.discriminatedUnion('operation', [
       operation: z.literal('split-leaf'),
       leafId: z.string().min(1),
       folder: z.string().min(1),
+      summary: z.string(),
       children: z.array(SplitLeafChildSchema).min(2),
     })
     .strict(),
@@ -204,6 +224,8 @@ export function applyRebalancePlan(nodesDir: string, plan: RebalancePlan): Rebal
             to: posix.join(subRel, leaf.filename),
           });
         }
+        // Author the new subfolder's summary; the wrapper's rebuild self-preserves it.
+        stampFolderSummary(nodesDir, subRel, group.summary);
       }
     } else if (op.operation === 'merge') {
       const intoDir = resolveFolder(nodesDir, op.into);
@@ -233,6 +255,8 @@ export function applyRebalancePlan(nodesDir: string, plan: RebalancePlan): Rebal
           to: posix.join(op.folder, leaf.filename),
         });
       }
+      // Author the new branch's summary; the wrapper's rebuild self-preserves it.
+      stampFolderSummary(nodesDir, op.folder, op.summary);
     } else {
       // split-leaf: one document becomes a folder of an index node plus 2+ docs.
       const old = leafFor(op.leafId);
@@ -265,6 +289,8 @@ export function applyRebalancePlan(nodesDir: string, plan: RebalancePlan): Rebal
         writeFileSync(tmp, out);
         renameSync(tmp, target);
       }
+      // Author the new folder's summary; the wrapper's rebuild self-preserves it.
+      stampFolderSummary(nodesDir, op.folder, op.summary);
       // Retire the old leaf and record the redirect in history.
       rmSync(old.path);
       const ledger = readRedirectsLedger(nodesDir);

@@ -9,8 +9,26 @@ import {
   type NodeFile,
 } from './nodes.js';
 import { GraphFrontmatterSchema, IndexFrontmatterSchema, NODE_SCHEMA_VERSION } from './schemas.js';
+import { KK_NAVIGATION_DIRECTIVE } from './session-start.js';
 
 const CHARS_PER_TOKEN = 4;
+
+/**
+ * The single embedded descent directive rendered into every generated body
+ * (per-folder `index.md` and the root `ENTRY.md`). Derived deterministically
+ * from the one source of truth `KK_NAVIGATION_DIRECTIVE`: it is already a single
+ * `> `-prefixed line, so it is embedded verbatim rather than duplicated as a
+ * second literal. The SessionStart hook stops appending it once a body carries
+ * it (Task 3), keeping the injected catalog at exactly one occurrence.
+ */
+const EMBEDDED_DESCENT_DIRECTIVE = KK_NAVIGATION_DIRECTIVE;
+
+/**
+ * The cap on nodes listed per tag in the reworked `## By topic`: a bounded,
+ * followable "most relevant nodes for this topic" surface rather than a
+ * link-less histogram.
+ */
+const BY_TOPIC_MAX_PER_TAG = 3;
 
 /**
  * Deterministic per-folder metrics computed during index generation. This plan
@@ -78,11 +96,47 @@ export function computeInDegree(nodes: NodeFile[]): Map<string, number> {
   return m;
 }
 
-function renderBullet(n: NodeFile): string {
+/**
+ * Imperative leaf pointer: a verb-first invitation to open a terminal leaf,
+ * splicing in the leaf's own summary so the reader knows what they will get
+ * before following the link. Uses valid `[label](path)` Markdown so the link is
+ * followable (the work order's `(label)[path]` sketch renders as literal text).
+ */
+function renderLeafPointer(n: NodeFile): string {
   const tagPart = n.frontmatter.tags.map(t => ` #${t}`).join('');
   const summary = n.frontmatter.summary.trim();
-  const summaryPart = summary ? ` ${summary}` : '';
-  return `- **${n.frontmatter.title}** [\`${n.relPath}\`]${summaryPart}${tagPart}`;
+  const learn = summary ? ` to learn about: ${summary}` : '';
+  return `- Open [**${n.frontmatter.title}**](${n.relPath})${learn}${tagPart}`;
+}
+
+/**
+ * Imperative descent pointer: a verb-first invitation to descend into a child
+ * folder, splicing in that child folder's self-preserved summary (or the
+ * Title-cased name fallback when absent). The sentence ends with a single
+ * period; an authored summary that already ends in terminal punctuation is not
+ * double-punctuated.
+ */
+function renderDescentPointer(sub: string, childSummary: string | undefined): string {
+  const href = posix.join('nodes', sub, 'index.md');
+  const name = sub.split('/').pop() ?? sub;
+  const phrase = childSummary?.trim() || deterministicIntent(sub);
+  const tail = /[.!?]$/.test(phrase) ? '' : '.';
+  return `- Load [\`${name}/\`](${href}) for more information on ${phrase}${tail}`;
+}
+
+/**
+ * Jaccard overlap of two tag sets: `|A∩B| / |A∪B|`. The proximity metric for
+ * the reworked `## By topic` ranking. Two nodes with no tags (empty ∪) have
+ * zero proximity.
+ */
+function tagJaccard(a: readonly string[], b: readonly string[]): number {
+  if (a.length === 0 && b.length === 0) return 0;
+  const setA = new Set(a);
+  const setB = new Set(b);
+  let intersection = 0;
+  for (const t of setA) if (setB.has(t)) intersection += 1;
+  const union = setA.size + setB.size - intersection;
+  return union === 0 ? 0 : intersection / union;
 }
 
 function makeCatalogComparator(inDegree: Map<string, number>) {
@@ -94,41 +148,85 @@ function makeCatalogComparator(inDegree: Map<string, number>) {
 }
 
 /**
- * Render the `## By topic` block for a set of leaves. Tag buckets are sorted by
- * bucket size DESC then alpha; titles within a bucket by in-degree DESC then
- * alpha.
+ * Render the reworked `## By topic` block: a followable, bounded "most relevant
+ * nodes for this topic" surface, NOT a link-less histogram.
+ *
+ * The bucket set is the tags present among the FOLDER'S DIRECT leaves (`leaves`)
+ * — unchanged bucket selection and order (bucket size DESC over the direct
+ * leaves, then alpha). For each such tag, candidates are drawn from the WHOLE
+ * tree (`allNodes`): every node carrying the tag. Each candidate is scored by
+ * its centrality within that tag's whole-tree cohort — the summed tag-Jaccard
+ * against the other cohort members — so the most topically representative nodes
+ * rise. The top `BY_TOPIC_MAX_PER_TAG` are rendered as followable
+ * `Open [**title**](path) — <summary>` entries. Ties break by global in-degree
+ * DESC then title, keeping the output deterministic and total.
+ *
+ * The whole-tree candidate pull means a distant tag change can reorder this
+ * block; that is intentional. The block's bytes are NOT fed into the per-folder
+ * `hashLeaves`, so cross-tree churn never perturbs this folder's stability hash
+ * (paired with the Task 1 hash boundary).
  */
-export function renderTagIndex(nodes: NodeFile[], inDegree: Map<string, number>): string {
-  const buckets = new Map<string, NodeFile[]>();
-  for (const n of nodes) {
+export function renderTagIndex(
+  leaves: NodeFile[],
+  allNodes: NodeFile[],
+  inDegree: Map<string, number>
+): string {
+  // Bucket selection/order: the folder's own direct leaves (unchanged).
+  const directBuckets = new Map<string, number>();
+  for (const n of leaves) {
     for (const t of n.frontmatter.tags) {
-      let bucket = buckets.get(t);
-      if (!bucket) {
-        bucket = [];
-        buckets.set(t, bucket);
-      }
-      bucket.push(n);
+      directBuckets.set(t, (directBuckets.get(t) ?? 0) + 1);
     }
   }
-  const tags = [...buckets.keys()].sort((a, b) => {
-    const da = buckets.get(a)!.length;
-    const db = buckets.get(b)!.length;
+  const tags = [...directBuckets.keys()].sort((a, b) => {
+    const da = directBuckets.get(a)!;
+    const db = directBuckets.get(b)!;
     if (db !== da) return db - da;
     return a.localeCompare(b);
   });
+
   const lines: string[] = ['## By topic', ''];
   if (tags.length === 0) {
     lines.push('_No tags yet._');
     return lines.join('\n');
   }
-  const titleCmp = makeCatalogComparator(inDegree);
+
+  // Whole-tree cohorts: every node carrying a given tag.
+  const cohorts = new Map<string, NodeFile[]>();
+  for (const n of allNodes) {
+    for (const t of n.frontmatter.tags) {
+      let cohort = cohorts.get(t);
+      if (!cohort) {
+        cohort = [];
+        cohorts.set(t, cohort);
+      }
+      cohort.push(n);
+    }
+  }
+
   for (const tag of tags) {
-    const titles = buckets
-      .get(tag)!
-      .slice()
-      .sort(titleCmp)
-      .map(n => n.frontmatter.title);
-    lines.push(`- **#${tag} (${titles.length}):** ${titles.join(', ')}`);
+    const cohort = cohorts.get(tag) ?? [];
+    // Centrality: summed tag-Jaccard against the other cohort members.
+    const scored = cohort.map(node => {
+      let score = 0;
+      for (const other of cohort) {
+        if (other === node) continue;
+        score += tagJaccard(node.frontmatter.tags, other.frontmatter.tags);
+      }
+      return { node, score };
+    });
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      const dIn = (inDegree.get(b.node.frontmatter.id) ?? 0) - (inDegree.get(a.node.frontmatter.id) ?? 0);
+      if (dIn !== 0) return dIn;
+      return a.node.frontmatter.title.localeCompare(b.node.frontmatter.title);
+    });
+    lines.push(`### #${tag}`);
+    for (const { node } of scored.slice(0, BY_TOPIC_MAX_PER_TAG)) {
+      const summary = node.frontmatter.summary.trim();
+      const summaryPart = summary ? ` — ${summary}` : '';
+      lines.push(`- Open [**${node.frontmatter.title}**](${node.relPath})${summaryPart}`);
+    }
   }
   return lines.join('\n');
 }
@@ -140,12 +238,16 @@ interface RenderRootCatalogArgs {
   rootLeaves: NodeFile[];
   /** Top-level branch directories, sorted. */
   rootSubDirs: string[];
-  leavesByDir: Map<string, NodeFile[]>;
   inDegree: Map<string, number>;
   /** GLOBAL hash over the whole leaf set, stamped into the frontmatter. */
   nodesHash: string;
   /** Self-preserved root summary, carried verbatim from the prior ENTRY.md. */
   summary?: string | undefined;
+  /**
+   * Self-preserved summaries for every folder (keyed by POSIX relDir), so a
+   * branch pointer can splice in that branch's own one-line description.
+   */
+  folderSummaries: Map<string, string>;
 }
 
 /**
@@ -166,37 +268,27 @@ interface RenderRootCatalogArgs {
  * SessionStart/doctor staleness checks keep working unchanged.
  */
 function renderRootCatalog(args: RenderRootCatalogArgs): string {
-  const { allNodes, rootLeaves, rootSubDirs, leavesByDir, inDegree, nodesHash, summary } = args;
+  const { allNodes, rootLeaves, rootSubDirs, inDegree, nodesHash, summary, folderSummaries } = args;
   const cmp = makeCatalogComparator(inDegree);
 
   const parts: string[] = [];
   parts.push('# kenkeep');
   parts.push('');
-  parts.push(
-    `_${allNodes.length} node(s) across ${rootSubDirs.length} branch(es) • ~${estimateTokens(
-      allNodes
-    )} estimated tokens (whole tree)_`
-  );
+  // Embedded descent directive: self-describing even when this catalog is read
+  // in isolation. No body statistics (counts/token estimates are doctor/curation
+  // diagnostics, not navigation aids); the GLOBAL nodes_hash and node_count stay
+  // in frontmatter for the staleness check.
+  parts.push(EMBEDDED_DESCENT_DIRECTIVE);
 
-  // Branches: the next descent step. Compact count -> "(N)" when the whole
-  // subtree lives directly in the branch, "(D here, T in subtree)" otherwise.
+  // Branches: the next descent step, as imperative Load pointers splicing each
+  // branch's self-preserved summary (name fallback when absent).
   parts.push('');
   parts.push('## Branches');
   if (rootSubDirs.length === 0) {
     parts.push('_None._');
   } else {
     for (const sub of rootSubDirs) {
-      const stats = rollupStats(sub, leavesByDir);
-      const name = sub.split('/').pop() ?? sub;
-      const count =
-        stats.directLeaves === stats.totalLeaves
-          ? `${stats.totalLeaves}`
-          : `${stats.directLeaves} here, ${stats.totalLeaves} in subtree`;
-      parts.push(
-        `- **${name}/** [\`${posix.join('nodes', sub, 'index.md')}\`] ${deterministicIntent(
-          sub
-        )} (${count})`
-      );
+      parts.push(renderDescentPointer(sub, folderSummaries.get(sub)));
     }
   }
 
@@ -209,12 +301,12 @@ function renderRootCatalog(args: RenderRootCatalogArgs): string {
   if (byKind.practice.length > 0) {
     parts.push('');
     parts.push('## Conventions (how we build)');
-    for (const b of byKind.practice) parts.push(renderBullet(b));
+    for (const b of byKind.practice) parts.push(renderLeafPointer(b));
   }
   if (byKind.map.length > 0) {
     parts.push('');
     parts.push('## Components (what exists)');
-    for (const b of byKind.map) parts.push(renderBullet(b));
+    for (const b of byKind.map) parts.push(renderLeafPointer(b));
   }
 
   const body = parts.join('\n');
@@ -366,14 +458,15 @@ export function generateIndex(nodesDir: string, entryFile?: string): GeneratedIn
       relDir: dir,
       leaves,
       subDirs,
-      leavesByDir,
+      allNodes: nodes,
       inDegree,
       // Per-folder hash: a leaf edit only perturbs the hash recorded in that
       // leaf's own folder index, leaving unrelated folder indexes byte-stable.
-      // The (later) whole-tree `## By topic` block is rendered into the body but
-      // is NOT fed into hashLeaves, so cross-tree churn never moves this hash.
+      // The whole-tree `## By topic` block is rendered into the body but is NOT
+      // fed into hashLeaves, so cross-tree churn never moves this hash.
       nodesHash: hashLeaves(leaves),
       summary: harvestedSummaries.get(dir),
+      folderSummaries: harvestedSummaries,
     });
     const metrics: FolderMetrics = {
       occupancy: leaves.length,
@@ -394,10 +487,10 @@ export function generateIndex(nodesDir: string, entryFile?: string): GeneratedIn
     allNodes: nodes,
     rootLeaves,
     rootSubDirs,
-    leavesByDir,
     inDegree,
     nodesHash: hash,
     summary: harvestedSummaries.get(''),
+    folderSummaries: harvestedSummaries,
   });
 
   return { folders, rootCatalog, nodesHash: hash, nodeCount };
@@ -413,15 +506,18 @@ interface RenderFolderArgs {
   relDir: string;
   leaves: NodeFile[];
   subDirs: string[];
-  leavesByDir: Map<string, NodeFile[]>;
+  /** Every leaf in the tree, for the whole-tree `## By topic` ranking. */
+  allNodes: NodeFile[];
   inDegree: Map<string, number>;
   nodesHash: string;
   /** Self-preserved folder summary, carried verbatim from the prior index.md. */
   summary?: string | undefined;
+  /** Self-preserved summaries for every folder (keyed by POSIX relDir). */
+  folderSummaries: Map<string, string>;
 }
 
 function renderFolderIndex(args: RenderFolderArgs): string {
-  const { relDir, leaves, subDirs, leavesByDir, inDegree, summary } = args;
+  const { relDir, leaves, subDirs, allNodes, inDegree, folderSummaries } = args;
   const cmp = makeCatalogComparator(inDegree);
 
   const byKind: Record<'practice' | 'map', NodeFile[]> = { practice: [], map: [] };
@@ -429,27 +525,34 @@ function renderFolderIndex(args: RenderFolderArgs): string {
   byKind.practice.sort(cmp);
   byKind.map.sort(cmp);
 
-  const title = relDir === '' ? 'kenkeep Index' : `kenkeep Index: ${relDir.split('/').join(' / ')}`;
-  const estimatedTokens = estimateTokens(leaves);
+  const isRoot = relDir === '';
+  const title = isRoot ? 'kenkeep Index' : `kenkeep Index: ${relDir.split('/').join(' / ')}`;
   const parts: string[] = [];
   parts.push(`# ${title}`);
+  // Parent breadcrumb: bidirectional navigation for an agent that lands deep via
+  // grep. The parent index is always `../index.md` relative to this folder; the
+  // root index node carries none.
+  if (!isRoot) {
+    const segments = relDir.split('/');
+    const parentName =
+      segments.length > 1 ? (segments[segments.length - 2] as string) : 'kenkeep';
+    parts.push('');
+    parts.push(`↑ Parent: [${parentName}](../index.md)`);
+  }
   parts.push('');
-  parts.push(`_${leaves.length} node(s) in this folder • ~${estimatedTokens} estimated tokens_`);
+  // Embedded descent directive: a file dumped into context (sub-agent, mid-
+  // session re-read, deep descent) must be self-describing. No body statistics.
+  parts.push(EMBEDDED_DESCENT_DIRECTIVE);
 
-  // Subfolders section: deterministic intent line plus rollup stats.
+  // Subfolders section: imperative Load pointers splicing each child's
+  // self-preserved summary (name fallback when absent).
   parts.push('');
   parts.push('## Subfolders');
   if (subDirs.length === 0) {
     parts.push('_None._');
   } else {
     for (const sub of subDirs) {
-      const stats = rollupStats(sub, leavesByDir);
-      const name = sub.split('/').pop() ?? sub;
-      parts.push(
-        `- **${name}/** [\`${posix.join('nodes', sub, 'index.md')}\`] ${deterministicIntent(
-          sub
-        )} (${stats.directLeaves} node(s) here, ${stats.totalLeaves} in subtree)`
-      );
+      parts.push(renderDescentPointer(sub, folderSummaries.get(sub)));
     }
   }
 
@@ -464,12 +567,12 @@ function renderFolderIndex(args: RenderFolderArgs): string {
     if (s.bullets.length === 0) {
       parts.push('_None yet._');
     } else {
-      for (const b of s.bullets) parts.push(renderBullet(b));
+      for (const b of s.bullets) parts.push(renderLeafPointer(b));
     }
   }
 
   parts.push('');
-  parts.push(renderTagIndex(leaves, inDegree));
+  parts.push(renderTagIndex(leaves, allNodes, inDegree));
 
   const body = parts.join('\n');
   // The summary is the only non-deterministic field; emit no key when absent so
@@ -478,31 +581,9 @@ function renderFolderIndex(args: RenderFolderArgs): string {
     schema_version: NODE_SCHEMA_VERSION,
     nodes_hash: `sha256:${args.nodesHash}`,
     node_count: leaves.length,
-    ...(summary ? { summary } : {}),
+    ...(args.summary ? { summary: args.summary } : {}),
   });
   return matter.stringify(body, fm);
-}
-
-interface RollupStats {
-  /** Leaves directly in the subfolder. */
-  directLeaves: number;
-  /** Leaves anywhere in the subfolder's subtree. */
-  totalLeaves: number;
-}
-
-function rollupStats(subDir: string, leavesByDir: Map<string, NodeFile[]>): RollupStats {
-  let directLeaves = 0;
-  let totalLeaves = 0;
-  const prefix = `${subDir}/`;
-  for (const [dir, leaves] of leavesByDir) {
-    if (dir === subDir) {
-      directLeaves = leaves.length;
-      totalLeaves += leaves.length;
-    } else if (dir.startsWith(prefix)) {
-      totalLeaves += leaves.length;
-    }
-  }
-  return { directLeaves, totalLeaves };
 }
 
 /**
