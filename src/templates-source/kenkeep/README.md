@@ -30,7 +30,7 @@ Two paths, both human-in-the-loop via git:
 - From the terminal: `npx kenkeep node add` (interactive prompts).
 - From inside a Claude Code session: `/kk-add`.
 
-Either way the result lands in `nodes/<kind>/<kind>-<slug>.md`. Review with `git diff` and commit to accept.
+Either way the result lands in `nodes/<id>.md` (at the root, or a chosen topical folder). Review with `git diff` and commit to accept.
 
 ## Bootstrap from existing docs
 
@@ -38,7 +38,7 @@ If your repo already has READMEs, ADRs, and module docs, you can seed the knowle
 
 ## Subdirectories
 
-- `nodes/`: knowledge nodes, organized by kind (`practice/`, `map/`). Reviewed via git.
+- `nodes/`: knowledge nodes in nested topical folders (`kind` — `practice`/`map` — is a frontmatter facet, not a directory). Reviewed via git.
 - `_sessions/`: raw captured transcripts (gitignored by default).
 - `_logs/`: stream-json traces from LLM-driven runs (gitignored).
 - `conflicts/`: one markdown file per curator-detected contradiction, surfaced by the kk-curate skill and reviewed via `git diff`.

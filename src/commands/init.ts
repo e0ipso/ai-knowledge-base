@@ -4,8 +4,11 @@ import { refreshClaudeTemplates } from '../harnesses/claude/install.js';
 import { getHarness, hasHarness, listHarnessIds } from '../harnesses/registry.js';
 import { copyTree } from '../lib/fs-atomic.js';
 import { log } from '../lib/log.js';
+import { detectSchemaVersion } from '../lib/migrate.js';
+import { MIGRATE_COMMAND_HINT } from '../lib/migrate-guidance.js';
 import { findRepoRoot, packageTemplatesDir, repoPaths } from '../lib/paths.js';
 import { ensureKbignore } from '../lib/kkignore-stub.js';
+import { NODE_SCHEMA_VERSION } from '../lib/schemas.js';
 import { KK_NAVIGATION_DIRECTIVE } from '../lib/session-start.js';
 import { defaultProjectConfigBody } from '../lib/settings.js';
 import { packageVersion } from '../lib/version.js';
@@ -70,6 +73,7 @@ export async function runInit(opts: InitOptions): Promise<void> {
     log.warn(
       `Already initialized (version ${existing.version}). Use \`init --upgrade\` to refresh templates while preserving local prompt overrides and \`config.yaml\`.`
     );
+    reportSchemaMismatch(paths.nodesDir);
     return;
   }
 
@@ -126,6 +130,8 @@ export async function runInit(opts: InitOptions): Promise<void> {
     .join(', ');
   log.plain(`  1. Review and commit \`.ai/kenkeep/\` and ${harnessDirs}.`);
   log.plain('  2. Run `npx kenkeep doctor` to verify the setup.');
+
+  reportSchemaMismatch(paths.nodesDir);
 }
 
 function validateHarnesses(harnesses: string[]): void {
@@ -139,6 +145,25 @@ function validateHarnesses(harnesses: string[]): void {
       throw new Error(`Unsupported harness '${h}'. Supported: ${listHarnessIds().join(', ')}.`);
     }
   }
+}
+
+/**
+ * Surfaces an out-of-date node store at init/upgrade time. `init` and
+ * `init --upgrade` refresh templates and hooks but never touch `nodes/`, so a
+ * knowledge base written by an older kenkeep stays stale and every command that
+ * reads it would fail. We detect the on-disk schema and point the user at the
+ * one command that fixes it, matching the error the node reader raises. Loud but
+ * non-fatal: init did its own job; migration is a deliberate, harness-backed
+ * follow-up the user runs next.
+ */
+function reportSchemaMismatch(nodesDir: string): void {
+  const onDisk = detectSchemaVersion(nodesDir);
+  if (onDisk === null || onDisk >= NODE_SCHEMA_VERSION) return;
+  log.error(
+    `Knowledge base on disk is at schema_version ${onDisk}, but this kenkeep reads ` +
+      `schema_version ${NODE_SCHEMA_VERSION}. nodes/ was left untouched and commands that ` +
+      `read it will fail until you migrate it: run ${MIGRATE_COMMAND_HINT}.`
+  );
 }
 
 async function runUpgrade(
@@ -184,6 +209,8 @@ async function runUpgrade(
 
   log.success(`Upgraded to ${current}.`);
   log.plain('Run `npx kenkeep doctor` to verify.');
+
+  reportSchemaMismatch(paths.nodesDir);
 }
 
 function copyPromptsPreservingLocal(src: string, dst: string): void {

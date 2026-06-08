@@ -83,7 +83,7 @@ If curator output is clearly noise, bump the proposal prompt's `Version:` and ti
 ## 6. `/kk-bootstrap`
 
 - [ ] In a sandbox with a small public repo (README + architecture.md), `init` and open Claude Code.
-- [ ] Run `/kk-bootstrap`. Agent reads source docs, writes nodes directly under `nodes/<kind>/`, reports a summary including any collisions skipped.
+- [ ] Run `/kk-bootstrap`. Agent reads source docs, writes nodes directly under `nodes/` (topical folders), reports a summary including any collisions skipped.
 - [ ] Walk `git diff nodes/` (or use a tool like [self-review](https://github.com/e0ipso/self-review)). `git commit` the ones you want; `git restore <path>` the rest.
 - [ ] No node carries a literal secret or stale TODO from the source docs.
 

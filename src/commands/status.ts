@@ -1,7 +1,8 @@
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import matter from 'gray-matter';
 import { log } from '../lib/log.js';
+import { readAllNodes } from '../lib/nodes.js';
 import { findRepoRoot, repoPaths } from '../lib/paths.js';
 
 export async function runStatus(): Promise<void> {
@@ -62,14 +63,24 @@ function scanSessions(dir: string): { pending: number; done: number; failed: num
   return out;
 }
 
-function countNodes(dir: string): { practice: number; map: number } {
-  return {
-    practice: countMarkdown(join(dir, 'practice')),
-    map: countMarkdown(join(dir, 'map')),
-  };
-}
-
-function countMarkdown(dir: string): number {
-  if (!existsSync(dir) || !statSync(dir).isDirectory()) return 0;
-  return readdirSync(dir).filter(f => f.endsWith('.md')).length;
+/**
+ * Counts nodes by their `kind` frontmatter facet across the whole topical tree.
+ * `kind` is a facet, not a directory: leaves live in topical folders at any
+ * depth, so we read every leaf and bucket by frontmatter, not by a
+ * `nodes/practice` / `nodes/map` directory (which no longer exist). On a
+ * malformed or old-layout tree `readAllNodes` throws; `status` is a quick
+ * summary, so we degrade to zeros and let `doctor` surface the details.
+ */
+function countNodes(nodesDir: string): { practice: number; map: number } {
+  const out = { practice: 0, map: 0 };
+  if (!existsSync(nodesDir)) return out;
+  try {
+    for (const node of readAllNodes(nodesDir)) {
+      if (node.frontmatter.kind === 'practice') out.practice += 1;
+      else if (node.frontmatter.kind === 'map') out.map += 1;
+    }
+  } catch {
+    return out;
+  }
+  return out;
 }

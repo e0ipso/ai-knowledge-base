@@ -123,7 +123,7 @@ flowchart TB
 
     PO --> CI
     BO --> CI
-    CADD --> NODES[("nodes/practice/<br/>nodes/map/")]
+    CADD --> NODES[("nodes/<br/>(topical folders)")]
     CMOD --> NODES
     CCON --> CONF[("conflicts/&lt;id&gt;.md")]
 ```
@@ -204,8 +204,8 @@ The skill applies actions via the deterministic `curate-dedup` and `node write` 
 
 | Action | Behavior |
 |---|---|
-| `add` | `node write` atomically writes `nodes/<kind>/<id>.md`. If the file exists, it resolves the slug via `ensureUniqueId` (`<id>-2`, ...); a true collision-after-resolution is reported as a failure. |
-| `modify` | `node write` runs against the existing `nodes/<kind>/<target_node_id>.md`. If the target is missing, the skill records a `modify_missing_target` failure. |
+| `add` | `node write` atomically writes `nodes/<folder>/<id>.md`. If the file exists, it resolves the slug via `ensureUniqueId` (`<id>-2`, ...); a true collision-after-resolution is reported as a failure. |
+| `modify` | `node write` runs against the existing `nodes/<folder>/<target_node_id>.md`. If the target is missing, the skill records a `modify_missing_target` failure. |
 | `contradict` | The action is piped to `curate-dedup`, which writes the conflict to `.ai/kenkeep/conflicts/<id>.md` (`status: pending`) and stamps the source session log. The skill then walks each conflict in-session with the user. |
 | `drop` | No-op. |
 

@@ -59,6 +59,25 @@ describe('nodes helpers', () => {
     expect(nodes.map(n => n.frontmatter.id).sort()).toEqual(['map-y', 'practice-x']);
   });
 
+  it('rejects the legacy flat nodes/<kind>/ layout and points to migrate, not init --upgrade', () => {
+    // A v1 flat bucket: leaf docs under nodes/practice/ with no generated index.md.
+    const bucket = join(root, 'practice');
+    mkdirSync(bucket, { recursive: true });
+    writeFileSync(
+      join(bucket, 'practice-old.md'),
+      '---\nschema_version: 1\nid: practice-old\n---\n\n# old\n'
+    );
+
+    let msg = '';
+    try {
+      readAllNodes(root);
+    } catch (err) {
+      msg = (err as Error).message;
+    }
+    expect(msg).toMatch(/`npx kenkeep --harness <id> migrate`/);
+    expect(msg).not.toMatch(/init --upgrade/);
+  });
+
   it('throws InvalidNodeFrontmatterError aggregating every malformed file', () => {
     seedNode(root, 'practice', 'practice-x');
     mkdirSync(join(root, 'bad'), { recursive: true });
