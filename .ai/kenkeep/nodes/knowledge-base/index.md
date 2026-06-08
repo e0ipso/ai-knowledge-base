@@ -1,11 +1,11 @@
 ---
 schema_version: 2
-nodes_hash: 'sha256:fa6875d8b633944896db68bf12ad01f4dabe36efcdf9347b849391ce1c9243cf'
+nodes_hash: 'sha256:afc36c3e18ba544469a0aa1ae8e165c4489926c3d8910a0b954c909e9bb91ba8'
 node_count: 2
 ---
 # kenkeep Index: knowledge-base
 
-_2 node(s) in this folder • ~745 estimated tokens_
+_2 node(s) in this folder • ~747 estimated tokens_
 
 ## Subfolders
 - **index/** [`nodes/knowledge-base/index/index.md`] Index (4 node(s) here, 4 in subtree)

@@ -22,7 +22,7 @@ summary: >-
 
 # Node frontmatter schema
 
-Every file under `nodes/<kind>/` carries this YAML frontmatter (validated by `NodeFrontmatterSchema` in `src/lib/schemas.ts`):
+Every leaf file under `nodes/` (in its topical folder) carries this YAML frontmatter (validated by `NodeFrontmatterSchema` in `src/lib/schemas.ts`):
 
 ```yaml
 ---
@@ -44,7 +44,7 @@ Field meanings:
 
 - `id` — `<kind>-<slug>`. Used by `relates_to`, `depends_on`, `derived_from`, and curator `target_node_id`. Stable.
 - `title` — human label rendered in the folder index nodes and `GRAPH.md`.
-- `kind` — `practice` or `map`. Drives directory placement under `nodes/<kind>/` and the folder index node section the node lands in (Conventions vs Components).
+- `kind` — `practice` or `map`. A facet, not a directory: it does not drive placement (folders are topical); it selects the folder index node section the node renders in (Conventions vs Components) and is the prefix of the `id`.
 - `tags` — free-form labels for the `## By topic` section of the folder index nodes.
 - `derived_from` — list of sources. Dangling refs are reported by `doctor --verbose` but silently ignored by the consume path.
 - `relates_to` — loose cross-references, rendered in `GRAPH.md`. Not enforced.

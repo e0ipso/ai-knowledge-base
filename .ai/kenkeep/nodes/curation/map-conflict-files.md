@@ -52,7 +52,7 @@ Resolution (three-way, git-driven, walked by the `/kk-curate` skill):
 
 | Choice | On-disk effect | Side effects |
 |---|---|---|
-| **Accept** | Skill rewrites `nodes/<kind>/<target_node_id>.md` from the proposed body. | `git restore` the conflict file. |
+| **Accept** | Skill rewrites `nodes/<folder>/<target_node_id>.md` from the proposed body. | `git restore` the conflict file. |
 | **Reject** | None. Existing node untouched. | `git restore` the conflict file. |
 | **Keep as record** | None to the node tree. | `git commit` the conflict file; it stays as durable history future curate runs can read. |
 

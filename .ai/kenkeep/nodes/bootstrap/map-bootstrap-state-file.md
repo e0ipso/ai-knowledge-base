@@ -33,7 +33,7 @@ Gitignored. Records the SHA-256 of every doc the bootstrap pipelines have proces
     "docs/architecture/auth.md": {
       "content_sha256": "abc123...",
       "last_processed_at": "<ISO>",
-      "produced_nodes": ["practice/practice-auth-flow.md", "map/map-auth-module.md"]
+      "produced_nodes": ["auth/practice-auth-flow.md", "auth/map-auth-module.md"]
     }
   }
 }
@@ -45,7 +45,7 @@ Gitignored. Records the SHA-256 of every doc the bootstrap pipelines have proces
 | `last_incremental_at` | Last `bootstrap-incremental` non-dry-run that processed ≥1 doc. |
 | `docs[].content_sha256` | SHA-256 of file contents at processing time. |
 | `docs[].last_processed_at` | Timestamp of last processing. **Not** updated on hash hits. |
-| `docs[].produced_nodes` | `<kind>/<filename>.md` paths (relative to `nodes/`) written from this doc. Informational. |
+| `docs[].produced_nodes` | `<folder>/<filename>.md` topical paths (relative to `nodes/`) written from this doc. Informational. |
 
 Lifecycle:
 
