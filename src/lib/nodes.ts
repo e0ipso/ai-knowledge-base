@@ -11,6 +11,7 @@ import {
 import { dirname, isAbsolute, join, posix, relative, sep } from 'node:path';
 import matter from 'gray-matter';
 import { z } from 'zod';
+import { MIGRATE_COMMAND_HINT } from './migrate-guidance.js';
 import {
   NODE_SCHEMA_VERSION,
   NodeFrontmatterSchema,
@@ -59,15 +60,17 @@ export class InvalidNodeFrontmatterError extends Error {
 /**
  * Thrown when the on-disk knowledge base uses the old flat `nodes/<kind>/`
  * layout (or `schema_version: 1`). The reader rejects the old shape outright
- * rather than misparsing it; the message points the user to re-init.
+ * rather than misparsing it; the message points the user at `migrate`, which
+ * preserves every node's id and edges (re-init would not migrate, and deleting
+ * the tree would discard curated knowledge).
  */
 export class OldLayoutError extends Error {
   constructor(detail: string) {
     super(
       `${detail} kenkeep now stores nodes in a nested topical folder tree ` +
         `(schema_version ${NODE_SCHEMA_VERSION}); the old flat nodes/<kind>/ layout is no ` +
-        `longer readable. Re-initialize with \`npx kenkeep init --upgrade\` (or remove the ` +
-        `old nodes/ tree and re-init).`
+        `longer readable. Migrate the knowledge base with ${MIGRATE_COMMAND_HINT}, then ` +
+        `review the result with \`git diff\`.`
     );
     this.name = 'OldLayoutError';
   }

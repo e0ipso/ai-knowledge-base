@@ -68,6 +68,35 @@ describe('init', () => {
     expect(typeof installed.installed_at).toBe('string');
   });
 
+  it('reports the migrate command when an existing knowledge base is at an older schema_version', async () => {
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    // Plant a legacy flat-layout (schema_version 1) leaf so the detector sees a stale KB.
+    const bucket = join(sandbox, '.ai/kenkeep/nodes/practice');
+    mkdirSync(bucket, { recursive: true });
+    writeFileSync(
+      join(bucket, 'practice-old.md'),
+      '---\nschema_version: 1\nid: practice-old\n---\n\n# old\n'
+    );
+
+    // Re-running init (already-initialized path) surfaces the migrate guidance.
+    const reinit = await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    expect(reinit.exitCode).toBe(0);
+    const reinitOut = reinit.stdout + reinit.stderr;
+    expect(reinitOut).toMatch(/schema_version 1/);
+    expect(reinitOut).toMatch(/`npx kenkeep --harness <id> migrate`/);
+
+    // The upgrade path surfaces it too.
+    const upgrade = await runCli(sandbox, ['init', '--harnesses', 'claude', '--upgrade']);
+    expect(upgrade.exitCode).toBe(0);
+    expect(upgrade.stdout + upgrade.stderr).toMatch(/`npx kenkeep --harness <id> migrate`/);
+  });
+
+  it('does not mention migration when the knowledge base is already at the current schema', async () => {
+    await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    const reinit = await runCli(sandbox, ['init', '--harnesses', 'claude']);
+    expect(reinit.stdout + reinit.stderr).not.toMatch(/--harness <id> migrate/);
+  });
+
   it('writes .ai/kenkeep/.gitignore and leaves the project .gitignore untouched', async () => {
     const projectGitignore = join(sandbox, '.gitignore');
     writeFileSync(projectGitignore, 'node_modules\n');

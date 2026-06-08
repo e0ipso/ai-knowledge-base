@@ -259,7 +259,7 @@ When you're done, summarize for the user:
 - Any docs that looked stale or contradictory that the user should double-check.
 - Confirmation that `ENTRY.md` and `GRAPH.md` were refreshed.
 
-Then tell the user to review the written files, accept by leaving them in place, and reject by deleting them (`rm nodes/<kind>/<file>.md`).
+Then tell the user to review the written files, accept by leaving them in place, and reject by deleting them (`rm nodes/<folder>/<file>.md`).
 
 ## Constraints
 

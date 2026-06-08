@@ -1,6 +1,6 @@
 ---
 name: kk-add
-description: Capture a kenkeep node manually from the current session. Writes a new node directly under `.ai/kenkeep/nodes/<kind>/`. The reviewer accepts by leaving the file in place and rejects by deleting it. Use when the user wants to record a project convention, gotcha, rationale, or named-thing into the project knowledge base.
+description: Capture a kenkeep node manually from the current session. Writes a new node directly under `.ai/kenkeep/nodes/`. The reviewer accepts by leaving the file in place and rejects by deleting it. Use when the user wants to record a project convention, gotcha, rationale, or named-thing into the project knowledge base.
 ---
 
 <!-- Version: 3 -->
@@ -124,4 +124,4 @@ EOF
 
 **Slug-collision behavior.** If a node with the proposed slug already exists on disk, `ensureUniqueId` auto-suffixes with `-2`, `-3`, etc., so the printed id may differ from your input slug. This is non-fatal — surface the printed id to the user verbatim so they review the right file. Only hard schema failures (missing `--title`, malformed `--confidence`, etc.) make the command exit non-zero.
 
-After it returns, give the user the printed id and its file path (`nodes/<kind>/<id>.md`), and remind them to review and accept (leave) or reject (`rm`) the file.
+After it returns, give the user the printed id and its file path (`nodes/<id>.md` at the root, since this skill does not pass `--folder`), and remind them to review and accept (leave) or reject (`rm`) the file.
