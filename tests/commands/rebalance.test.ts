@@ -103,8 +103,8 @@ describe('rebalance trigger and move (integration)', () => {
           operation: 'split-folder',
           branch: 'over-full',
           groups: [
-            { subfolder: 'sub-a', ids: ids.slice(0, half) },
-            { subfolder: 'sub-b', ids: ids.slice(half) },
+            { subfolder: 'sub-a', summary: 'the first cluster of split leaves', ids: ids.slice(0, half) },
+            { subfolder: 'sub-b', summary: 'the second cluster of split leaves', ids: ids.slice(half) },
           ],
         },
       ],
@@ -125,6 +125,13 @@ describe('rebalance trigger and move (integration)', () => {
     // Affected index nodes regenerated.
     expect(existsSync(join(nodesDir(sandbox), 'over-full', 'sub-a', 'index.md'))).toBe(true);
     expect(existsSync(join(nodesDir(sandbox), 'over-full', 'sub-b', 'index.md'))).toBe(true);
+
+    // Success Criterion 5: each new subfolder's authored summary landed in its
+    // index.md frontmatter, and the move wrapper's rebuild self-preserved it.
+    const subAFm = matter(readFileSync(join(nodesDir(sandbox), 'over-full', 'sub-a', 'index.md'), 'utf8')).data;
+    const subBFm = matter(readFileSync(join(nodesDir(sandbox), 'over-full', 'sub-b', 'index.md'), 'utf8')).data;
+    expect(subAFm.summary).toBe('the first cluster of split leaves');
+    expect(subBFm.summary).toBe('the second cluster of split leaves');
   });
 
   it('split-leaf becomes a folder of an index plus 2+ docs, mints new ids, records a redirect', async () => {
@@ -138,6 +145,7 @@ describe('rebalance trigger and move (integration)', () => {
           operation: 'split-leaf',
           leafId: 'practice-bloated',
           folder: 'bloat/practice-bloated',
+          summary: 'the two concepts carved out of the bloated leaf',
           children: [
             { title: 'concept one', summary: 'first', body: 'First.', tags: ['a'], relates_to: [] },
             { title: 'concept two', summary: 'second', body: 'Second.', tags: ['b'], relates_to: [] },
@@ -156,6 +164,10 @@ describe('rebalance trigger and move (integration)', () => {
     const docs = readdirSync(folderDir).filter(f => f.endsWith('.md') && f !== 'index.md');
     expect(docs.length).toBeGreaterThanOrEqual(2);
     expect(existsSync(join(folderDir, 'index.md'))).toBe(true);
+    // The authored new-folder summary persisted through the rebuild.
+    expect(matter(readFileSync(join(folderDir, 'index.md'), 'utf8')).data.summary).toBe(
+      'the two concepts carved out of the bloated leaf'
+    );
 
     // Redirect recorded from the old id.
     const ledger = JSON.parse(readFileSync(join(nodesDir(sandbox), '.redirects.json'), 'utf8'));
@@ -177,7 +189,12 @@ describe('rebalance trigger and move (integration)', () => {
     const plan = {
       operations: [
         { operation: 'merge', branch: 'sparse', into: '' },
-        { operation: 'create-branch', folder: 'regrouped', ids: ['practice-a1'] },
+        {
+          operation: 'create-branch',
+          folder: 'regrouped',
+          summary: 'leaves regrouped out of the merged sparse folder',
+          ids: ['practice-a1'],
+        },
       ],
     };
     const summary = await move(sandbox, plan);
@@ -191,6 +208,10 @@ describe('rebalance trigger and move (integration)', () => {
     expect(existsSync(join(nodesDir(sandbox), 'regrouped', 'practice-a1.md'))).toBe(true);
     expect(existsSync(join(nodesDir(sandbox), 'practice-a2.md'))).toBe(true);
     expect(existsSync(join(nodesDir(sandbox), 'sparse'))).toBe(false);
+    // The new branch's authored summary persisted into its index.md.
+    expect(matter(readFileSync(join(nodesDir(sandbox), 'regrouped', 'index.md'), 'utf8')).data.summary).toBe(
+      'leaves regrouped out of the merged sparse folder'
+    );
   });
 
   it('post-move rebuild is byte-stable (a second rebuild is a no-op)', async () => {
@@ -201,7 +222,7 @@ describe('rebalance trigger and move (integration)', () => {
         {
           operation: 'split-folder',
           branch: 'over-full',
-          groups: [{ subfolder: 'sub-a', ids: ['practice-leaf-1', 'practice-leaf-2'] }],
+          groups: [{ subfolder: 'sub-a', summary: 'a split cluster', ids: ['practice-leaf-1', 'practice-leaf-2'] }],
         },
       ],
     });
@@ -237,8 +258,8 @@ describe('rebalance trigger and move (integration)', () => {
           operation: 'split-folder',
           branch: 'over-full',
           groups: [
-            { subfolder: 'sub-a', ids: ids.slice(0, half) },
-            { subfolder: 'sub-b', ids: ids.slice(half) },
+            { subfolder: 'sub-a', summary: 'first balanced cluster', ids: ids.slice(0, half) },
+            { subfolder: 'sub-b', summary: 'second balanced cluster', ids: ids.slice(half) },
           ],
         },
       ],
@@ -259,7 +280,7 @@ describe('rebalance trigger and move (integration)', () => {
         {
           operation: 'split-folder',
           branch: 'over-full',
-          groups: [{ subfolder: 'sub-a', ids: ['practice-leaf-1', 'practice-leaf-2'] }],
+          groups: [{ subfolder: 'sub-a', summary: 'a split cluster', ids: ['practice-leaf-1', 'practice-leaf-2'] }],
         },
       ],
     });
@@ -276,7 +297,11 @@ describe('rebalance trigger and move (integration)', () => {
     const planPath = join(sandbox, 'bad.json');
     writeFileSync(
       planPath,
-      JSON.stringify({ operations: [{ operation: 'create-branch', folder: '../escape', ids: ['practice-x'] }] })
+      JSON.stringify({
+        operations: [
+          { operation: 'create-branch', folder: '../escape', summary: 'should be rejected', ids: ['practice-x'] },
+        ],
+      })
     );
     const res = await runCli(sandbox, ['rebalance', 'move', '--input', planPath]);
     expect(res.exitCode).not.toBe(0);

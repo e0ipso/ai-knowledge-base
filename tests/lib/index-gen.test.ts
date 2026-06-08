@@ -54,16 +54,21 @@ describe('generateIndex (recursive per-folder)', () => {
     expect(out.nodeCount).toBe(3);
     // Root, topic-a, topic-a/sub, topic-b all carry an index node.
     expect([...out.folders.keys()].sort()).toEqual(['', 'topic-a', 'topic-a/sub', 'topic-b']);
-    // Root rolls up its immediate subfolders, not its descendants' leaves.
+    // The root index node lists its immediate subfolders as imperative Load
+    // pointers, not its descendants' leaves. (The ENTRY catalog uses ## Branches;
+    // the per-folder root index node uses ## Subfolders.)
     const rootBody = out.folders.get('')!.content;
     expect(rootBody).toContain('## Subfolders');
-    expect(rootBody).toContain('**topic-a/**');
-    expect(rootBody).toContain('**topic-b/**');
-    expect(rootBody).not.toContain('**sub/**'); // not an immediate child of root
-    // topic-a lists its leaf and its immediate subfolder.
+    expect(rootBody).toContain('Load [`topic-a/`](nodes/topic-a/index.md)');
+    expect(rootBody).toContain('Load [`topic-b/`](nodes/topic-b/index.md)');
+    expect(rootBody).not.toContain('nodes/topic-a/sub/index.md'); // not an immediate child of root
+    // The ENTRY catalog carries the branch list under ## Branches.
+    expect(out.rootCatalog).toContain('## Branches');
+    expect(out.rootCatalog).toContain('Load [`topic-a/`](nodes/topic-a/index.md)');
+    // topic-a lists its leaf (Open pointer) and its immediate subfolder (Load).
     const aBody = out.folders.get('topic-a')!.content;
-    expect(aBody).toContain('**A**');
-    expect(aBody).toContain('**sub/**');
+    expect(aBody).toContain('Open [**A**](topic-a/practice-a.md)');
+    expect(aBody).toContain('Load [`sub/`](nodes/topic-a/sub/index.md)');
   });
 
   it('splits leaves by kind facet into Conventions and Components', () => {
@@ -75,9 +80,8 @@ describe('generateIndex (recursive per-folder)', () => {
     expect(body).toContain('## Conventions (how we build)');
     expect(body).toContain('## Components (what exists)');
     expect(body).toContain('## By topic');
-    // Bullet shape carries title, current path, summary, and tags.
-    expect(body).toContain('**X** [`topic/practice-x.md`]');
-    expect(body).toContain(' #foo');
+    // Imperative leaf pointer carries verb, title, current path, summary, tags.
+    expect(body).toContain('- Open [**X**](topic/practice-x.md) to learn about: s #foo');
   });
 
   it('is byte-identical across two consecutive generations (deterministic)', () => {
@@ -286,6 +290,151 @@ describe('generateIndex self-preserves the folder summary', () => {
   });
 });
 
+/**
+ * The actionable rendering redesign: imperative Load/Open pointers splicing
+ * summaries, an embedded descent directive, a parent breadcrumb on non-root
+ * indexes, no body statistics, and a proximity-ranked `## By topic`. These
+ * assert the custom render logic (the Jaccard ranking and the full body shape),
+ * not the Markdown serializer.
+ */
+describe('generateIndex actionable rendering', () => {
+  let root: string;
+  beforeEach(() => {
+    root = mkdtempSync(join(tmpdir(), 'kk-render-'));
+  });
+  afterEach(() => rmSync(root, { recursive: true, force: true }));
+
+  /** Count non-overlapping occurrences of a substring. */
+  function countOccurrences(haystack: string, needle: string): number {
+    let count = 0;
+    let idx = haystack.indexOf(needle);
+    while (idx !== -1) {
+      count += 1;
+      idx = haystack.indexOf(needle, idx + needle.length);
+    }
+    return count;
+  }
+
+  /** The leading sentence of the embedded descent directive, for occurrence checks. */
+  const DIRECTIVE_MARKER = '> kenkeep navigation:';
+
+  function writeFolderIndexWithSummary(dir: string, summary: string): void {
+    const d = dir ? join(root, ...dir.split('/')) : root;
+    mkdirSync(d, { recursive: true });
+    writeFileSync(
+      join(d, 'index.md'),
+      matter.stringify('# placeholder\n', {
+        schema_version: 2,
+        nodes_hash: 'sha256:placeholder',
+        node_count: 0,
+        summary,
+      })
+    );
+  }
+
+  it('splices a child folder summary into a Load pointer and falls back to the Title-cased name', () => {
+    seedNodes(root, [
+      { dir: 'with-summary', kind: 'map', id: 'map-a', title: 'A', summary: 's' },
+      { dir: 'no-summary', kind: 'map', id: 'map-b', title: 'B', summary: 's' },
+    ]);
+    writeFolderIndexWithSummary('with-summary', 'how summaries are carried');
+
+    const rootBody = generateIndex(root).folders.get('')!.content;
+    // Child WITH a summary: spliced verbatim, sentence terminated with a period.
+    expect(rootBody).toContain(
+      'Load [`with-summary/`](nodes/with-summary/index.md) for more information on how summaries are carried.'
+    );
+    // Child WITHOUT a summary: Title-cased folder-name fallback.
+    expect(rootBody).toContain(
+      'Load [`no-summary/`](nodes/no-summary/index.md) for more information on No Summary.'
+    );
+  });
+
+  it('embeds the descent directive exactly once per body, in both the root catalog and a folder index', () => {
+    seedNodes(root, [{ dir: 'topic', kind: 'map', id: 'map-a', title: 'A', summary: 's' }]);
+    const out = generateIndex(root);
+    expect(countOccurrences(out.rootCatalog, DIRECTIVE_MARKER)).toBe(1);
+    expect(countOccurrences(out.folders.get('topic')!.content, DIRECTIVE_MARKER)).toBe(1);
+  });
+
+  it('renders the parent breadcrumb on non-root indexes only', () => {
+    seedNodes(root, [
+      { dir: 'topic', kind: 'map', id: 'map-a', title: 'A', summary: 's' },
+      { dir: 'topic/sub', kind: 'map', id: 'map-b', title: 'B', summary: 's' },
+    ]);
+    const out = generateIndex(root);
+    // Root catalog and root index node carry no breadcrumb.
+    expect(out.rootCatalog).not.toContain('↑ Parent:');
+    expect(out.folders.get('')!.content).not.toContain('↑ Parent:');
+    // A top-level folder points at the tree root; a nested folder at its parent.
+    expect(out.folders.get('topic')!.content).toContain('↑ Parent: [kenkeep](../index.md)');
+    expect(out.folders.get('topic/sub')!.content).toContain('↑ Parent: [topic](../index.md)');
+  });
+
+  it('emits no body statistics (node counts, token estimates, rollups, branch counts)', () => {
+    seedNodes(root, [
+      { dir: 'topic', kind: 'map', id: 'map-a', title: 'A', summary: 's' },
+      { dir: 'topic/sub', kind: 'map', id: 'map-b', title: 'B', summary: 's' },
+    ]);
+    const out = generateIndex(root);
+    const bodies = [out.rootCatalog, ...[...out.folders.values()].map(f => f.content)];
+    for (const body of bodies) {
+      // Strip the frontmatter (node_count legitimately lives there).
+      const content = matter(body).content;
+      expect(content).not.toMatch(/node\(s\)/);
+      expect(content).not.toMatch(/estimated tokens/);
+      expect(content).not.toMatch(/in subtree/);
+    }
+  });
+
+  it('reworks ## By topic into <=3 path+summary entries per tag, ranked by whole-tree tag Jaccard', () => {
+    // The folder under test (`home`) has one direct `shared` leaf, so `shared`
+    // is a bucket for it. Candidates are drawn from the WHOLE tree (cohort of 5)
+    // and ranked by summed tag-Jaccard centrality, capped at 3. Two identical
+    // multi-tag hubs match each other at Jaccard 1.0 and partially match the
+    // spoke, so they out-score the lonely single-tag leaves.
+    seedNodes(root, [
+      { dir: 'home', kind: 'map', id: 'map-home', title: 'Home', summary: 'home', tags: ['shared'] },
+      {
+        dir: 'a',
+        kind: 'map',
+        id: 'map-hub1',
+        title: 'Hub One',
+        summary: 'hub one',
+        tags: ['shared', 'x', 'y'],
+      },
+      {
+        dir: 'a',
+        kind: 'map',
+        id: 'map-hub2',
+        title: 'Hub Two',
+        summary: 'hub two',
+        tags: ['shared', 'x', 'y'],
+      },
+      { dir: 'a', kind: 'map', id: 'map-x', title: 'X', summary: 'x one', tags: ['shared', 'x'] },
+      // A fifth single-tag node so the whole-tree cohort exceeds the cap of 3.
+      { dir: 'b', kind: 'map', id: 'map-z', title: 'Z', summary: 'z one', tags: ['shared'] },
+    ]);
+    const body = generateIndex(root).folders.get('home')!.content;
+    // Isolate the `### #shared` subsection of `## By topic`.
+    const sharedIdx = body.indexOf('### #shared');
+    expect(sharedIdx).toBeGreaterThan(-1);
+    const after = body.slice(sharedIdx + '### #shared'.length);
+    const nextHeading = after.search(/\n##/);
+    const bucket = nextHeading === -1 ? after : after.slice(0, nextHeading);
+    const entries = bucket.split('\n').filter(l => l.startsWith('- Open '));
+    // Capped at 3, each a followable path+summary Open pointer.
+    expect(entries.length).toBe(3);
+    for (const e of entries) expect(e).toMatch(/^- Open \[\*\*.+\*\*\]\(.+\) — .+/);
+    // The two identical hubs are the most central; the lonely single-tag leaves
+    // (Home, Z) fall below the cap. Deterministic tie-break: title asc.
+    expect(entries[0]).toContain('[**Hub One**]');
+    expect(entries[1]).toContain('[**Hub Two**]');
+    expect(entries[2]).toContain('[**X**]');
+    expect(bucket).not.toContain('[**Z**]');
+  });
+});
+
 describe('computeNodesHash stability (leaves only, excludes index.md)', () => {
   let root: string;
   beforeEach(() => {
@@ -349,7 +498,9 @@ describe('cross references render the current path resolved by id', () => {
     ]);
     const out = generateIndex(root);
     // The target leaf renders at its current deep path in its own folder index.
-    expect(out.folders.get('deep/nested')!.content).toContain('[`deep/nested/map-target.md`]');
+    expect(out.folders.get('deep/nested')!.content).toContain(
+      'Open [**Target**](deep/nested/map-target.md)'
+    );
     // GRAPH overlay references by id and records the current path.
     const graph = generateGraph(root).content;
     expect(graph).toContain('## map-target');

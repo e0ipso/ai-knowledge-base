@@ -2,7 +2,7 @@
 id: 2
 group: "index-core"
 dependencies: [1]
-status: "pending"
+status: "completed"
 created: 2026-06-08
 skills:
   - typescript

@@ -7,17 +7,32 @@ import { log } from '../lib/log.js';
 import { detectSchemaVersion, planMigration, type MigrationStep } from '../lib/migrate.js';
 import { writePlacements, type Placement } from '../lib/migrate-flat-to-tree.js';
 import { readAllNodesFlat, type FlatLeaf } from '../lib/migrate-read.js';
+import { stampFolderSummary } from '../lib/nodes.js';
 import { findRepoRoot, repoPaths } from '../lib/paths.js';
 import { NODE_SCHEMA_VERSION } from '../lib/schemas.js';
 import { resolveSettings } from '../lib/settings.js';
 import { runIndexRebuild } from './index-rebuild.js';
 
 /**
- * Maps flat leaves to topical folders for the v1->v2 step. Production execs the
- * host harness; tests inject a deterministic stub so the suite never spawns the
- * harness or the LLM.
+ * The result of the clustering step: where each leaf goes, plus a one-line
+ * `summary` for each topical folder the clustering creates. The summary is the
+ * semantic, LLM-authored field; the deterministic write primitive only stamps it
+ * into the folder's `index.md` so the subsequent rebuild self-preserves it.
+ * Folders without an entry render the Title-cased name fallback (warn, never
+ * block).
  */
-export type ClusterFn = (leaves: FlatLeaf[]) => Placement[] | Promise<Placement[]>;
+export interface ClusterResult {
+  placements: Placement[];
+  /** folder (POSIX-style, under nodes/) -> authored one-line summary. */
+  folderSummaries: Record<string, string>;
+}
+
+/**
+ * Maps flat leaves to topical folders for the v1->v2 step and authors a summary
+ * per created folder. Production execs the host harness; tests inject a
+ * deterministic stub so the suite never spawns the harness or the LLM.
+ */
+export type ClusterFn = (leaves: FlatLeaf[]) => ClusterResult | Promise<ClusterResult>;
 
 export interface MigrateOptions {
   /** Override the clustering step. Tests inject a deterministic stub. */
@@ -102,9 +117,16 @@ function flatToTreeStep(opts: MigrateOptions): MigrationStep {
       if (leaves.length === 0) return [];
 
       const cluster = opts.cluster ?? makeHarnessCluster(opts.harness);
-      const proposed = await cluster(leaves);
+      const { placements: proposed, folderSummaries } = await cluster(leaves);
       const placements = reconcilePlacements(leaves, proposed);
       const results = writePlacements(paths.nodesDir, placements);
+      // Author the folder summaries: stamp each into its new folder's index.md
+      // so the rebuild that follows this step self-preserves it. The LLM invents
+      // the summary; deterministic code only persists it.
+      for (const [folder, summary] of Object.entries(folderSummaries)) {
+        if (folder.trim() === '') continue; // the nodes/ root carries ENTRY.md, not a folder index
+        stampFolderSummary(paths.nodesDir, folder, summary);
+      }
       return results.map(
         r => `${r.id} -> ${r.targetFolder === '' ? '(nodes root)' : r.targetFolder}`
       );
@@ -141,9 +163,13 @@ const CLUSTER_INSTRUCTIONS =
   'tree. Group related leaves into a small set of topical folders (lowercase, ' +
   'dash-separated, may be nested with "/"). Keep nodes that reference each other ' +
   'near each other. Preserve every id exactly; never invent, rename, or drop an ' +
-  'id. Respond with ONLY JSON of the shape ' +
-  '{"placements":[{"id":"<leaf-id>","targetFolder":"<folder>"}]} with one entry ' +
-  'for every leaf.';
+  'id. For EACH folder you create, also write a one-line `summary`: a noun ' +
+  'phrase / sentence fragment that completes "for more information on <summary>" ' +
+  '(lowercase start, no trailing period, <= ~140 chars), describing what lives ' +
+  'in that folder. Respond with ONLY JSON of the shape ' +
+  '{"placements":[{"id":"<leaf-id>","targetFolder":"<folder>"}],' +
+  '"folders":[{"folder":"<folder>","summary":"<fragment>"}]} with one placement ' +
+  'for every leaf and one folder entry for every distinct folder you use.';
 
 const PlacementResponseSchema = z.object({
   placements: z.array(
@@ -152,6 +178,14 @@ const PlacementResponseSchema = z.object({
       targetFolder: z.string(),
     })
   ),
+  folders: z
+    .array(
+      z.object({
+        folder: z.string().min(1),
+        summary: z.string(),
+      })
+    )
+    .optional(),
 });
 
 /**
@@ -160,7 +194,7 @@ const PlacementResponseSchema = z.object({
  * exercised in CI (tests inject a stub instead).
  */
 function makeHarnessCluster(harnessFlag: string | undefined): ClusterFn {
-  return (leaves: FlatLeaf[]): Placement[] => {
+  return (leaves: FlatLeaf[]): ClusterResult => {
     const paths = repoPaths(findRepoRoot());
     const { settings } = resolveSettings({ projectFile: paths.projectConfigFile });
     const harness = resolveActiveHarness({
@@ -190,9 +224,18 @@ function makeHarnessCluster(harnessFlag: string | undefined): ClusterFn {
   };
 }
 
-function parsePlacements(raw: string): Placement[] {
+function parsePlacements(raw: string): ClusterResult {
   const json = extractJsonPayload(raw);
   const parsed = PlacementResponseSchema.parse(JSON.parse(json));
   // sourcePath is filled in by reconcilePlacements against the read leaves.
-  return parsed.placements.map(p => ({ id: p.id, sourcePath: '', targetFolder: p.targetFolder }));
+  const placements = parsed.placements.map(p => ({
+    id: p.id,
+    sourcePath: '',
+    targetFolder: p.targetFolder,
+  }));
+  const folderSummaries: Record<string, string> = {};
+  for (const f of parsed.folders ?? []) {
+    if (f.summary.trim() !== '') folderSummaries[f.folder] = f.summary.trim();
+  }
+  return { placements, folderSummaries };
 }

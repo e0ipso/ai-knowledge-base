@@ -443,11 +443,11 @@ graph TD
 **Parallel Tasks:**
 - ✔️ Task 001 (completed): Add optional folder `summary` to the index schema and self-preserve it across rebuilds
 
-### Phase 2: Rendering and authoring on the new primitive
+### ✅ Phase 2: Rendering and authoring on the new primitive
 **Parallel Tasks:**
-- Task 002: Rework `index.md`/`ENTRY.md` rendering — imperative pointers, embedded directive, breadcrumb, no statistics, proximity-ranked By topic (depends on: 001)
-- Task 004: Extend the v1→v2 migrate clustering to author a folder `summary` per created folder (depends on: 001)
-- Task 005: Extend rebalance ops to author a `summary` per new folder and update the kk-curate clustering step (depends on: 001)
+- ✔️ Task 002 (completed): Rework `index.md`/`ENTRY.md` rendering — imperative pointers, embedded directive, breadcrumb, no statistics, proximity-ranked By topic (depends on: 001)
+- ✔️ Task 004 (completed): Extend the v1→v2 migrate clustering to author a folder `summary` per created folder (depends on: 001)
+- ✔️ Task 005 (completed): Extend rebalance ops to author a `summary` per new folder and update the kk-curate clustering step (depends on: 001)
 
 ### Phase 3: Integration, de-duplication, and docs
 **Parallel Tasks:**
