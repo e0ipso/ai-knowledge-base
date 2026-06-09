@@ -187,12 +187,12 @@ async function main(): Promise<void> {
   const placeGroup = program
     .command('place')
     .description(
-      'Deterministic, LLM-free v1->v2 migration placement primitives (driven by the kk-migrate skill).'
+      'Deterministic, LLM-free primitives for the flat-to-tree (v1->v2) migration step; driven by the kk-migrate skill after `migrate status` reports the step pending. Refuses unless the on-disk knowledge base is at schema_version 1.'
     );
   placeGroup
     .command('inventory')
     .description(
-      'Deterministic, LLM-free migration check: detects the on-disk schema_version and, when a v1->v2 migration is due, prints the flat leaves as a JSON document {"leaves":[{"id","title","kind","tags","summary","relates_to","sourcePath"}]} for the kk-migrate skill to cluster, or reports "nothing to do" when already current.'
+      'Deterministic, LLM-free inventory for the flat-to-tree step: once `migrate status` reports the step pending, prints the flat leaves as a JSON document {"leaves":[{"id","title","kind","tags","summary","relates_to","sourcePath"}]} for the kk-migrate skill to cluster, or reports "nothing to do" when already current. Refuses when the on-disk schema_version is anything other than exactly 1.'
     )
     .allowExcessArguments(true)
     .action(async () => {

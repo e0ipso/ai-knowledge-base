@@ -38,15 +38,17 @@ function stepGateRefusal(mode: 'inventory' | 'apply', current: number | null): s
 }
 
 /**
- * Deterministic, LLM-free inventory primitive for the v1->v2 migration. Detects
- * the on-disk schema version and, when a migration is due, emits the flat leaves
- * as a single JSON document on stdout for the in-host `kk-migrate` skill to
+ * Deterministic, LLM-free inventory primitive for the flat-to-tree (v1->v2)
+ * migration step. Detects the on-disk schema version and, when that step is
+ * pending (the detected version is exactly 1), emits the flat leaves as a
+ * single JSON document on stdout for the in-host `kk-migrate` skill to
  * cluster:
  *
  *   {"leaves":[{"id","title","kind","tags","summary","relates_to","sourcePath"}, ...]}
  *
  * When the knowledge base is already current (or absent) it reports "nothing to
- * do" and exits 0. The leaf facets are read by `readAllNodesFlat` (validated
+ * do" and exits 0; any other detected version is refused via the step gate
+ * above. The leaf facets are read by `readAllNodesFlat` (validated
  * frontmatter) so the skill never parses leaf files itself. Output is the JSON
  * payload only — written with `process.stdout` (not `log`) so no prefix/color
  * corrupts it — mirroring `rebalance trigger`'s machine-readable contract.
@@ -108,8 +110,10 @@ const PlacementInputSchema = z.object({
 });
 
 /**
- * Deterministic, LLM-free apply primitive for the v1->v2 migration. Reads a
- * caller-supplied placement-and-folders JSON document (from `--input` or stdin),
+ * Deterministic, LLM-free apply primitive for the flat-to-tree (v1->v2)
+ * migration step. Refuses up front unless the detected on-disk schema_version
+ * is exactly 1 (the step gate above). Reads a caller-supplied
+ * placement-and-folders JSON document (from `--input` or stdin),
  * validates every proposed id against the leaves actually on disk and every
  * authored folder summary against the folders the placements create — both
  * BEFORE any write — then relocates each leaf with its id and bytes preserved
