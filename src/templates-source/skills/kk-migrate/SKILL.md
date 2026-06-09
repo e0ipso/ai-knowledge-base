@@ -1,13 +1,13 @@
 ---
 name: kk-migrate
-description: Migrate a v1 (flat `nodes/<kind>/`) kenkeep knowledge base to the v2 nested topical folder tree by clustering the leaves in-host, then applying the placement deterministically via the CLI primitive. Use when the node reader, `doctor`, or `init` reports a `schema_version: 1` / legacy flat layout and asks you to migrate, or when the user asks to migrate the knowledge base.
+description: Run any pending knowledge-base migration by querying the deterministic migration chain (`migrate status`) and executing each pending step's documented procedure in-host, with every write delegated to the step's deterministic CLI primitives. Use when the node reader, `doctor`, or `init` reports an out-of-date `schema_version` / legacy flat layout and asks you to migrate, or when the user asks to migrate the knowledge base.
 ---
 
-<!-- Version: 1 -->
+<!-- Version: 2 -->
 
 # kk-migrate
 
-You are the migrator. A v1 knowledge base stores its leaves in a flat `nodes/practice/` and `nodes/map/` layout; v2 stores them in a nested topical folder tree. The one step that needs judgment — clustering the flat leaves into topical folders — you do **in this session**. There is no sub-agent, no runner, and no `-p` spawn: **you** are the LLM doing the clustering. Every file write is delegated to the deterministic `place` CLI primitive so ids and bytes are preserved by tested code, never by you.
+You are the migrator — for **any** pending knowledge-base migration, not one specific hop. The knowledge base stores its on-disk layout at a numbered `schema_version`, and each registered migration step takes the tree from one version to the next. Whatever judgment a step requires, you exercise **in this session**: there is no sub-agent, no runner, and no `-p` spawn — **you** are the LLM doing the judgment work. Every file write is delegated to the step's deterministic CLI primitives so ids and bytes are preserved by tested code, never by you.
 
 ## Resolve the active harness
 
@@ -71,9 +71,32 @@ fi
 HARNESS=$(node /tmp/kk-detect-harness.mjs --hint <hint>)
 ```
 
-`$HARNESS` is not consumed by `place inventory` or `place apply`, but `index rebuild` (the final step) requires it.
+`$HARNESS` is not consumed by the `place` primitives, but `index rebuild` (the closing command of the flat-to-tree procedure) requires it.
 
-## 1. Confirm migration is due and get the inventory
+## Dispatch
+
+Before anything else, ask the CLI which migrations are pending:
+
+```bash
+npx --yes kenkeep@latest migrate status
+```
+
+- If it prints a line like `Knowledge base is already at schema_version 2; nothing to do.` (or `No knowledge base found under nodes/; nothing to do.`), there is nothing to migrate. **Stop** and report that one line to the user. Do nothing else.
+- Otherwise stdout is exactly one JSON line — the ordered chain of pending steps:
+
+  ```
+  {"current":1,"target":2,"steps":[{"id":"flat-to-tree","from":1,"to":2,"primitives":["place inventory","place apply"]}]}
+  ```
+
+  `current` is the detected on-disk schema version, `target` is the version this CLI ships, and `steps` is every step needed to bridge the gap, in execution order. Each entry carries the step's stable `id`, the `from`/`to` versions it bridges, and the deterministic CLI `primitives` it drives.
+
+For each `steps[]` entry, **in order**, find the procedure section below whose heading carries that exact `id` and execute it. If no section in this document matches a step's `id`, **stop and report to the user** that this copy of the skill predates the registered step: the CLI knows a migration this skill copy cannot yet perform, so the skill must be upgraded (re-run `init --upgrade`) before migrating. Never improvise a procedure for an unknown step id.
+
+## flat-to-tree (1 -> 2)
+
+Migrates a v1 knowledge base — leaves stored in a flat `nodes/practice/` and `nodes/map/` layout — to the v2 nested topical folder tree. The one judgment call is clustering the flat leaves into topical folders; every write goes through the `place apply` primitive.
+
+### 1. Get the inventory
 
 Run the deterministic inventory primitive and capture stdout:
 
@@ -81,16 +104,15 @@ Run the deterministic inventory primitive and capture stdout:
 npx --yes kenkeep@latest place inventory
 ```
 
-- If it prints a line like `Knowledge base is already at schema_version 2; nothing to do.` (or `No knowledge base found under nodes/; nothing to do.`), the KB does not need migrating. **Stop** and report that one line to the user. Do nothing else.
-- Otherwise it prints exactly one JSON line:
+Dispatch already established this step is due, so expect exactly one JSON line. (If the primitive short-circuits or refuses instead — the tree changed since dispatch — stop and report its output to the user.)
 
-  ```
-  {"leaves":[{"id":"<id>","title":"...","kind":"practice|map","tags":["..."],"summary":"...","relates_to":["..."],"sourcePath":"..."}, ...]}
-  ```
+```
+{"leaves":[{"id":"<id>","title":"...","kind":"practice|map","tags":["..."],"summary":"...","relates_to":["..."],"sourcePath":"..."}, ...]}
+```
 
-  This is your input. The primitive read and validated the frontmatter for you — cluster this JSON; never open or parse the leaf files yourself.
+This is your input. The primitive read and validated the frontmatter for you — cluster this JSON; never open or parse the leaf files yourself.
 
-## 2. Cluster the leaves in-session
+### 2. Cluster the leaves in-session
 
 Group the leaves from the inventory into a small set of topical folders. Apply these rules:
 
@@ -112,7 +134,7 @@ One placement for **every** leaf in the inventory, and one `folders` entry for *
 
 **Surface the proposed grouping to the user for review** before applying: show the folder tree and which ids land in each folder, plus each folder's authored summary. This is a one-shot, high-impact reorganization of the whole KB — let the user steer it before any write.
 
-## 3. Apply the placement deterministically
+### 3. Apply the placement deterministically
 
 Write your document to a tmpfile and hand it to the deterministic apply primitive:
 
@@ -130,7 +152,7 @@ On success it prints one JSON line, the placement summary:
 {"placed":[{"id":"<id>","targetFolder":"<folder>"}, ...]}
 ```
 
-## 4. Rebuild the indices
+### 4. Rebuild the indices
 
 Regenerate `ENTRY.md`, `GRAPH.md`, and every folder `index.md` from the relocated tree:
 
@@ -140,7 +162,7 @@ npx --yes kenkeep@latest index rebuild --harness "$HARNESS"
 
 The rebuild self-preserves the folder summaries you stamped in step 3. A folder you left without an authored summary renders the Title-cased folder-name fallback; `index rebuild` warns and exits zero (warn, never block).
 
-## 5. Hand off
+### 5. Hand off
 
 Tell the user the migration is staged in the working tree and **no git command was run**. They review the result with:
 
@@ -152,8 +174,8 @@ Leaves moved into their topical folders show as renames (ids and bytes preserved
 
 ## Constraints
 
-- **In-host only.** The clustering runs in this session. There is no sub-agent and no `-p` spawn; do not dispatch one.
-- **Never write node files directly.** Every leaf relocation and every folder-summary stamp goes through `place apply`. You only author the placement-and-folders JSON.
+- **In-host only.** The judgment work runs in this session. There is no sub-agent and no `-p` spawn; do not dispatch one.
+- **Never write node files directly.** Every file mutation goes through a step's deterministic primitive — in flat-to-tree, every leaf relocation and every folder-summary stamp goes through `place apply`. You only author the JSON documents the primitives consume.
 - **Never invoke git.** Not `add`, not `commit`, not `restore`. The migration is left as an uncommitted diff for the human to accept or reject.
-- **Ids and edges are sacred.** Every leaf keeps its exact id and every edge; the primitive's validation aborts before any write if a plan would drop, rename, or omit one.
-- **Full migration requires this interactive session.** There is no headless/unattended migration; the clustering needs you, the in-session agent.
+- **Ids and edges are sacred.** Every leaf keeps its exact id and every edge; a primitive's validation aborts before any write if a plan would drop, rename, or omit one.
+- **Full migration requires this interactive session.** There is no headless/unattended migration; the judgment steps need you, the in-session agent.
