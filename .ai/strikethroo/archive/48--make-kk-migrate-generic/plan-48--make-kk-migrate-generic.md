@@ -195,15 +195,15 @@ graph TD
 **Parallel Tasks:**
 - ✔️ Task 1: Reshape MigrationStep into a declarative step registry and unit-test planMigration — `completed`
 
-### Phase 2: Dispatch and Gating
+### ✅ Phase 2: Dispatch and Gating
 **Parallel Tasks:**
-- Task 2: Implement the migrate status dispatch primitive and its JSON contract (depends on: 1)
-- Task 3: Step-gate place inventory and place apply to on-disk version 1 (depends on: 1)
+- ✔️ Task 2: Implement the migrate status dispatch primitive and its JSON contract (depends on: 1) — `completed`
+- ✔️ Task 3: Step-gate place inventory and place apply to on-disk version 1 (depends on: 1) — `completed`
 
-### Phase 3: Skill and Self-Description
+### ✅ Phase 3: Skill and Self-Description
 **Parallel Tasks:**
-- Task 4: Rewrite the kk-migrate SKILL.md as a generic dispatcher and regenerate all copies (depends on: 2)
-- Task 5: Scope every remaining migration self-description to the generic dispatch (depends on: 2, 3)
+- ✔️ Task 4: Rewrite the kk-migrate SKILL.md as a generic dispatcher and regenerate all copies (depends on: 2) — `completed`
+- ✔️ Task 5: Scope every remaining migration self-description to the generic dispatch (depends on: 2, 3) — `completed`
 
 ### Post-phase Actions
 
@@ -212,3 +212,33 @@ graph TD
 ### Execution Summary
 - Total Phases: 3
 - Total Tasks: 5
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-06-09
+
+### Results
+
+All five tasks executed across three phases; the suite grew from 286 to 295 passing tests with lint clean throughout.
+
+- `MigrationStep` is declarative (`id`, `from`, `to`, `primitives`); `MIGRATION_STEPS` ships the single `flat-to-tree` entry and `planMigration` is unit-tested (commit f608734).
+- `migrate status` reports the pending chain as exactly one JSON line (`{"current","target","steps"}`) or a "nothing to do" report; bare `kenkeep migrate` surfaces help stating the CLI never executes migrations (commit f3cc2d4).
+- `place inventory`/`place apply` refuse unless the on-disk version is exactly 1, closing the silent-mislabel path; refusals make zero filesystem changes (commit 2e699b0).
+- SKILL.md is dispatch-first with a `flat-to-tree` procedure section, version marker 2; source, built template, and the three installed dogfood copies verified byte-identical (commit 1dcb519).
+- CLI help and doc comments scoped to the generic design; `MIGRATE_COMMAND_HINT` string survived byte-identical (commit 3d5823f).
+- All five plan Self Validation steps executed and passed, including the v1-fixture end-to-end flow (renames, `schema_version`-only delta, authored folder summary, index rebuild) and the mixed-tree abort-before-write check.
+
+### Noteworthy Events
+
+- A stale plan-47 test (`place.test.ts` "migrate is no longer a command") asserted `kenkeep migrate` was an unknown command, directly contradicting the intentional reintroduction of the group; it was repurposed to pin the new contract (help shown, reports-only wording) rather than deleted.
+- Phase 2 and task 5 ran in isolated git worktrees to avoid `dist/` build races between parallel agents; their patches applied cleanly with no overlap. The worktrees were created at a stale HEAD and reset to the current commit before work.
+- A pathspec-form `git commit -- <paths>` failed with a transient "invalid object" error caused by lint-staged's stash dance over the pre-existing dirty working tree; switching to staged plain commits resolved it.
+- The dogfood `init --upgrade` refresh rewrote other installed artifacts (hooks, other skills) mostly byte-identically; `.claude/hooks/kk-proposal-drain.cjs` and `.opencode/plugins/kk.mjs` gained the same pre-existing local drift pattern as the already-dirty hook files. None of the installed dogfood artifacts were committed, matching their pre-existing uncommitted state in the working tree.
+- `templates/` is gitignored build output, so success criterion 4's built-copy requirement is satisfied by the byte-identity check rather than a commit.
+
+### Necessary follow-ups
+
+- Decide whether to commit the refreshed (and pre-existing) uncommitted dogfood install artifacts (`.agents/`, `.claude/skills/kk-migrate/`, `.opencode/skills/kk-migrate/`, `.codex/`, modified hooks) — intentionally left out of this plan's commits.
+- Optional: mention the `migrate status` dispatch entrypoint in AGENTS.md / `docs/internals/architecture.md`, which still narrate only the flat-to-tree step (accurate today, additive improvement).
+- The kenkeep KB contains no contradicting nodes; the normal session capture/curation flow will record this change.
