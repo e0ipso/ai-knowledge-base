@@ -39,12 +39,7 @@ const AGENTS_POINTER = [
   KK_NAVIGATION_DIRECTIVE,
 ].join('\n');
 
-const KENKEEP_GITIGNORE_LINES = [
-  '_sessions/',
-  '_logs/',
-  '.state/',
-  '!.state/installed-version',
-];
+const KENKEEP_GITIGNORE_LINES = ['_sessions/', '_logs/', '.state/', '!.state/installed-version'];
 
 export async function runInit(opts: InitOptions): Promise<void> {
   validateHarnesses(opts.harnesses);
@@ -239,7 +234,6 @@ function writeInstalledVersion(file: string, stateDir: string, harnesses: string
   writeFileSync(file, `${JSON.stringify(installed, null, 2)}\n`);
 }
 
-
 /**
  * Writes `.ai/kenkeep/.gitignore` with the canonical entries if it
  * doesn't already exist. Once written, the file is treated as user-owned;
@@ -262,8 +256,7 @@ function updateAgentsMd(file: string): void {
   if (existing.includes(AGENTS_BLOCK_START)) {
     const before = existing.slice(0, existing.indexOf(AGENTS_BLOCK_START));
     const afterStart = existing.indexOf(AGENTS_BLOCK_END);
-    const afterRaw =
-      afterStart >= 0 ? existing.slice(afterStart + AGENTS_BLOCK_END.length) : '';
+    const afterRaw = afterStart >= 0 ? existing.slice(afterStart + AGENTS_BLOCK_END.length) : '';
     const after = afterRaw.startsWith('\n') ? afterRaw.slice(1) : afterRaw;
     writeFileSync(file, ensureTrailingNewline(`${before}${block}\n${after}`));
     return;
