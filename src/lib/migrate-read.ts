@@ -5,9 +5,10 @@ import { INDEX_FILENAME } from './nodes.js';
 
 /**
  * A leaf read from the legacy flat layout. The normal reader rejects that layout
- * outright, so this tolerant reader exists to read the leaves a v1->v2 step is
- * about to place. It reads only the fields the clustering step needs; the write
- * primitive re-reads full frontmatter from `sourcePath`.
+ * outright, so this tolerant reader exists to read the leaves the flat-to-tree
+ * (v1->v2) migration step is about to place. It reads only the fields the
+ * clustering step needs; the write primitive re-reads full frontmatter from
+ * `sourcePath`.
  */
 export interface FlatLeaf {
   id: string;
