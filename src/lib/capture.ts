@@ -14,6 +14,7 @@ import {
 } from './settings.js';
 import type { RoleTaggedTranscript } from '../harnesses/types.js';
 import { renderRoleTagged } from './transcript-render.js';
+import { recordUsage } from './usage.js';
 
 export type TranscriptParser = (text: string) => RoleTaggedTranscript;
 
@@ -36,6 +37,18 @@ export interface CaptureContext {
   sessionsDir: string;
   parseTranscript: TranscriptParser;
   now?: () => Date;
+  /**
+   * Optional knowledge-base usage tracking. When present, the file paths the
+   * agent read this turn (`readPaths`, surfaced by the harness adapter from its
+   * raw transcript) are classified against `nodesDir` and reconciled into
+   * `usageFile` after the session log is written. Best-effort and non-fatal.
+   */
+  usage?: {
+    readPaths: string[];
+    nodesDir: string;
+    kkDir: string;
+    usageFile: string;
+  };
 }
 
 export async function captureSession(
@@ -100,6 +113,24 @@ export async function captureSession(
   });
 
   const sessionLogPath = writeSessionLog(ctx.sessionsDir, filename, body);
+
+  if (ctx.usage && ctx.usage.readPaths.length > 0) {
+    try {
+      await recordUsage({
+        usageFile: ctx.usage.usageFile,
+        nodesDir: ctx.usage.nodesDir,
+        kkDir: ctx.usage.kkDir,
+        sessionId,
+        usedAt: capturedAt,
+        readPaths: ctx.usage.readPaths,
+      });
+    } catch (err) {
+      // Usage tracking is best-effort: it must never fail or alter capture.
+      process.stderr.write(
+        `[kenkeep] usage tracking skipped: ${err instanceof Error ? err.message : String(err)}\n`
+      );
+    }
+  }
 
   return {
     status: 'written',

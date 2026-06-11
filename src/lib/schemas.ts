@@ -141,6 +141,20 @@ export const LintStateFileSchema = z.object({
 });
 export type LintStateFile = z.infer<typeof LintStateFileSchema>;
 
+/**
+ * One line of `.state/usage.jsonl`: a single read occurrence of a knowledge-base
+ * document during a captured session. `document` is the node id for a leaf, or
+ * the kk-root-relative POSIX path for a branch `index.md`. `used_at` reuses the
+ * session's `captured_at`.
+ */
+export const UsageRecordSchema = z.object({
+  document: z.string(),
+  type: z.enum(['leaf', 'index']),
+  session_id: z.string(),
+  used_at: z.string(),
+});
+export type UsageRecord = z.infer<typeof UsageRecordSchema>;
+
 export const NodeKindSchema = z.enum(['practice', 'map']);
 export type NodeKind = z.infer<typeof NodeKindSchema>;
 

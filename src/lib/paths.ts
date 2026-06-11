@@ -72,6 +72,13 @@ export interface RepoPaths {
    * so the existing gitignore rule keeps it out of commits.
    */
   memoryLedgerFile: string;
+  /**
+   * Append-only ledger of knowledge-base document usage
+   * (`.ai/kenkeep/.state/usage.jsonl`). One JSON line per read occurrence of a
+   * node leaf or branch index. Lives under `.state/` so the existing gitignore
+   * rule keeps it out of commits.
+   */
+  usageFile: string;
 }
 
 export function repoPaths(root: string): RepoPaths {
@@ -95,6 +102,7 @@ export function repoPaths(root: string): RepoPaths {
     conflictsDir: join(kkDir, 'conflicts'),
     kkGitignoreFile: join(kkDir, '.gitignore'),
     memoryLedgerFile: join(stateDir, 'memory-ledger.json'),
+    usageFile: join(stateDir, 'usage.jsonl'),
   };
 }
 
