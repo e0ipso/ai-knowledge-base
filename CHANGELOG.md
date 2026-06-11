@@ -1,3 +1,18 @@
+## [1.4.0](https://github.com/e0ipso/kenkeep/compare/v1.3.1...v1.4.0) (2026-06-11)
+
+### Features
+
+* **opencode:** export reads + ses_ normalizer ([ef2c9e2](https://github.com/e0ipso/kenkeep/commit/ef2c9e28a53b872e845d3c49e54901ad8b4ffb9c))
+* **opencode:** export-primary capture hook ([ef8ad41](https://github.com/e0ipso/kenkeep/commit/ef8ad41625cf688558bd832564979a74997a3172))
+* **usage:** add per-adapter read extractors ([e56bcc6](https://github.com/e0ipso/kenkeep/commit/e56bcc68f6d16897a1912416c049989b2ac8e428))
+* **usage:** add usage ledger and capture wiring ([d874573](https://github.com/e0ipso/kenkeep/commit/d87457350ff3e1606674b9d367d48bf3b5ec04b7))
+
+### Bug Fixes
+
+* correct cross-harness capture trigger mapping and copilot parser ([b1f673c](https://github.com/e0ipso/kenkeep/commit/b1f673c53af807df8d183a48c2153a6fcdde8faf))
+* **cursor:** extract reads from Read tool too ([4ebc9aa](https://github.com/e0ipso/kenkeep/commit/4ebc9aa72ee7e8e3d8a220ffd59986d90bac1be1))
+* **opencode:** export id + pipe-flush capture ([b54b7d6](https://github.com/e0ipso/kenkeep/commit/b54b7d6b8a466ef5c9471b8b034639920034cac9))
+
 ## [1.3.1](https://github.com/e0ipso/kenkeep/compare/v1.3.0...v1.3.1) (2026-06-11)
 
 ### Bug Fixes
