@@ -268,6 +268,8 @@ describe('init', () => {
     expect(body).toContain('# build/');
     expect(body).toContain('# dist/');
     expect(body).toContain('# coverage/');
+    // Uncommented Strikethroo deny.
+    expect(body).toContain('.ai/strikethroo/');
     // Uncommented harness instruction deny block — at least the Claude
     // directories that were installed for this init.
     expect(body).toContain('.claude/skills/');

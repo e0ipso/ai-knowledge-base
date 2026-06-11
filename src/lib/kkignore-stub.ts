@@ -68,7 +68,11 @@ export function renderKbignoreStub(adapters: HarnessAdapter[]): string {
   lines.push('# **/*.generated.md');
   lines.push('');
 
-  // 3. Harness instruction directories — uncommented.
+  // 3. Strikethroo plans directory — uncommented.
+  lines.push('.ai/strikethroo/');
+  lines.push('');
+
+  // 4. Harness instruction directories — uncommented.
   lines.push('# --- Harness instruction directories (auto-generated from registered adapters) ---');
   lines.push('# These describe how the AI should act (skills, commands, hooks,');
   lines.push('# plugins) rather than what the project is. Remove a line to');
