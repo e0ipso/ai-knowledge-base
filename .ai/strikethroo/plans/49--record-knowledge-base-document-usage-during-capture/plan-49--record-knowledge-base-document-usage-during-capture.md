@@ -395,10 +395,10 @@ graph TD
 - ✔️ Task 005: Copilot read extractor + hook wiring (depends on: 002)
 - ✔️ Task 006: OpenCode read extractor + hook wiring (depends on: 002)
 
-### Phase 4: Verification & documentation
+### ✅ Phase 4: Verification & documentation
 **Parallel Tasks:**
-- Task 007: Tests — classification, reconciliation, per-adapter fixtures (depends on: 001, 003, 004, 005, 006)
-- Task 008: Documentation — state node + AGENTS capability table (depends on: 001, 003, 004, 005, 006)
+- ✔️ Task 007: Tests — classification, reconciliation, per-adapter fixtures (depends on: 001, 003, 004, 005, 006)
+- ✔️ Task 008: Documentation — state node + AGENTS capability table (depends on: 001, 003, 004, 005, 006)
 
 ### Post-phase Actions
 After each phase, apply the validation gates in `/config/hooks/POST_PHASE.md` before starting the next phase.

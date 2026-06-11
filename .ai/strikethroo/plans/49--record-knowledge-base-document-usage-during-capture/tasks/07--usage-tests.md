@@ -2,7 +2,7 @@
 id: 7
 group: "usage-verification"
 dependencies: [1, 3, 4, 5, 6]
-status: "pending"
+status: "completed"
 created: 2026-06-11
 skills:
   - vitest

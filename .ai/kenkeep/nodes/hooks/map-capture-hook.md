@@ -40,6 +40,8 @@ The only difference between triggers is the `captured_by` field. Never invokes t
 
 `captured_by` derivation: there is no shared, Claude-keyed event map in `src/lib/capture.ts`. Each adapter's `kk-capture` owns an exported `*_EVENT_TO_TRIGGER` map that translates its own native lifecycle event name into the canonical `CaptureTrigger` (`stop` | `session_end` | `pre_compact` | `manual`), then passes it on `HookInput.trigger`; `captureSession` writes that value as `captured_by`, defaulting to `stop` when no trigger is supplied. Per-adapter maps: Claude `Stop`→`stop`, `SessionEnd`→`session_end`, `PreCompact`→`pre_compact`; Cursor `stop`→`stop`, `sessionEnd`→`session_end`, `preCompact`→`pre_compact`; Codex `Stop`→`stop`; OpenCode `session.idle`→`stop`; Copilot `agentStop`→`stop`, `sessionEnd`→`session_end`.
 
+Usage tracking: after the session log is written, each adapter surfaces the file paths the agent opened via read tool calls in its raw transcript (`src/harnesses/read-extract.ts`); reads resolving under `nodes/` are appended to the gitignored `.state/usage.jsonl` as one JSON line per read occurrence (`{ document, type, session_id, used_at }`), reconciled monotonically per `session_id` — counts are never decreased, so a post-compaction transcript cannot lower them. Best-effort and non-fatal: a usage error is written to stderr and never blocks capture. The four text-based harnesses run a text extractor on the transcript; OpenCode precomputes read paths from its storage `part/` tree.
+
 Failure modes table (from `docs/internals/hooks.md`):
 
 | Condition | Outcome |

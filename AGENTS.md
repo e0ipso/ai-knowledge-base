@@ -106,6 +106,15 @@ Each `src/templates-source/prompts/*.md` and `src/templates-source/claude/comman
 - The async proposal-drain hook drains **all** pending session logs in one pass (no entry cap). The `maxEntries` parameter exists in the API for explicit capping but defaults to no limit.
 - The `session-log update-proposals` CLI primitive writes validated proposal JSON into session log frontmatter. Used by the `/kk-curate` inline extraction step; deterministic, no LLM.
 - **Capture writes session logs directly.** The capture hook parses the transcript and writes `_sessions/*.md` without built-in secret scanning. End users may configure pre-commit or CI secret scanners separately. See [map-capture-hook](.ai/kenkeep/nodes/hooks/map-capture-hook.md).
+- **Capture also records knowledge-base document usage.** After the session log is written, each adapter surfaces the file-read tool calls from its raw transcript; reads that resolve under `nodes/` are appended — one line per read occurrence, reconciled monotonically per `session_id` (never decreased, so a post-compaction transcript can't lower a count) — to the gitignored `.ai/kenkeep/.state/usage.jsonl` (`{ document, type, session_id, used_at }`). Best-effort and non-fatal: a usage-tracking error never blocks capture. Per-adapter read signal (`src/harnesses/read-extract.ts`):
+
+  | Harness | Raw source | Read tool → path |
+  |---------|-----------|------------------|
+  | Claude Code | transcript JSONL | `tool_use` `Read` → `input.file_path` |
+  | Codex CLI | rollout JSONL | `function_call` read → `arguments.path` (defensive; shell reads not counted) |
+  | Cursor | `agent-transcripts/*.jsonl` | `tool_use` `ReadFile` → `input.path` |
+  | OpenCode | storage `part/` tree | `tool` `read` → `state.input.filePath` |
+  | GitHub Copilot CLI | `events.jsonl` | `tool.execution_start` `view` → `data.arguments.path` |
 - **[The curator never auto-resolves contradictions.](.ai/kenkeep/nodes/curation/practice-curator-never-auto-resolves-contradictions.md)** It writes one markdown file per conflict under [`.ai/kenkeep/conflicts/<run-id>-<n>.md`](.ai/kenkeep/nodes/curation/map-conflict-files.md) and lets the `kk-curate` skill walk them with the human.
 - **Rebalance is curate's final phase, not a separate command.** A deterministic, LLM-free trigger reads per-folder metrics with a hysteresis margin; nothing trips → the LLM phase is skipped at zero cost. When it fires, the LLM proposes folder/leaf splits and merges, and the deterministic `rebalance move` primitive applies them as id-stable git renames folded into the same curate diff — accept with `git commit`, reject the moves with a path-scoped `git restore`. See `src/lib/rebalance-move.ts`.
 - **[Bootstrap never overwrites existing nodes.](.ai/kenkeep/nodes/bootstrap/practice-bootstrap-never-overwrites-existing-nodes.md)** Collisions are skipped and reported. Incremental bootstrap behaves the same. Bootstrap is also [supervised and judgmental, not exhaustive](.ai/kenkeep/nodes/bootstrap/practice-bootstrap-is-supervised-and-judgmental.md).
