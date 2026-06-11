@@ -1,6 +1,6 @@
 # AGENTS.md
 
-`kenkeep` — npm CLI that captures, curates, and re-injects per-repo knowledge from AI coding sessions for Claude Code, OpenAI Codex CLI, Cursor, OpenCode, and GitHub Copilot CLI. TypeScript, Node 22+, ESM, bundled via `tsup`.
+`kenkeep` — npm package that builds and maintains a per-repo knowledge base from AI coding sessions for Claude Code, OpenAI Codex CLI, Cursor, OpenCode, and GitHub Copilot CLI. It installs harness hooks, captures redacted session slices, runs human-supervised curation, and injects the resulting `ENTRY.md` into every new session. TypeScript, Node 22+, ESM, bundled via `tsup`.
 
 Authoritative product spec: [PRD.md](PRD.md). Curated project knowledge: [.ai/kenkeep/ENTRY.md](.ai/kenkeep/ENTRY.md) — skim it before designing a non-trivial change.
 
@@ -10,7 +10,7 @@ These principles override every other guideline in this file. If a change would 
 
 1. **No daemons, no background services, no external runtimes.** Everything runs as a one-shot CLI invocation or a hook fired by the host harness. No long-lived processes, no Docker, no sidecars.
 2. **Plain markdown in git for all knowledge base data.** Nodes, INDEX, GRAPH, conflicts — all human-readable markdown under `.ai/kenkeep/`. No databases, no vector stores, no binary blobs.
-3. **Human-in-the-loop curation — nothing writes to the knowledge base without `/kk-curate` + `git commit`.** The curator writes directly to `nodes/`, but acceptance is `git commit`; rejection is `git restore`. The system never modifies the knowledge base without human approval. See [practice-review-nodes-via-git](.ai/kenkeep/nodes/knowledge-base/nodes/practice-review-nodes-via-git.md).
+3. **Human-in-the-loop curation — nothing writes to the knowledge base without `/kk-curate` + `git commit`.** The curator writes directly to `nodes/`, but acceptance is `git commit`; rejection is `git restore`. The system never modifies the knowledge base without human approval. See [practice-review-nodes-via-git](.ai/kenkeep/nodes/conventions/practice-review-nodes-via-git.md).
 4. **Team artifact, not per-user state.** Anything committed under `.ai/kenkeep/nodes/`, `ENTRY.md`, `GRAPH.md`, `config.yaml` is shared. Per-user state (`_sessions/`, `_logs/`, `.state/`) is gitignored.
 
 When in doubt about scope or behavior, [PRD.md](PRD.md) wins.
@@ -74,15 +74,15 @@ A generated index node renders:
 
 ### Harness adapters
 
-- Each harness lives under `src/harnesses/<id>/` and implements `HarnessAdapter` from [`src/harnesses/types.ts`](src/harnesses/types.ts). Register it in [`src/harnesses/registry.ts`](src/harnesses/registry.ts). See [map-harness-adapter](.ai/kenkeep/nodes/harness/map-harness-adapter.md).
-- **[Adapters never reach into each other's directories.](.ai/kenkeep/nodes/harness/practice-adapters-never-cross-directories.md)** Shared logic lives in `src/lib/`, `src/commands/`, or `src/templates-source/skills/`.
-- **[No event-name translation across adapters.](.ai/kenkeep/nodes/harness/practice-no-event-translation-across-adapters.md)** `HookEvent` is opaque `string`; each adapter declares the event names its runtime emits natively (Claude: `Stop`/`SessionEnd`/`PreCompact`; Codex: `Stop` only; Cursor: `stop`/`sessionEnd`/`preCompact`; OpenCode: `session.idle`/`session.created`; Copilot: `sessionStart`/`sessionEnd`/`agentStop`). Do not introduce a global enum.
-- Adapters with per-event shell hooks use `paths(root).hooksDir`. Adapters with a long-lived plugin module (OpenCode) use `pluginsDir`; the build pipeline auto-detects a sibling `plugins/` source dir and renames hook output to `kk-hooks/` to avoid the runtime-reserved `.opencode/hooks/`. An adapter with no plugin shim that still needs its scripts kept apart from a config-bearing `<dir>/hooks/` (Copilot's `kk.json` lives there) opts into the same `kk-hooks/` output via a `src/harnesses/<id>/.kk-hooks-output` marker file. Per-entry hook metadata the host's config schema needs (Copilot's `{ type, timeoutSec, env }`) rides on the optional `HookSpec.payload` blob, consumed only by that adapter's `hooks-config` writer. See [map-opencode-harness](.ai/kenkeep/nodes/harness/map-opencode-harness.md) and [map-copilot-harness-adapter](.ai/kenkeep/nodes/harness/map-copilot-harness-adapter.md).
+- Each harness lives under `src/harnesses/<id>/` and implements `HarnessAdapter` from [`src/harnesses/types.ts`](src/harnesses/types.ts). Register it in [`src/harnesses/registry.ts`](src/harnesses/registry.ts). See [map-harness-adapter](.ai/kenkeep/nodes/harnesses/map-harness-adapter.md).
+- **[Adapters never reach into each other's directories.](.ai/kenkeep/nodes/harnesses/practice-adapters-never-cross-directories.md)** Shared logic lives in `src/lib/`, `src/commands/`, or `src/templates-source/skills/`.
+- **[No event-name translation across adapters.](.ai/kenkeep/nodes/harnesses/practice-no-event-translation-across-adapters.md)** `HookEvent` is opaque `string`; each adapter declares the event names its runtime emits natively (Claude: `Stop`/`SessionEnd`/`PreCompact`; Codex: `Stop` only; Cursor: `stop`/`sessionEnd`/`preCompact`; OpenCode: `session.idle`/`session.created`; Copilot: `sessionStart`/`sessionEnd`/`agentStop`). Do not introduce a global enum.
+- Adapters with per-event shell hooks use `paths(root).hooksDir`. Adapters with a long-lived plugin module (OpenCode) use `pluginsDir`; the build pipeline auto-detects a sibling `plugins/` source dir and renames hook output to `kk-hooks/` to avoid the runtime-reserved `.opencode/hooks/`. An adapter with no plugin shim that still needs its scripts kept apart from a config-bearing `<dir>/hooks/` (Copilot's `kk.json` lives there) opts into the same `kk-hooks/` output via a `src/harnesses/<id>/.kk-hooks-output` marker file. Per-entry hook metadata the host's config schema needs (Copilot's `{ type, timeoutSec, env }`) rides on the optional `HookSpec.payload` blob, consumed only by that adapter's `hooks-config` writer. See [map-opencode-harness](.ai/kenkeep/nodes/harnesses/map-opencode-harness.md) and [map-copilot-harness-adapter](.ai/kenkeep/nodes/harnesses/map-copilot-harness-adapter.md).
 - New harness env detectors must be added to **both** the adapter's `detectFromEnv` **and** the `ENV_DETECTORS` heredoc in `src/templates-source/skills/kk-curate/SKILL.md`. `npm run lint:detect-harness` fails CI on drift.
 
 ### Schema versions
 
-Node, index, and graph artifacts carry `schema_version: 2` (the tree-storage clean break); other frontmatter and JSON state files carry `schema_version: 1`. Policy is **[strict — clean break](.ai/kenkeep/nodes/knowledge-base/nodes/practice-strict-schema-version-bump-policy.md)**:
+Node, index, and graph artifacts carry `schema_version: 2` (the tree-storage clean break); other frontmatter and JSON state files carry `schema_version: 1`. Policy is **[strict — clean break](.ai/kenkeep/nodes/node-schema/practice-strict-schema-version-bump-policy.md)**:
 
 - **Bump** when removing/renaming a field, changing field semantics, or making an optional field required.
 - **Do not bump** when adding optional fields, adding enum cases, or relaxing constraints.
@@ -91,7 +91,7 @@ When you bump, the reader rejects the old shape with a clear error pointing the 
 
 ### Prompt versioning
 
-Each `src/templates-source/prompts/*.md` and `src/templates-source/claude/commands/*.md` carries a top-of-file `Version: N` comment. [Bump it when behavior changes](.ai/kenkeep/nodes/prompts/practice-bump-prompt-version-comment.md), and call out the prompt change in the changelog so users know to diff. Prompt version is independent of npm package version. Local prompt overrides under `.ai/kenkeep/.config/prompts/` [fall back to the bundled templates](.ai/kenkeep/nodes/prompts/practice-local-prompt-overrides-fall-back-to-bundled.md) when absent.
+Each `src/templates-source/prompts/*.md` and `src/templates-source/claude/commands/*.md` carries a top-of-file `Version: N` comment. [Bump it when behavior changes](.ai/kenkeep/nodes/config-and-prompts/practice-bump-prompt-version-comment.md), and call out the prompt change in the changelog so users know to diff. Prompt version is independent of npm package version. Local prompt overrides under `.ai/kenkeep/.config/prompts/` [fall back to the bundled templates](.ai/kenkeep/nodes/config-and-prompts/practice-local-prompt-overrides-fall-back-to-bundled.md) when absent.
 
 ### Commits and releases
 
@@ -122,7 +122,7 @@ Each `src/templates-source/prompts/*.md` and `src/templates-source/claude/comman
 - **[Do not run `curate` or `bootstrap` in CI.](.ai/kenkeep/nodes/conventions/practice-dont-run-llm-pipelines-in-ci.md)** They launch the host harness in `-p` mode and run the LLM — human-supervised by design.
 - **The CLI is split into launchers and primitives.** `bootstrap`, `curate`, and `node add` are thin launchers that exec `<harness> -p "/kk-<name>"`; the LLM work runs in the host harness session. The deterministic primitives (`finddocs`, `node write`, `curate-dedup`, `session-log update-proposals`, `index rebuild`, `lint`, `status`, `doctor`, `init`, `logs prune`) never call the LLM. Skills compose the primitives; users may call them directly too.
 - **Single-author skill sessions, no cross-process locks.** Curate and bootstrap don't hold a `state.json` lock — running two `curate` invocations against the same repo concurrently may silently drop one writer's session-stamp update (no data corruption, but some sessions reprocess on the next run). Document this constraint, don't speculatively re-add locking.
-- Outside an active Claude session, **[pass `--harness` explicitly](.ai/kenkeep/nodes/harness/practice-explicit-harness-flag-outside-claude.md)** when invoking the CLI — env-based detection only fires inside a host runtime.
+- Outside an active Claude session, **[pass `--harness` explicitly](.ai/kenkeep/nodes/harnesses/practice-explicit-harness-flag-outside-claude.md)** when invoking the CLI — env-based detection only fires inside a host runtime.
 - **Harness auto-memory files feed `bootstrap` and `curate`.** The active adapter's `listMemoryFiles()` returns absolute `file://` IRIs (Claude Code's persisted memories today; Codex and OpenCode return `[]` until their hosts add the feature). File content passes through as-is before reaching the LLM. A per-user ledger at `.ai/kenkeep/.state/memory-ledger.json` (gitignored under the existing `.state/` rule) tracks SHA-256s so unchanged memory files are skipped on subsequent runs, and contradictions still surface as conflict files [per the curator's no-auto-resolve invariant](.ai/kenkeep/nodes/curation/practice-curator-never-auto-resolves-contradictions.md).
 
 ### Init scope
@@ -131,11 +131,11 @@ Each `src/templates-source/prompts/*.md` and `src/templates-source/claude/comman
 
 ### INDEX / GRAPH determinism
 
-The per-folder [`index.md`](.ai/kenkeep/nodes/knowledge-base/index/map-entry-md.md) tree (plus the top-level entry catalog `ENTRY.md`) and [`GRAPH.md`](.ai/kenkeep/nodes/knowledge-base/index/map-graph-md.md) are regenerated by the curator at end-of-run and by the local `pre-commit` lint-staged config (`index rebuild --stage` stages every generated file). [Generation must be deterministic](.ai/kenkeep/nodes/knowledge-base/index/practice-determinism-contract.md): sort keys, stable ordering, no timestamps in output. Generated `index.md` files are excluded from `nodes_hash`. If you change generation logic, update [`docs/internals/architecture.md`](docs/internals/architecture.md) and the determinism tests.
+The per-folder [`index.md`](.ai/kenkeep/nodes/index/map-entry-md.md) tree (plus the top-level entry catalog `ENTRY.md`) and [`GRAPH.md`](.ai/kenkeep/nodes/index/map-graph-md.md) are regenerated by the curator at end-of-run and by the local `pre-commit` lint-staged config (`index rebuild --stage` stages every generated file). [Generation must be deterministic](.ai/kenkeep/nodes/index/practice-determinism-contract.md): sort keys, stable ordering, no timestamps in output. Generated `index.md` files are excluded from `nodes_hash`. If you change generation logic, update [`docs/internals/architecture.md`](docs/internals/architecture.md) and the determinism tests.
 
 ### Node naming
 
-[Every node's `id` equals `<kind>-<slug>`, and its filename is `<id>.md`.](.ai/kenkeep/nodes/knowledge-base/nodes/practice-lint-naming-rules.md) Lint asserts filename/id agreement and that every folder under `nodes/` has an `index.md`. `relates_to` / `depends_on` must resolve to an existing node id; dangling edges are errors. See [map-node-frontmatter](.ai/kenkeep/nodes/knowledge-base/nodes/map-node-frontmatter.md) and [map-nodes-directory](.ai/kenkeep/nodes/knowledge-base/nodes/map-nodes-directory.md).
+[Every node's `id` equals `<kind>-<slug>`, and its filename is `<id>.md`.](.ai/kenkeep/nodes/node-schema/practice-lint-naming-rules.md) Lint asserts filename/id agreement and that every folder under `nodes/` has an `index.md`. `relates_to` / `depends_on` must resolve to an existing node id; dangling edges are errors. See [map-node-frontmatter](.ai/kenkeep/nodes/node-schema/map-node-frontmatter.md) and [map-nodes-directory](.ai/kenkeep/nodes/node-schema/map-nodes-directory.md).
 
 ## Testing
 
