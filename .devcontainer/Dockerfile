@@ -75,3 +75,9 @@ RUN curl -fsSL https://opencode.ai/install | bash
 
 # Install Claude Code
 RUN curl -fsSL https://claude.ai/install.sh | bash
+
+# Install Copilot
+RUN npm i -g @github/copilot
+
+# Install Cursor
+RUN curl https://cursor.com/install -fsS | bash
