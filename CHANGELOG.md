@@ -1,3 +1,9 @@
+## [1.3.1](https://github.com/e0ipso/kenkeep/compare/v1.3.0...v1.3.1) (2026-06-11)
+
+### Bug Fixes
+
+* use correct launch argv for codex and opencode ([76c5837](https://github.com/e0ipso/kenkeep/commit/76c58374a3b71363f2319a5369e1f24054a87c77)), closes [#FIX](https://github.com/e0ipso/kenkeep/issues/FIX)
+
 ## [1.3.0](https://github.com/e0ipso/kenkeep/compare/v1.2.0...v1.3.0) (2026-06-11)
 
 ### Features
