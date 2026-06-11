@@ -1,7 +1,7 @@
 ---
 schema_version: 2
-nodes_hash: 'sha256:604601fabcac0d6f362e2028d5b0a5b7c41f3e3b0ffb8d9a6a7d65de93be3454'
-node_count: 4
+nodes_hash: 'sha256:3ceb5ac3b3641ccde565f2f01fe2e6edc3853d5be9b54f196fcd08ae9edc5c35'
+node_count: 8
 summary: >-
   the CLI init and upgrade commands, AGENTS.md pointer injection, and how to run
   the CLI locally
@@ -19,16 +19,32 @@ _None._
 - Open [**init does not install husky/lint-staged/secretlint/commitlint**](cli/practice-init-does-not-install-commit-tooling.md) to learn about: init writes the knowledge base scaffold and the harness's hooks/skills only. Commit-time tooling (husky, lint-staged, secretlint, commitlint) is the consumer's responsibility. #init #install #scope
 - Open [**init and upgrade inject a static kk index pointer into AGENTS.md**](cli/practice-init-and-upgrade-inject-a-static-kk-index-pointer-into-agents-md.md) to learn about: During init and upgrade, a static one-line pointer to ENTRY.md is appended to AGENTS.md, guarded by sentinel markers for idempotency. #init #upgrade #agents-md #index #markers
 - Open [**Inside the kenkeep source repo, run the CLI from dist/, not via npx**](cli/practice-inside-the-kenkeep-source-repo-run-the-cli-from-dist-not-via-npx.md) to learn about: In the kenkeep source repo, invoke node ./dist/cli.js (after npm run build) instead of npx kenkeep@latest. #kenkeep #kk-curate #repo-local #npx #cli
+- Open [**Skills-first documentation, only init is CLI**](cli/practice-skills-first-documentation-only-init-is-cli.md) to learn about: Public docs recommend the skill workflow for curation and bootstrap; only the init command is documented as a CLI workflow. #documentation #skills #cli
+- Open [**Surface schema mismatch errors on both init and node-read paths**](cli/practice-surface-schema-mismatch-errors-on-both-init-and-node-read-paths.md) to learn about: Migration schema mismatch errors must be visible both when init runs and when node-reading commands execute. #kenkeep #migration #schema #error #cli
+- Open [**Use a single generic migrate command for schema bumps**](cli/practice-use-a-single-generic-migrate-command-for-schema-bumps.md) to learn about: Schema migrations are handled by one generic migrate command that detects the current schema and dispatches the appropriate step, not by separate commands per bump. #migration #cli #schema
 
 ## Components (what exists)
+- Open [**migrate command — schema v1 to v2 migration**](cli/map-migrate-command-schema-v1-to-v2-migration.md) to learn about: The \`migrate\` command is the correct tool for migrating a knowledge base from schema v1 to v2. #kenkeep #migration #cli
 - Open [**updateAgentsMd - kk index pointer injection into AGENTS.md**](cli/map-update-agents-md-kk-index-pointer-injection-into-agents-md.md) to learn about: Function in src/commands/init.ts that injects or replaces a sentinel-guarded static pointer to ENTRY.md in AGENTS.md. #init #upgrade #agents-md #markers #index
 
 ## By topic
 
+### #cli
+- Open [**migrate command — schema v1 to v2 migration**](cli/map-migrate-command-schema-v1-to-v2-migration.md) — The \`migrate\` command is the correct tool for migrating a knowledge base from schema v1 to v2.
+- Open [**Use a single generic migrate command for schema bumps**](cli/practice-use-a-single-generic-migrate-command-for-schema-bumps.md) — Schema migrations are handled by one generic migrate command that detects the current schema and dispatches the appropriate step, not by separate commands per bump.
+- Open [**Surface schema mismatch errors on both init and node-read paths**](cli/practice-surface-schema-mismatch-errors-on-both-init-and-node-read-paths.md) — Migration schema mismatch errors must be visible both when init runs and when node-reading commands execute.
 ### #init
 - Open [**init and upgrade inject a static kk index pointer into AGENTS.md**](cli/practice-init-and-upgrade-inject-a-static-kk-index-pointer-into-agents-md.md) — During init and upgrade, a static one-line pointer to ENTRY.md is appended to AGENTS.md, guarded by sentinel markers for idempotency.
 - Open [**updateAgentsMd - kk index pointer injection into AGENTS.md**](cli/map-update-agents-md-kk-index-pointer-injection-into-agents-md.md) — Function in src/commands/init.ts that injects or replaces a sentinel-guarded static pointer to ENTRY.md in AGENTS.md.
 - Open [**init does not install husky/lint-staged/secretlint/commitlint**](cli/practice-init-does-not-install-commit-tooling.md) — init writes the knowledge base scaffold and the harness's hooks/skills only. Commit-time tooling (husky, lint-staged, secretlint, commitlint) is the consumer's responsibility.
+### #kenkeep
+- Open [**migrate command — schema v1 to v2 migration**](cli/map-migrate-command-schema-v1-to-v2-migration.md) — The \`migrate\` command is the correct tool for migrating a knowledge base from schema v1 to v2.
+- Open [**Surface schema mismatch errors on both init and node-read paths**](cli/practice-surface-schema-mismatch-errors-on-both-init-and-node-read-paths.md) — Migration schema mismatch errors must be visible both when init runs and when node-reading commands execute.
+- Open [**Curate CLI conflict output names the three resolution outcomes**](curation/practice-curate-cli-conflict-output-names-the-three-resolution-outcomes.md) — When the curate CLI writes conflict files, its stdout message names the accept/reject/keep-as-record outcomes and points users at /kk-curate.
+### #migration
+- Open [**migrate command — schema v1 to v2 migration**](cli/map-migrate-command-schema-v1-to-v2-migration.md) — The \`migrate\` command is the correct tool for migrating a knowledge base from schema v1 to v2.
+- Open [**Use a single generic migrate command for schema bumps**](cli/practice-use-a-single-generic-migrate-command-for-schema-bumps.md) — Schema migrations are handled by one generic migrate command that detects the current schema and dispatches the appropriate step, not by separate commands per bump.
+- Open [**Surface schema mismatch errors on both init and node-read paths**](cli/practice-surface-schema-mismatch-errors-on-both-init-and-node-read-paths.md) — Migration schema mismatch errors must be visible both when init runs and when node-reading commands execute.
 ### #agents-md
 - Open [**init and upgrade inject a static kk index pointer into AGENTS.md**](cli/practice-init-and-upgrade-inject-a-static-kk-index-pointer-into-agents-md.md) — During init and upgrade, a static one-line pointer to ENTRY.md is appended to AGENTS.md, guarded by sentinel markers for idempotency.
 - Open [**updateAgentsMd - kk index pointer injection into AGENTS.md**](cli/map-update-agents-md-kk-index-pointer-injection-into-agents-md.md) — Function in src/commands/init.ts that injects or replaces a sentinel-guarded static pointer to ENTRY.md in AGENTS.md.
@@ -39,18 +55,21 @@ _None._
 ### #markers
 - Open [**init and upgrade inject a static kk index pointer into AGENTS.md**](cli/practice-init-and-upgrade-inject-a-static-kk-index-pointer-into-agents-md.md) — During init and upgrade, a static one-line pointer to ENTRY.md is appended to AGENTS.md, guarded by sentinel markers for idempotency.
 - Open [**updateAgentsMd - kk index pointer injection into AGENTS.md**](cli/map-update-agents-md-kk-index-pointer-injection-into-agents-md.md) — Function in src/commands/init.ts that injects or replaces a sentinel-guarded static pointer to ENTRY.md in AGENTS.md.
+### #schema
+- Open [**.state/state.json (lock + nudge state)**](state/map-state-file.md) — Gitignored runtime state. Holds one lock at a time (30-min TTL, stale locks reclaimed) and last_nudged_at.
+- Open [**Node frontmatter schema**](node-schema/map-node-frontmatter.md) — Required node fields: schema_version, id, title, kind, tags, derived_from, relates_to, depends_on, confidence, summary.
+- Open [**Use a single generic migrate command for schema bumps**](cli/practice-use-a-single-generic-migrate-command-for-schema-bumps.md) — Schema migrations are handled by one generic migrate command that detects the current schema and dispatches the appropriate step, not by separate commands per bump.
 ### #upgrade
 - Open [**init and upgrade inject a static kk index pointer into AGENTS.md**](cli/practice-init-and-upgrade-inject-a-static-kk-index-pointer-into-agents-md.md) — During init and upgrade, a static one-line pointer to ENTRY.md is appended to AGENTS.md, guarded by sentinel markers for idempotency.
 - Open [**updateAgentsMd - kk index pointer injection into AGENTS.md**](cli/map-update-agents-md-kk-index-pointer-injection-into-agents-md.md) — Function in src/commands/init.ts that injects or replaces a sentinel-guarded static pointer to ENTRY.md in AGENTS.md.
-### #cli
-- Open [**Curate CLI conflict output names the three resolution outcomes**](curation/practice-curate-cli-conflict-output-names-the-three-resolution-outcomes.md) — When the curate CLI writes conflict files, its stdout message names the accept/reject/keep-as-record outcomes and points users at /kk-curate.
-- Open [**curate CLI conflict-resolution output message**](curation/map-curate-cli-conflict-resolution-output-message.md) — src/commands/curate.ts emits a multi-line message when conflicts > 0, naming the three resolution outcomes and pointing users at /kk-curate.
-- Open [**curate (CLI command + /kk-curate skill)**](curation/map-curate-command.md) — Runs the curator on processed session logs. Applies add/modify/contradict/drop actions directly to nodes/. /kk-curate is the in-session equivalent.
+### #documentation
+- Open [**Skills-first documentation, only init is CLI**](cli/practice-skills-first-documentation-only-init-is-cli.md) — Public docs recommend the skill workflow for curation and bootstrap; only the init command is documented as a CLI workflow.
+- Open [**Consumers are responsible for secret hygiene**](conventions/practice-consumers-are-responsible-for-secret-hygiene.md) — kenkeep does not scan or redact secrets in the capture pipeline; secret hygiene is the consumer's responsibility.
+- Open [**Avoid harness favoritism in examples and recommendations**](config-and-prompts/practice-document-model-recommendations-with-harness-agnostic-framing-2.md) — Generated or documented examples and model recommendations must not favor one harness; use neutral placeholders or per-harness examples.
+### #error
+- Open [**Surface schema mismatch errors on both init and node-read paths**](cli/practice-surface-schema-mismatch-errors-on-both-init-and-node-read-paths.md) — Migration schema mismatch errors must be visible both when init runs and when node-reading commands execute.
 ### #install
 - Open [**init does not install husky/lint-staged/secretlint/commitlint**](cli/practice-init-does-not-install-commit-tooling.md) — init writes the knowledge base scaffold and the harness's hooks/skills only. Commit-time tooling (husky, lint-staged, secretlint, commitlint) is the consumer's responsibility.
-### #kenkeep
-- Open [**Curate CLI conflict output names the three resolution outcomes**](curation/practice-curate-cli-conflict-output-names-the-three-resolution-outcomes.md) — When the curate CLI writes conflict files, its stdout message names the accept/reject/keep-as-record outcomes and points users at /kk-curate.
-- Open [**Inside the kenkeep source repo, run the CLI from dist/, not via npx**](cli/practice-inside-the-kenkeep-source-repo-run-the-cli-from-dist-not-via-npx.md) — In the kenkeep source repo, invoke node ./dist/cli.js (after npm run build) instead of npx kenkeep@latest.
 ### #kk-curate
 - Open [**Curate CLI conflict output names the three resolution outcomes**](curation/practice-curate-cli-conflict-output-names-the-three-resolution-outcomes.md) — When the curate CLI writes conflict files, its stdout message names the accept/reject/keep-as-record outcomes and points users at /kk-curate.
 - Open [**Inside the kenkeep source repo, run the CLI from dist/, not via npx**](cli/practice-inside-the-kenkeep-source-repo-run-the-cli-from-dist-not-via-npx.md) — In the kenkeep source repo, invoke node ./dist/cli.js (after npm run build) instead of npx kenkeep@latest.
@@ -60,3 +79,6 @@ _None._
 - Open [**Inside the kenkeep source repo, run the CLI from dist/, not via npx**](cli/practice-inside-the-kenkeep-source-repo-run-the-cli-from-dist-not-via-npx.md) — In the kenkeep source repo, invoke node ./dist/cli.js (after npm run build) instead of npx kenkeep@latest.
 ### #scope
 - Open [**init does not install husky/lint-staged/secretlint/commitlint**](cli/practice-init-does-not-install-commit-tooling.md) — init writes the knowledge base scaffold and the harness's hooks/skills only. Commit-time tooling (husky, lint-staged, secretlint, commitlint) is the consumer's responsibility.
+### #skills
+- Open [**Shipped skills and hook scripts must be self-contained**](hooks/practice-shipped-skills-and-hook-scripts-must-be-self-contained.md) — Skills, CLI launchers, and hook scripts may use only Node built-ins and relative-path references — no external file dependencies.
+- Open [**Skills-first documentation, only init is CLI**](cli/practice-skills-first-documentation-only-init-is-cli.md) — Public docs recommend the skill workflow for curation and bootstrap; only the init command is documented as a CLI workflow.

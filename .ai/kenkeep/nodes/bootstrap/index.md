@@ -21,15 +21,15 @@ _None._
 - Open [**Default bootstrap nodes to confidence: medium**](bootstrap/practice-confidence-default-medium-bootstrap.md) to learn about: Bootstrap nodes default to confidence: medium; use high only when the source doc states the rule with rationale and looks actively maintained. #bootstrap #confidence #calibration
 
 ## Components (what exists)
-- Open [**bootstrap-incremental (CLI)**](bootstrap/map-bootstrap-incremental-command.md) to learn about: Headless, hash-aware bootstrap from existing markdown docs. Spawns the harness headless driver, batches docs in 20s, records SHA-256 in bootstrap-state.json. #cli #bootstrap #deterministic
 - Open [**/kk-bootstrap skill**](bootstrap/map-kk-bootstrap-skill.md) to learn about: Supervised, agent-driven first-pass bootstrap. Surveys docs, writes practice/map nodes directly under nodes/. Reviewer accepts via git commit. #skill #bootstrap #agent
+- Open [**bootstrap-incremental (CLI)**](bootstrap/map-bootstrap-incremental-command.md) to learn about: Headless, hash-aware bootstrap from existing markdown docs. Spawns the harness headless driver, batches docs in 20s, records SHA-256 in bootstrap-state.json. #cli #bootstrap #deterministic
 - Open [**.state/bootstrap-state.json (per-doc hash cache)**](bootstrap/map-bootstrap-state-file.md) to learn about: Per-doc SHA-256 cache used by bootstrap-incremental for hash-aware re-runs. Gitignored. #bootstrap #hash #state #schema
 
 ## By topic
 
 ### #bootstrap
-- Open [**bootstrap-incremental (CLI)**](bootstrap/map-bootstrap-incremental-command.md) — Headless, hash-aware bootstrap from existing markdown docs. Spawns the harness headless driver, batches docs in 20s, records SHA-256 in bootstrap-state.json.
 - Open [**/kk-bootstrap skill**](bootstrap/map-kk-bootstrap-skill.md) — Supervised, agent-driven first-pass bootstrap. Surveys docs, writes practice/map nodes directly under nodes/. Reviewer accepts via git commit.
+- Open [**bootstrap-incremental (CLI)**](bootstrap/map-bootstrap-incremental-command.md) — Headless, hash-aware bootstrap from existing markdown docs. Spawns the harness headless driver, batches docs in 20s, records SHA-256 in bootstrap-state.json.
 - Open [**Bootstrap never overwrites existing nodes**](bootstrap/practice-bootstrap-never-overwrites-existing-nodes.md) — Both /kk-bootstrap and bootstrap-incremental skip a candidate when a node with that id already exists; collisions are reported, not merged.
 ### #agent
 - Open [**/kk-bootstrap skill**](bootstrap/map-kk-bootstrap-skill.md) — Supervised, agent-driven first-pass bootstrap. Surveys docs, writes practice/map nodes directly under nodes/. Reviewer accepts via git commit.
@@ -37,9 +37,9 @@ _None._
 - Open [**Curator drops non-productive and change-oriented candidates**](curation/practice-curator-drops-non-productive-candidates.md) — Change-oriented framing (migration stories) is auto-dropped. Hedged/plan-scoped/low-confidence-without-rationale signatures are evidence of an abandoned-session leak.
 - Open [**Default bootstrap nodes to confidence: medium**](bootstrap/practice-confidence-default-medium-bootstrap.md) — Bootstrap nodes default to confidence: medium; use high only when the source doc states the rule with rationale and looks actively maintained.
 ### #cli
-- Open [**Curate CLI conflict output names the three resolution outcomes**](curation/practice-curate-cli-conflict-output-names-the-three-resolution-outcomes.md) — When the curate CLI writes conflict files, its stdout message names the accept/reject/keep-as-record outcomes and points users at /kk-curate.
-- Open [**curate CLI conflict-resolution output message**](curation/map-curate-cli-conflict-resolution-output-message.md) — src/commands/curate.ts emits a multi-line message when conflicts > 0, naming the three resolution outcomes and pointing users at /kk-curate.
-- Open [**curate (CLI command + /kk-curate skill)**](curation/map-curate-command.md) — Runs the curator on processed session logs. Applies add/modify/contradict/drop actions directly to nodes/. /kk-curate is the in-session equivalent.
+- Open [**migrate command — schema v1 to v2 migration**](cli/map-migrate-command-schema-v1-to-v2-migration.md) — The \`migrate\` command is the correct tool for migrating a knowledge base from schema v1 to v2.
+- Open [**Use a single generic migrate command for schema bumps**](cli/practice-use-a-single-generic-migrate-command-for-schema-bumps.md) — Schema migrations are handled by one generic migrate command that detects the current schema and dispatches the appropriate step, not by separate commands per bump.
+- Open [**Surface schema mismatch errors on both init and node-read paths**](cli/practice-surface-schema-mismatch-errors-on-both-init-and-node-read-paths.md) — Migration schema mismatch errors must be visible both when init runs and when node-reading commands execute.
 ### #confidence
 - Open [**Default bootstrap nodes to confidence: medium**](bootstrap/practice-confidence-default-medium-bootstrap.md) — Bootstrap nodes default to confidence: medium; use high only when the source doc states the rule with rationale and looks actively maintained.
 ### #deterministic
@@ -60,7 +60,7 @@ _None._
 ### #schema
 - Open [**.state/state.json (lock + nudge state)**](state/map-state-file.md) — Gitignored runtime state. Holds one lock at a time (30-min TTL, stale locks reclaimed) and last_nudged_at.
 - Open [**Node frontmatter schema**](node-schema/map-node-frontmatter.md) — Required node fields: schema_version, id, title, kind, tags, derived_from, relates_to, depends_on, confidence, summary.
-- Open [**Conflict files (conflicts/<run-id>-<n>.md)**](curation/map-conflict-files.md) — Curator-detected contradictions: one markdown file per conflict under conflicts/; resolved by /kk-curate skill via git restore/commit.
+- Open [**Use a single generic migrate command for schema bumps**](cli/practice-use-a-single-generic-migrate-command-for-schema-bumps.md) — Schema migrations are handled by one generic migrate command that detects the current schema and dispatches the appropriate step, not by separate commands per bump.
 ### #skill
 - Open [**curate (CLI command + /kk-curate skill)**](curation/map-curate-command.md) — Runs the curator on processed session logs. Applies add/modify/contradict/drop actions directly to nodes/. /kk-curate is the in-session equivalent.
 - Open [**/kk-bootstrap skill**](bootstrap/map-kk-bootstrap-skill.md) — Supervised, agent-driven first-pass bootstrap. Surveys docs, writes practice/map nodes directly under nodes/. Reviewer accepts via git commit.

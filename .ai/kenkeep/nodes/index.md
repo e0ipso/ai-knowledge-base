@@ -1,7 +1,7 @@
 ---
 schema_version: 2
-nodes_hash: 'sha256:9c79a6d0006cdb96a94be3c9d8751617ff341bcb3dcba23737b2bd33db0ff7d1'
-node_count: 1
+nodes_hash: 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+node_count: 0
 ---
 # kenkeep Index
 
@@ -11,7 +11,7 @@ node_count: 1
 - Load [`bootstrap/`](nodes/bootstrap/index.md) for more information on seeding the knowledge base from existing docs via /kk-bootstrap and the bootstrap-incremental command.
 - Load [`cli/`](nodes/cli/index.md) for more information on the CLI init and upgrade commands, AGENTS.md pointer injection, and how to run the CLI locally.
 - Load [`config-and-prompts/`](nodes/config-and-prompts/index.md) for more information on config.yaml project settings and the prompt templates, their versioning, and local overrides.
-- Load [`conventions/`](nodes/conventions/index.md) for more information on project-wide conventions for commits, releases, testing, CI, writing style, and reviewing nodes via git.
+- Load [`conventions/`](nodes/conventions/index.md) for more information on Project-wide conventions for commits, releases, testing, CI, writing style, and reviewing nodes via git.
 - Load [`curation/`](nodes/curation/index.md) for more information on the curator pipeline that turns proposals into nodes, including conflict handling and the /kk-curate flow.
 - Load [`harnesses/`](nodes/harnesses/index.md) for more information on the per-runtime harness adapters (claude, codex, cursor, opencode, copilot) and the rules keeping them isolated.
 - Load [`hooks/`](nodes/hooks/index.md) for more information on the capture, session-start, and proposal-drain hooks, how they are built, and the conventions they follow.
@@ -21,16 +21,11 @@ node_count: 1
 - Load [`state/`](nodes/state/index.md) for more information on the on-disk session logs and runtime state files that track capture, proposal, and lock state.
 
 ## Conventions (how we build)
-- Open [**Never force push**](practice-never-force-push.md) to learn about: Force pushing rewrites remote history and can lose collaborators' work. #git #conventions
+_None yet._
 
 ## Components (what exists)
 _None yet._
 
 ## By topic
 
-### #conventions
-- Open [**Never force push**](practice-never-force-push.md) — Force pushing rewrites remote history and can lose collaborators' work.
-### #git
-- Open [**Never force push**](practice-never-force-push.md) — Force pushing rewrites remote history and can lose collaborators' work.
-- Open [**Conventional Commits drive semantic-release**](conventions/practice-conventional-commits-and-release.md) — Releases are automated via semantic-release on merge to main. Commit type (feat/fix/etc.) determines version bump; no manual tag or npm publish.
-- Open [**Review node changes via git**](conventions/practice-review-nodes-via-git.md) — All node changes are reviewed via git diff; accept with git commit, reject with git restore. Same workflow for curator output and bootstrap output.
+_No tags yet._

@@ -1,7 +1,7 @@
 ---
 schema_version: 2
-nodes_hash: 'sha256:3d8d151f7873c0f4386d08d643981e1b03c2a4c4996c5edf1791f465ccb9b435'
-node_count: 10
+nodes_hash: 'sha256:33b2355b6f3833279fde7e867726f58c5329d6682bb4cb6b7e1a68bc8de60820'
+node_count: 12
 summary: >-
   the per-runtime harness adapters (claude, codex, cursor, opencode, copilot)
   and the rules keeping them isolated
@@ -19,24 +19,26 @@ _None._
 - Open [**Don't translate event names across harness adapters**](harnesses/practice-no-event-translation-across-adapters.md) to learn about: HookEvent is opaque string; each adapter declares the event names its host runtime emits natively. No global enum, no translation. #adapter #events #harness
 - Open [**Pass --harness explicitly outside an active harness session**](harnesses/practice-explicit-harness-flag-outside-claude.md) to learn about: Claude and Cursor export in-session env markers; Codex and OpenCode do not. From those sessions or a plain shell, pass --harness explicitly or set cliDefaultHarness. #harness #cli #codex #cursor #opencode
 - Open [**Adapters never reach into each other's directories**](harnesses/practice-adapters-never-cross-directories.md) to learn about: Anything shared lives under src/lib, src/commands, or src/templates-source/skills. Per-adapter code stays under src/harnesses/<id>/. #adapter #architecture #isolation
+- Open [**Cross-harness features must use adapter-level abstractions**](harnesses/practice-cross-harness-features-must-use-adapter-level-abstractions.md) to learn about: When designing features that span all harnesses, build adapter-level abstractions that work for every harness rather than assuming Claude's shape is universal. #harnesses #cross-harness #abstractions #architecture
 - Open [**Cursor sessionStart additional_context is silently dropped**](harnesses/practice-cursor-sessionstart-additional-context-is-silently-dropped.md) to learn about: Cursor's sessionStart hook writes additional_context but it never reaches the model due to a confirmed race condition (May 2026). #cursor #harness #hooks #gotcha #context-injection
+- Open [**LLM-backed migrations require explicit --harness flag**](harnesses/practice-llm-backed-migrations-require-explicit-harness-flag.md) to learn about: Migrations that cluster nodes with an LLM must fail fast if the user did not pass --harness explicitly. #migration #cli #harness #llm
 
 ## Components (what exists)
 - Open [**Harness adapter**](harnesses/map-harness-adapter.md) to learn about: Per-runtime adapter implementing HarnessAdapter; declares its event vocabulary, hook/skill paths, and hook scripts. Five ship: claude, codex, cursor, opencode, copilot. #harness #adapter #claude #codex #cursor #opencode #copilot #architecture
-- Open [**Cursor harness adapter**](harnesses/map-cursor-harness-adapter.md) to learn about: Cursor IDE agent adapter; native .cursor/hooks.json with camelCase events; headless via agent -p; transcripts from hook stdin or ~/.cursor/projects/.../agent-transcripts/. #harness #cursor #hooks
+- Open [**Cursor harness adapter**](harnesses/map-cursor-harness-adapter.md) to learn about: Cursor IDE agent adapter; camelCase hooks.json events; headless via agent -p; transcripts from agent-transcripts/; Read and ReadFile both count for usage. #harness #cursor #hooks
 - Open [**Claude Code harness adapter**](harnesses/map-claude-harness.md) to learn about: Claude Code adapter; wires capture to Stop/SessionEnd/PreCompact, registers in .claude/settings.json, installs skills at .claude/skills/. #harness #claude #hooks
 - Open [**Codex CLI harness adapter**](harnesses/map-codex-harness.md) to learn about: OpenAI Codex CLI adapter; capture and lint tick on Stop only (no SessionEnd/PreCompact); skills under .agents/skills/. #harness #codex #hooks
-- Open [**OpenCode harness adapter**](harnesses/map-opencode-harness.md) to learn about: OpenCode adapter; single TS plugin shim subscribes to event bus and dispatches session.idle/session.created to per-event Node scripts under .opencode/kk-hooks/. #harness #opencode #hooks #plugin
+- Open [**OpenCode harness adapter**](harnesses/map-opencode-harness.md) to learn about: OpenCode adapter; plugin shim dispatches session.idle/session.created to kk-hooks/; capture via opencode export with raw ses_ id and temp-file stdout. #harness #opencode #hooks #plugin
 - Open [**Copilot harness adapter**](harnesses/map-copilot-harness-adapter.md) to learn about: GitHub Copilot CLI adapter; per-event JSON hook config at ~/.copilot/hooks/kk.json; captures on sessionEnd/agentStop from events.jsonl; skills in .github/skills/; no detectFromEnv; session-start ENTRY via a sentinel block in .github/copilot-instructions.md. #harness #copilot #hooks #adapter
 
 ## By topic
 
 ### #harness
-- Open [**Cursor harness adapter**](harnesses/map-cursor-harness-adapter.md) — Cursor IDE agent adapter; native .cursor/hooks.json with camelCase events; headless via agent -p; transcripts from hook stdin or ~/.cursor/projects/.../agent-transcripts/.
+- Open [**Cursor harness adapter**](harnesses/map-cursor-harness-adapter.md) — Cursor IDE agent adapter; camelCase hooks.json events; headless via agent -p; transcripts from agent-transcripts/; Read and ReadFile both count for usage.
 - Open [**Codex CLI harness adapter**](harnesses/map-codex-harness.md) — OpenAI Codex CLI adapter; capture and lint tick on Stop only (no SessionEnd/PreCompact); skills under .agents/skills/.
 - Open [**Claude Code harness adapter**](harnesses/map-claude-harness.md) — Claude Code adapter; wires capture to Stop/SessionEnd/PreCompact, registers in .claude/settings.json, installs skills at .claude/skills/.
 ### #hooks
-- Open [**Cursor harness adapter**](harnesses/map-cursor-harness-adapter.md) — Cursor IDE agent adapter; native .cursor/hooks.json with camelCase events; headless via agent -p; transcripts from hook stdin or ~/.cursor/projects/.../agent-transcripts/.
+- Open [**Cursor harness adapter**](harnesses/map-cursor-harness-adapter.md) — Cursor IDE agent adapter; camelCase hooks.json events; headless via agent -p; transcripts from agent-transcripts/; Read and ReadFile both count for usage.
 - Open [**Claude Code harness adapter**](harnesses/map-claude-harness.md) — Claude Code adapter; wires capture to Stop/SessionEnd/PreCompact, registers in .claude/settings.json, installs skills at .claude/skills/.
 - Open [**Codex CLI harness adapter**](harnesses/map-codex-harness.md) — OpenAI Codex CLI adapter; capture and lint tick on Stop only (no SessionEnd/PreCompact); skills under .agents/skills/.
 ### #adapter
@@ -44,9 +46,13 @@ _None._
 - Open [**Don't translate event names across harness adapters**](harnesses/practice-no-event-translation-across-adapters.md) — HookEvent is opaque string; each adapter declares the event names its host runtime emits natively. No global enum, no translation.
 - Open [**Harness adapter**](harnesses/map-harness-adapter.md) — Per-runtime adapter implementing HarnessAdapter; declares its event vocabulary, hook/skill paths, and hook scripts. Five ship: claude, codex, cursor, opencode, copilot.
 ### #cursor
-- Open [**Cursor harness adapter**](harnesses/map-cursor-harness-adapter.md) — Cursor IDE agent adapter; native .cursor/hooks.json with camelCase events; headless via agent -p; transcripts from hook stdin or ~/.cursor/projects/.../agent-transcripts/.
+- Open [**Cursor harness adapter**](harnesses/map-cursor-harness-adapter.md) — Cursor IDE agent adapter; camelCase hooks.json events; headless via agent -p; transcripts from agent-transcripts/; Read and ReadFile both count for usage.
 - Open [**Cursor sessionStart additional_context is silently dropped**](harnesses/practice-cursor-sessionstart-additional-context-is-silently-dropped.md) — Cursor's sessionStart hook writes additional_context but it never reaches the model due to a confirmed race condition (May 2026).
 - Open [**Pass --harness explicitly outside an active harness session**](harnesses/practice-explicit-harness-flag-outside-claude.md) — Claude and Cursor export in-session env markers; Codex and OpenCode do not. From those sessions or a plain shell, pass --harness explicitly or set cliDefaultHarness.
+### #architecture
+- Open [**Adapters never reach into each other's directories**](harnesses/practice-adapters-never-cross-directories.md) — Anything shared lives under src/lib, src/commands, or src/templates-source/skills. Per-adapter code stays under src/harnesses/<id>/.
+- Open [**Harness adapter**](harnesses/map-harness-adapter.md) — Per-runtime adapter implementing HarnessAdapter; declares its event vocabulary, hook/skill paths, and hook scripts. Five ship: claude, codex, cursor, opencode, copilot.
+- Open [**Hook behavior changes must be applied to all four harness adapters**](hooks/practice-hook-behavior-changes-must-be-applied-to-all-four-harness-adapters.md) — Fixing hook logic in one harness does not fix the others; each of the four adapters has its own copy of every hook.
 ### #codex
 - Open [**Pass --harness explicitly outside an active harness session**](harnesses/practice-explicit-harness-flag-outside-claude.md) — Claude and Cursor export in-session env markers; Codex and OpenCode do not. From those sessions or a plain shell, pass --harness explicitly or set cliDefaultHarness.
 - Open [**Harness adapter**](harnesses/map-harness-adapter.md) — Per-runtime adapter implementing HarnessAdapter; declares its event vocabulary, hook/skill paths, and hook scripts. Five ship: claude, codex, cursor, opencode, copilot.
@@ -54,29 +60,40 @@ _None._
 ### #opencode
 - Open [**Pass --harness explicitly outside an active harness session**](harnesses/practice-explicit-harness-flag-outside-claude.md) — Claude and Cursor export in-session env markers; Codex and OpenCode do not. From those sessions or a plain shell, pass --harness explicitly or set cliDefaultHarness.
 - Open [**Harness adapter**](harnesses/map-harness-adapter.md) — Per-runtime adapter implementing HarnessAdapter; declares its event vocabulary, hook/skill paths, and hook scripts. Five ship: claude, codex, cursor, opencode, copilot.
-- Open [**OpenCode harness adapter**](harnesses/map-opencode-harness.md) — OpenCode adapter; single TS plugin shim subscribes to event bus and dispatches session.idle/session.created to per-event Node scripts under .opencode/kk-hooks/.
-### #architecture
-- Open [**Harness adapter**](harnesses/map-harness-adapter.md) — Per-runtime adapter implementing HarnessAdapter; declares its event vocabulary, hook/skill paths, and hook scripts. Five ship: claude, codex, cursor, opencode, copilot.
-- Open [**Adapters never reach into each other's directories**](harnesses/practice-adapters-never-cross-directories.md) — Anything shared lives under src/lib, src/commands, or src/templates-source/skills. Per-adapter code stays under src/harnesses/<id>/.
-- Open [**Hook behavior changes must be applied to all four harness adapters**](hooks/practice-hook-behavior-changes-must-be-applied-to-all-four-harness-adapters.md) — Fixing hook logic in one harness does not fix the others; each of the four adapters has its own copy of every hook.
+- Open [**OpenCode harness adapter**](harnesses/map-opencode-harness.md) — OpenCode adapter; plugin shim dispatches session.idle/session.created to kk-hooks/; capture via opencode export with raw ses_ id and temp-file stdout.
 ### #claude
 - Open [**Claude Code harness adapter**](harnesses/map-claude-harness.md) — Claude Code adapter; wires capture to Stop/SessionEnd/PreCompact, registers in .claude/settings.json, installs skills at .claude/skills/.
 - Open [**kk-proposal-drain (extraction hook)**](hooks/map-proposal-drain-hook.md) — Async SessionStart hook that sweeps pending _sessions/ and extracts proposals; the Claude adapter's hook is intentionally a no-op -- extraction runs inline during /kk-curate instead.
 - Open [**Harness adapter**](harnesses/map-harness-adapter.md) — Per-runtime adapter implementing HarnessAdapter; declares its event vocabulary, hook/skill paths, and hook scripts. Five ship: claude, codex, cursor, opencode, copilot.
+### #cli
+- Open [**migrate command — schema v1 to v2 migration**](cli/map-migrate-command-schema-v1-to-v2-migration.md) — The \`migrate\` command is the correct tool for migrating a knowledge base from schema v1 to v2.
+- Open [**Use a single generic migrate command for schema bumps**](cli/practice-use-a-single-generic-migrate-command-for-schema-bumps.md) — Schema migrations are handled by one generic migrate command that detects the current schema and dispatches the appropriate step, not by separate commands per bump.
+- Open [**Surface schema mismatch errors on both init and node-read paths**](cli/practice-surface-schema-mismatch-errors-on-both-init-and-node-read-paths.md) — Migration schema mismatch errors must be visible both when init runs and when node-reading commands execute.
 ### #copilot
 - Open [**Harness adapter**](harnesses/map-harness-adapter.md) — Per-runtime adapter implementing HarnessAdapter; declares its event vocabulary, hook/skill paths, and hook scripts. Five ship: claude, codex, cursor, opencode, copilot.
 - Open [**Copilot harness adapter**](harnesses/map-copilot-harness-adapter.md) — GitHub Copilot CLI adapter; per-event JSON hook config at ~/.copilot/hooks/kk.json; captures on sessionEnd/agentStop from events.jsonl; skills in .github/skills/; no detectFromEnv; session-start ENTRY via a sentinel block in .github/copilot-instructions.md.
-### #cli
-- Open [**Curate CLI conflict output names the three resolution outcomes**](curation/practice-curate-cli-conflict-output-names-the-three-resolution-outcomes.md) — When the curate CLI writes conflict files, its stdout message names the accept/reject/keep-as-record outcomes and points users at /kk-curate.
-- Open [**curate CLI conflict-resolution output message**](curation/map-curate-cli-conflict-resolution-output-message.md) — src/commands/curate.ts emits a multi-line message when conflicts > 0, naming the three resolution outcomes and pointing users at /kk-curate.
-- Open [**curate (CLI command + /kk-curate skill)**](curation/map-curate-command.md) — Runs the curator on processed session logs. Applies add/modify/contradict/drop actions directly to nodes/. /kk-curate is the in-session equivalent.
+### #abstractions
+- Open [**Cross-harness features must use adapter-level abstractions**](harnesses/practice-cross-harness-features-must-use-adapter-level-abstractions.md) — When designing features that span all harnesses, build adapter-level abstractions that work for every harness rather than assuming Claude's shape is universal.
 ### #context-injection
 - Open [**Cursor sessionStart additional_context is silently dropped**](harnesses/practice-cursor-sessionstart-additional-context-is-silently-dropped.md) — Cursor's sessionStart hook writes additional_context but it never reaches the model due to a confirmed race condition (May 2026).
+### #cross-harness
+- Open [**Cross-harness features must use adapter-level abstractions**](harnesses/practice-cross-harness-features-must-use-adapter-level-abstractions.md) — When designing features that span all harnesses, build adapter-level abstractions that work for every harness rather than assuming Claude's shape is universal.
 ### #events
 - Open [**Don't translate event names across harness adapters**](harnesses/practice-no-event-translation-across-adapters.md) — HookEvent is opaque string; each adapter declares the event names its host runtime emits natively. No global enum, no translation.
 ### #gotcha
 - Open [**Cursor sessionStart additional_context is silently dropped**](harnesses/practice-cursor-sessionstart-additional-context-is-silently-dropped.md) — Cursor's sessionStart hook writes additional_context but it never reaches the model due to a confirmed race condition (May 2026).
+### #harnesses
+- Open [**Add hermetic end-to-end capture tests per harness**](hooks/practice-add-hermetic-end-to-end-capture-tests-per-harness.md) — Unit tests alone miss capture regressions; each harness needs a hermetic integration test that exercises the built hook end-to-end.
+- Open [**Cross-harness features must use adapter-level abstractions**](harnesses/practice-cross-harness-features-must-use-adapter-level-abstractions.md) — When designing features that span all harnesses, build adapter-level abstractions that work for every harness rather than assuming Claude's shape is universal.
 ### #isolation
 - Open [**Adapters never reach into each other's directories**](harnesses/practice-adapters-never-cross-directories.md) — Anything shared lives under src/lib, src/commands, or src/templates-source/skills. Per-adapter code stays under src/harnesses/<id>/.
+### #llm
+- Open [**Don't run curate or bootstrap-incremental in CI**](conventions/practice-dont-run-llm-pipelines-in-ci.md) — Both spawn the model and produce changes to nodes/ that still need human review. CI validates what's committed, not new LLM output.
+- Open [**LLM-backed migrations require explicit --harness flag**](harnesses/practice-llm-backed-migrations-require-explicit-harness-flag.md) — Migrations that cluster nodes with an LLM must fail fast if the user did not pass --harness explicitly.
+- Open [**kk-proposal-drain (extraction hook)**](hooks/map-proposal-drain-hook.md) — Async SessionStart hook that sweeps pending _sessions/ and extracts proposals; the Claude adapter's hook is intentionally a no-op -- extraction runs inline during /kk-curate instead.
+### #migration
+- Open [**migrate command — schema v1 to v2 migration**](cli/map-migrate-command-schema-v1-to-v2-migration.md) — The \`migrate\` command is the correct tool for migrating a knowledge base from schema v1 to v2.
+- Open [**Use a single generic migrate command for schema bumps**](cli/practice-use-a-single-generic-migrate-command-for-schema-bumps.md) — Schema migrations are handled by one generic migrate command that detects the current schema and dispatches the appropriate step, not by separate commands per bump.
+- Open [**Surface schema mismatch errors on both init and node-read paths**](cli/practice-surface-schema-mismatch-errors-on-both-init-and-node-read-paths.md) — Migration schema mismatch errors must be visible both when init runs and when node-reading commands execute.
 ### #plugin
-- Open [**OpenCode harness adapter**](harnesses/map-opencode-harness.md) — OpenCode adapter; single TS plugin shim subscribes to event bus and dispatches session.idle/session.created to per-event Node scripts under .opencode/kk-hooks/.
+- Open [**OpenCode harness adapter**](harnesses/map-opencode-harness.md) — OpenCode adapter; plugin shim dispatches session.idle/session.created to kk-hooks/; capture via opencode export with raw ses_ id and temp-file stdout.

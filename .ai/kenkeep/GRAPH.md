@@ -1,11 +1,11 @@
 ---
 schema_version: 2
-nodes_hash: 'sha256:cfc3fae8867219643a66c19fe42c3687ce3aaf80105eb196c680546653a0ee95'
-node_count: 58
+nodes_hash: 'sha256:45c59824176d289d4390a2be6f635c8f27abb98a002e58a7c15986c68f182574'
+node_count: 68
 ---
 # kenkeep Graph
 
-Total nodes: 58
+Total nodes: 68
 
 ## map-bootstrap-incremental-command
 
@@ -175,6 +175,14 @@ Total nodes: 58
 - **relates_to:** map-bootstrap-incremental-command, practice-bootstrap-never-overwrites-existing-nodes, practice-bootstrap-is-supervised-and-judgmental
 - **derived_from:** docs/installation.md, docs/daily-use.md
 
+## map-migrate-command-schema-v1-to-v2-migration
+
+- **kind:** map
+- **title:** migrate command — schema v1 to v2 migration
+- **path:** cli/map-migrate-command-schema-v1-to-v2-migration.md
+- **tags:** kenkeep, migration, cli
+- **relates_to:** map-curate-command, map-node-frontmatter
+
 ## map-node-frontmatter
 
 - **kind:** map
@@ -273,6 +281,14 @@ Total nodes: 58
 - **relates_to:** map-harness-adapter, practice-no-event-translation-across-adapters
 - **derived_from:** CONTRIBUTING.md, docs/internals/architecture.md
 
+## practice-add-hermetic-end-to-end-capture-tests-per-harness
+
+- **kind:** practice
+- **title:** Add hermetic end-to-end capture tests per harness
+- **path:** hooks/practice-add-hermetic-end-to-end-capture-tests-per-harness.md
+- **tags:** testing, hooks, capture, harnesses
+- **relates_to:** practice-testing-philosophy-few-tests-mostly-integration, map-capture-hook
+
 ## practice-bootstrap-is-supervised-and-judgmental
 
 - **kind:** practice
@@ -309,6 +325,14 @@ Total nodes: 58
 - **relates_to:** map-kk-bootstrap-skill, map-node-frontmatter
 - **derived_from:** .claude/skills/kk-bootstrap/SKILL.md, docs/internals/schemas.md
 
+## practice-consumers-are-responsible-for-secret-hygiene
+
+- **kind:** practice
+- **title:** Consumers are responsible for secret hygiene
+- **path:** conventions/practice-consumers-are-responsible-for-secret-hygiene.md
+- **tags:** security, secrets, capture, documentation
+- **relates_to:** map-capture-hook
+
 ## practice-conventional-commits-and-release
 
 - **kind:** practice
@@ -316,6 +340,14 @@ Total nodes: 58
 - **path:** conventions/practice-conventional-commits-and-release.md
 - **tags:** git, release, conventional-commits
 - **derived_from:** CONTRIBUTING.md
+
+## practice-cross-harness-features-must-use-adapter-level-abstractions
+
+- **kind:** practice
+- **title:** Cross-harness features must use adapter-level abstractions
+- **path:** harnesses/practice-cross-harness-features-must-use-adapter-level-abstractions.md
+- **tags:** harnesses, cross-harness, abstractions, architecture
+- **relates_to:** practice-adapters-never-cross-directories, practice-no-event-translation-across-adapters, map-harness-adapter
 
 ## practice-curate-cli-conflict-output-names-the-three-resolution-outcomes
 
@@ -432,6 +464,14 @@ Total nodes: 58
 - **tags:** kenkeep, kk-curate, repo-local, npx, cli
 - **relates_to:** map-curate-command, map-kenkeep-package
 
+## practice-keep-entry-md-lean-and-bounded-no-topic-map
+
+- **kind:** practice
+- **title:** Keep ENTRY.md lean and bounded — no topic map
+- **path:** index/practice-keep-entry-md-lean-and-bounded-no-topic-map.md
+- **tags:** kenkeep, entry, index, design
+- **relates_to:** map-entry-md
+
 ## practice-lint-naming-rules
 
 - **kind:** practice
@@ -440,6 +480,14 @@ Total nodes: 58
 - **tags:** lint, naming, nodes
 - **relates_to:** map-nodes-directory, map-node-frontmatter
 - **derived_from:** README.md, docs/internals/schemas.md
+
+## practice-llm-backed-migrations-require-explicit-harness-flag
+
+- **kind:** practice
+- **title:** LLM-backed migrations require explicit --harness flag
+- **path:** harnesses/practice-llm-backed-migrations-require-explicit-harness-flag.md
+- **tags:** migration, cli, harness, llm
+- **relates_to:** practice-explicit-harness-flag-outside-claude, practice-strict-schema-version-bump-policy
 
 ## practice-local-prompt-overrides-fall-back-to-bundled
 
@@ -454,7 +502,7 @@ Total nodes: 58
 
 - **kind:** practice
 - **title:** Never force push
-- **path:** practice-never-force-push.md
+- **path:** conventions/practice-never-force-push.md
 - **tags:** git, conventions
 
 ## practice-no-em-dashes
@@ -491,6 +539,22 @@ Total nodes: 58
 - **relates_to:** map-curate-command, map-kk-bootstrap-skill
 - **derived_from:** README.md, docs/how-it-works.md, docs/daily-use.md, docs/troubleshooting.md
 
+## practice-shipped-skills-and-hook-scripts-must-be-self-contained
+
+- **kind:** practice
+- **title:** Shipped skills and hook scripts must be self-contained
+- **path:** hooks/practice-shipped-skills-and-hook-scripts-must-be-self-contained.md
+- **tags:** skills, hooks, cli, packaging
+- **relates_to:** map-hook-build-pipeline-ts-to-cjs
+
+## practice-skills-first-documentation-only-init-is-cli
+
+- **kind:** practice
+- **title:** Skills-first documentation, only init is CLI
+- **path:** cli/practice-skills-first-documentation-only-init-is-cli.md
+- **tags:** documentation, skills, cli
+- **relates_to:** map-curate-command, map-kk-bootstrap-skill
+
 ## practice-strict-schema-version-bump-policy
 
 - **kind:** practice
@@ -500,9 +564,25 @@ Total nodes: 58
 - **relates_to:** map-node-frontmatter
 - **derived_from:** CONTRIBUTING.md, docs/internals/schemas.md
 
+## practice-surface-schema-mismatch-errors-on-both-init-and-node-read-paths
+
+- **kind:** practice
+- **title:** Surface schema mismatch errors on both init and node-read paths
+- **path:** cli/practice-surface-schema-mismatch-errors-on-both-init-and-node-read-paths.md
+- **tags:** kenkeep, migration, schema, error, cli
+- **relates_to:** practice-strict-schema-version-bump-policy, map-node-frontmatter
+
 ## practice-testing-philosophy-few-tests-mostly-integration
 
 - **kind:** practice
 - **title:** Testing philosophy: few tests, mostly integration
 - **path:** conventions/practice-testing-philosophy-few-tests-mostly-integration.md
 - **tags:** testing, philosophy, integration-tests, coverage
+
+## practice-use-a-single-generic-migrate-command-for-schema-bumps
+
+- **kind:** practice
+- **title:** Use a single generic migrate command for schema bumps
+- **path:** cli/practice-use-a-single-generic-migrate-command-for-schema-bumps.md
+- **tags:** migration, cli, schema
+- **relates_to:** practice-strict-schema-version-bump-policy, map-node-frontmatter

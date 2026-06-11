@@ -17,13 +17,9 @@ relates_to:
 depends_on: []
 confidence: high
 summary: >-
-  Cursor IDE agent adapter; native .cursor/hooks.json with camelCase events;
-  headless via agent -p; transcripts from hook stdin or
-  ~/.cursor/projects/.../agent-transcripts/.
+  Cursor IDE agent adapter; camelCase hooks.json events; headless via agent -p;
+  transcripts from agent-transcripts/; Read and ReadFile both count for usage.
 ---
-
-# Cursor harness adapter
-
 The Cursor adapter is a shell-hook adapter (Codex-shaped): hook scripts under `.cursor/hooks/` and registration in `.cursor/hooks.json`. It does **not** reuse `.claude/hooks` natively. Cursor can load Claude Code hook entries from `.claude/settings.json` when the user enables third-party skills, but that bridge alone is insufficient for knowledge base parity (stdin field names, session-start stdout envelope, transcript format, and headless CLI differ).
 
 Installed paths:
@@ -36,7 +32,9 @@ Capture triggers: `stop`, `sessionEnd`, `preCompact` (full parity with Claude's 
 
 Hook stdin uses Cursor's common schema: `conversation_id`, `transcript_path`, `hook_event_name`, `workspace_roots`. The capture hook maps `conversation_id` → session log `session_id` (UUID v5 normalization when the id is not UUID v4).
 
-Transcript source: `transcript_path` from hook stdin or `CURSOR_TRANSCRIPT_PATH` env; fallback glob under `~/.cursor/projects/*/agent-transcripts/**/*<conversation_id>*.jsonl` (newest wins).
+Transcript source: `transcript_path` from hook stdin or `CURSOR_TRANSCRIPT_PATH` env; fallback glob under `~/.cursor/projects/*/agent-transcripts/**/*<conversation_id>*.jsonl` (newest wins). Transcripts use top-level `line.role` and `line.message.content[]` text blocks.
+
+**Read usage extraction:** cursor-agent transcripts carry read tool calls as Anthropic-style `tool_use` blocks in `message.content[]`. Measured against cursor-agent v2026.06.11, the dominant tool name is **`Read`**; older builds also emit **`ReadFile`**. Both carry the opened path at **`input.path`**. `extractCursorReads` in `src/harnesses/read-extract.ts` matches both names; matching only `ReadFile` silently drops usage tracking on current cursor-agent builds even when capture writes a non-empty session log.
 
 Headless curate/bootstrap/proposal: `agent -p` / `--print` with `--output-format json`; child env includes `KENKEEP_BUILDER_INTERNAL=1`. Doctor probes `agent --version`, then `cursor agent --version`.
 

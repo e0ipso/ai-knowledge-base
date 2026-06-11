@@ -1,7 +1,7 @@
 ---
 schema_version: 2
-nodes_hash: 'sha256:cfc3fae8867219643a66c19fe42c3687ce3aaf80105eb196c680546653a0ee95'
-node_count: 58
+nodes_hash: 'sha256:45c59824176d289d4390a2be6f635c8f27abb98a002e58a7c15986c68f182574'
+node_count: 68
 ---
 # kenkeep
 
@@ -11,7 +11,7 @@ node_count: 58
 - Load [`bootstrap/`](nodes/bootstrap/index.md) for more information on seeding the knowledge base from existing docs via /kk-bootstrap and the bootstrap-incremental command.
 - Load [`cli/`](nodes/cli/index.md) for more information on the CLI init and upgrade commands, AGENTS.md pointer injection, and how to run the CLI locally.
 - Load [`config-and-prompts/`](nodes/config-and-prompts/index.md) for more information on config.yaml project settings and the prompt templates, their versioning, and local overrides.
-- Load [`conventions/`](nodes/conventions/index.md) for more information on project-wide conventions for commits, releases, testing, CI, writing style, and reviewing nodes via git.
+- Load [`conventions/`](nodes/conventions/index.md) for more information on Project-wide conventions for commits, releases, testing, CI, writing style, and reviewing nodes via git.
 - Load [`curation/`](nodes/curation/index.md) for more information on the curator pipeline that turns proposals into nodes, including conflict handling and the /kk-curate flow.
 - Load [`harnesses/`](nodes/harnesses/index.md) for more information on the per-runtime harness adapters (claude, codex, cursor, opencode, copilot) and the rules keeping them isolated.
 - Load [`hooks/`](nodes/hooks/index.md) for more information on the capture, session-start, and proposal-drain hooks, how they are built, and the conventions they follow.
@@ -19,6 +19,3 @@ node_count: 58
 - Load [`node-schema/`](nodes/node-schema/index.md) for more information on the node frontmatter schema, the nodes/ directory model, and the naming and schema-version rules.
 - Load [`overview/`](nodes/overview/index.md) for more information on the kenkeep npm package, what it does, and the on-disk .ai/kenkeep/ directory layout.
 - Load [`state/`](nodes/state/index.md) for more information on the on-disk session logs and runtime state files that track capture, proposal, and lock state.
-
-## Conventions (how we build)
-- Open [**Never force push**](practice-never-force-push.md) to learn about: Force pushing rewrites remote history and can lose collaborators' work. #git #conventions
