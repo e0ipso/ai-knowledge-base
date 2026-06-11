@@ -287,3 +287,70 @@ After each phase, apply the validation gates in `/config/hooks/POST_PHASE.md` be
 ### Execution Summary
 - Total Phases: 3
 - Total Tasks: 4
+
+---
+
+## Execution Summary
+
+**Status**: ✅ Completed Successfully
+**Completed Date**: 2026-06-11
+
+### Results
+
+OpenCode capture is restored and **verified end-to-end against a live
+OpenCode v1.17.3 session**, not by inference:
+
+- **Task 001** — `extractOpenCodeReads(exportJson)` now extracts read paths from
+  the `opencode export` JSON (`messages[].parts[]`, `type:'tool'`/`tool:'read'`/
+  `state.input.filePath`); the file-tree walker is gone.
+- **Task 002** — `src/harnesses/opencode/session-id.ts`
+  `normalizeOpenCodeSessionId` maps `ses_<base62>` → deterministic UUID v4
+  (pass-through for valid UUID v4), mirroring the Cursor normalizer.
+- **Task 003** — the capture hook is export-primary: it normalizes the id,
+  runs `opencode export` as the sole source, shapes the transcript and extracts
+  reads from one parse, and raises the hard deadline 1000ms→8000ms. The
+  file-tree `parseOpenCodeTranscript`/`defaultOpenCodeStorageDir` are removed.
+- **Task 004** — `AGENTS.md` and the `map-opencode-harness`/`map-capture-hook`
+  nodes describe the export model and `ses_` normalization; ENTRY/GRAPH indexes
+  regenerated (doctor: fresh, 58 nodes).
+- Full lint, typecheck, and 328-test suite pass at every phase commit.
+
+### Noteworthy Events
+
+- **Two fatal bugs in the shipped Task-003 hook were caught only by the manual
+  Self Validation** (the OpenCode hook has no automated spawned test). Both made
+  capture write nothing despite all unit tests and gates 1–4 passing; both are
+  fixed and re-verified end-to-end (commit `fix(opencode): export id +
+  pipe-flush capture`):
+  1. **Wrong export id.** The hook passed the *normalized* UUID to
+     `opencode export`, but the CLI keys on the original `ses_` id and errors on
+     the UUID. Fixed to export with the raw id; the UUID is only the kenkeep log
+     identity.
+  2. **Pipe truncation.** `opencode export` exits before fully flushing stdout
+     to a pipe, so `spawnSync({encoding:'utf8'})` returned truncated, unparseable
+     JSON (~145 KB of a ~230 KB document, every run) → silent failure. Fixed by
+     redirecting the child's stdout to a temp file and reading it back.
+- **Plan gap corrected during Task 003.** The pre-existing `shapeExportedTranscript`
+  read `message.role`/`message.time`, but the real v1.17.3 export carries role and
+  time at `message.info.*`. Left unfixed it would have produced an empty
+  transcript. Corrected against the measured shape.
+- **Phase-1 typecheck coupling.** Task 001's signature change broke its only
+  caller (the hook), which Task 003 rewires in Phase 2. To keep every phase
+  commit green under husky's `tsc` gate, Task 001 left a one-phase `extractOpenCodeReads(undefined)`
+  placeholder at the call site; Task 003 removed it. No net residue.
+- Validation captures (2 session logs + 8 usage records) were written into the
+  gitignored `_sessions/`/`.state/` and then removed to restore the dogfood KB.
+- Pre-existing, unrelated: `doctor` warns the installed kenkeep template version
+  (1.1.0) trails the package (1.3.1).
+
+### Necessary follow-ups
+
+- **Add a hermetic OpenCode capture integration test.** The absence of any
+  spawned test for the OpenCode hook is exactly why two fatal bugs shipped. A
+  fake `opencode` binary on `PATH` (emitting a fixture for a given `ses_` id)
+  would lock in the raw-id-for-export behavior and the export→transcript/usage
+  wiring. (It cannot reproduce the real CLI's pipe-flush truncation, so keep the
+  temp-file capture comment as the guard for that case.)
+- Optionally debounce capture per `session.idle` if the 1.5–3s export per idle
+  proves costly in practice (the `transcript_hash` dedup already prevents
+  duplicate logs).
