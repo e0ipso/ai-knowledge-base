@@ -1,6 +1,6 @@
 # AGENTS.md
 
-`kenkeep` — npm package that builds and maintains a per-repo knowledge base from AI coding sessions for Claude Code, OpenAI Codex CLI, Cursor, OpenCode, and GitHub Copilot CLI. It installs harness hooks, captures redacted session slices, runs human-supervised curation, and injects the resulting `ENTRY.md` into every new session. TypeScript, Node 22+, ESM, bundled via `tsup`.
+`kenkeep` — npm package that builds and maintains a per-repo knowledge base from AI coding sessions for Claude Code, OpenAI Codex CLI, Cursor, OpenCode, and GitHub Copilot CLI. It installs harness hooks, captures session slices, runs human-supervised curation, and injects the resulting `ENTRY.md` into every new session. TypeScript, Node 22+, ESM, bundled via `tsup`.
 
 Authoritative product spec: [PRD.md](PRD.md). Curated project knowledge: [.ai/kenkeep/ENTRY.md](.ai/kenkeep/ENTRY.md) — skim it before designing a non-trivial change.
 
