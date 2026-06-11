@@ -1,7 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   extractClaudeReads,
   extractCodexReads,
@@ -98,30 +95,24 @@ describe('extractCopilotReads', () => {
 });
 
 describe('extractOpenCodeReads', () => {
-  let storageDir: string;
-  const sessionId = 'sess-oc';
-
-  beforeEach(() => {
-    storageDir = mkdtempSync(join(tmpdir(), 'kk-oc-storage-'));
-    const messageDir = join(storageDir, 'message', sessionId);
-    mkdirSync(messageDir, { recursive: true });
-    writeFileSync(join(messageDir, 'msg-1.json'), JSON.stringify({ id: 'm1', role: 'assistant' }));
-    const partDir = join(storageDir, 'part', 'm1');
-    mkdirSync(partDir, { recursive: true });
-    writeFileSync(join(partDir, 'p0.json'), JSON.stringify({ type: 'text', text: 'hi' }));
-    writeFileSync(
-      join(partDir, 'p1.json'),
-      JSON.stringify({ type: 'tool', tool: 'read', state: { input: { filePath: '/r/e.md' } } })
-    );
+  it('returns state.input.filePath of read tool parts, ignoring other tools and text', () => {
+    const exportJson = {
+      messages: [
+        {
+          role: 'assistant',
+          parts: [
+            { type: 'text', text: 'reading' },
+            { type: 'tool', tool: 'read', state: { input: { filePath: '/r/e.md' } } },
+            { type: 'tool', tool: 'bash', state: { input: { command: 'ls' } } },
+          ],
+        },
+      ],
+    };
+    expect(extractOpenCodeReads(exportJson)).toEqual(['/r/e.md']);
   });
 
-  afterEach(() => rmSync(storageDir, { recursive: true, force: true }));
-
-  it('returns read tool part paths from the storage tree', () => {
-    expect(extractOpenCodeReads(storageDir, sessionId)).toEqual(['/r/e.md']);
-  });
-
-  it('returns [] for an unknown session', () => {
-    expect(extractOpenCodeReads(storageDir, 'missing')).toEqual([]);
+  it('returns [] for an empty object or absent messages', () => {
+    expect(extractOpenCodeReads({})).toEqual([]);
+    expect(extractOpenCodeReads(undefined)).toEqual([]);
   });
 });

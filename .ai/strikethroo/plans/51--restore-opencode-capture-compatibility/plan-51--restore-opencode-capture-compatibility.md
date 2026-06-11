@@ -268,10 +268,10 @@ graph TD
     T3 --> T4[Task 004: documentation]
 ```
 
-### Phase 1: Pure functions
+### Phase 1: Pure functions ✅
 **Parallel Tasks:**
-- Task 001: OpenCode export-parts read extractor (+ test)
-- Task 002: OpenCode session-id normalizer (+ test)
+- ✔️ Task 001: OpenCode export-parts read extractor (+ test) — `completed`
+- ✔️ Task 002: OpenCode session-id normalizer (+ test) — `completed`
 
 ### Phase 2: Capture hook rewrite
 **Parallel Tasks:**

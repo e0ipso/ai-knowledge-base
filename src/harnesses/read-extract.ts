@@ -8,9 +8,6 @@
  * extractor is defensive: malformed lines and unrecognized shapes yield no
  * entries rather than throwing, so usage extraction can never break capture.
  */
-import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { join } from 'node:path';
-
 function readStringField(input: unknown, key: string): string | null {
   if (!input || typeof input !== 'object') return null;
   const value = (input as Record<string, unknown>)[key];
@@ -176,49 +173,34 @@ function openCodePartReadPath(part: OpenCodePart): string | null {
   return firstStringField(part.state?.input, ['filePath', 'path', 'file_path']);
 }
 
+interface OpenCodeMessage {
+  parts?: unknown;
+}
+
+interface OpenCodeExport {
+  messages?: unknown;
+}
+
 /**
- * OpenCode: walks the on-disk `part/<messageID>/` tree for read tool parts. The
- * exact tool-part shape is based on OpenCode's documented storage model and is
- * unverified against a real session, so it degrades to no entries on an
- * unrecognized shape. The `opencode export` fallback path does not record usage.
+ * OpenCode: walks the parsed `opencode export <id>` document
+ * (`{ messages: [{ parts: [...] }] }`, verified against OpenCode v1.17.3) and
+ * returns the file path of every `read` tool part in document order, preserving
+ * duplicates. Only parts where `type === 'tool' && tool === 'read'` count; the
+ * read path is taken from `state.input` (`filePath`/`path`/`file_path`). Any
+ * unrecognized or malformed shape yields no entries.
  */
-export function extractOpenCodeReads(storageDir: string, sessionId: string): string[] {
+export function extractOpenCodeReads(exportJson: unknown): string[] {
   const out: string[] = [];
-  const messageRoot = join(storageDir, 'message', sessionId);
-  if (!existsSync(messageRoot)) return out;
-  const partRoot = join(storageDir, 'part');
-  let messageFiles: string[];
-  try {
-    messageFiles = readdirSync(messageRoot).filter(name => name.endsWith('.json'));
-  } catch {
-    return out;
-  }
-  for (const name of messageFiles) {
-    let message: { id?: string };
-    try {
-      message = JSON.parse(readFileSync(join(messageRoot, name), 'utf8')) as { id?: string };
-    } catch {
-      continue;
-    }
-    if (!message.id) continue;
-    const partDir = join(partRoot, message.id);
-    if (!existsSync(partDir)) continue;
-    let partFiles: string[];
-    try {
-      partFiles = readdirSync(partDir)
-        .filter(p => p.endsWith('.json'))
-        .sort((a, b) => a.localeCompare(b));
-    } catch {
-      continue;
-    }
-    for (const partFile of partFiles) {
-      let part: OpenCodePart;
-      try {
-        part = JSON.parse(readFileSync(join(partDir, partFile), 'utf8')) as OpenCodePart;
-      } catch {
-        continue;
-      }
-      const path = openCodePartReadPath(part);
+  if (!exportJson || typeof exportJson !== 'object') return out;
+  const messages = (exportJson as OpenCodeExport).messages;
+  if (!Array.isArray(messages)) return out;
+  for (const message of messages) {
+    if (!message || typeof message !== 'object') continue;
+    const parts = (message as OpenCodeMessage).parts;
+    if (!Array.isArray(parts)) continue;
+    for (const part of parts) {
+      if (!part || typeof part !== 'object') continue;
+      const path = openCodePartReadPath(part as OpenCodePart);
       if (path !== null) out.push(path);
     }
   }

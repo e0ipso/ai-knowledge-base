@@ -87,7 +87,8 @@ async function main(): Promise<void> {
         nodesDir: paths.nodesDir,
         kkDir: paths.kkDir,
         usageFile: paths.usageFile,
-        readPaths: extractOpenCodeReads(storageDir, sessionId),
+        // TODO(plan-51 task-003): pass the parsed `opencode export` JSON here
+        readPaths: extractOpenCodeReads(undefined),
       },
     });
     process.stderr.write('💾 kenkeep Capture: Session transcript saved.\n');
