@@ -1,3 +1,9 @@
+## [1.3.0](https://github.com/e0ipso/kenkeep/compare/v1.2.0...v1.3.0) (2026-06-11)
+
+### Features
+
+* add .ai/strikethroo to default .kkignore stub ([dde2b3f](https://github.com/e0ipso/kenkeep/commit/dde2b3f8bea9f16348e8bc5ae2f829b4809d502a))
+
 ## [1.2.0](https://github.com/e0ipso/kenkeep/compare/v1.1.0...v1.2.0) (2026-06-09)
 
 ### Features
