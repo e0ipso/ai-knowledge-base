@@ -46,6 +46,8 @@ curator_processed_at: <ISO>
 curator_run_id: <UUID>
 ```
 
+`captured_by` records which lifecycle trigger produced the log, as one of the canonical `CaptureTrigger` values (`stop` | `session_end` | `pre_compact` | `manual`). It is derived per-adapter, not from a shared Claude-keyed event map: each harness's `kk-capture` maps its own native event name to the canonical trigger and passes it on `HookInput.trigger`, which `captureSession` writes here (defaulting to `stop`). Examples: Copilot `sessionEnd`→`session_end` and `agentStop`→`stop`; Cursor `preCompact`→`pre_compact`; Codex `Stop`→`stop`; OpenCode `session.idle`→`stop`; Claude's values are unchanged (`Stop`→`stop`, `SessionEnd`→`session_end`, `PreCompact`→`pre_compact`).
+
 Lifecycle:
 
 1. `kk-capture.mjs` writes the file with `proposal_status: pending` and the transcript slice.

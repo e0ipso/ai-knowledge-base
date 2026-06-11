@@ -38,6 +38,8 @@ Pipeline:
 
 The only difference between triggers is the `captured_by` field. Never invokes the LLM. Missed deadline exits silently; the next trigger retries.
 
+`captured_by` derivation: there is no shared, Claude-keyed event map in `src/lib/capture.ts`. Each adapter's `kk-capture` owns an exported `*_EVENT_TO_TRIGGER` map that translates its own native lifecycle event name into the canonical `CaptureTrigger` (`stop` | `session_end` | `pre_compact` | `manual`), then passes it on `HookInput.trigger`; `captureSession` writes that value as `captured_by`, defaulting to `stop` when no trigger is supplied. Per-adapter maps: Claude `Stop`→`stop`, `SessionEnd`→`session_end`, `PreCompact`→`pre_compact`; Cursor `stop`→`stop`, `sessionEnd`→`session_end`, `preCompact`→`pre_compact`; Codex `Stop`→`stop`; OpenCode `session.idle`→`stop`; Copilot `agentStop`→`stop`, `sessionEnd`→`session_end`.
+
 Failure modes table (from `docs/internals/hooks.md`):
 
 | Condition | Outcome |

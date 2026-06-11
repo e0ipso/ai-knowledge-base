@@ -1,6 +1,6 @@
 ---
 schema_version: 2
-nodes_hash: 'sha256:a17e8e3e237a621d358f451950bf5f6ac20453a3caab8f8535cc614b12650a2e'
+nodes_hash: 'sha256:7ecec7b459039b55a7f0da24bb5fef3bcb5f3dba894f45abd903431189d754fa'
 node_count: 7
 summary: >-
   the capture, session-start, and proposal-drain hooks, how they are built, and
