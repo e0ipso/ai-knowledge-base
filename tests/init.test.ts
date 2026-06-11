@@ -31,7 +31,7 @@ describe('init', () => {
       '.ai/kenkeep/_sessions/.gitkeep',
       '.ai/kenkeep/_logs/proposal/.gitkeep',
       '.ai/kenkeep/_logs/curator/.gitkeep',
-      '.ai/kenkeep/_logs/bootstrap-incremental/.gitkeep',
+      '.ai/kenkeep/_logs/bootstrap/.gitkeep',
       '.claude/settings.json',
       '.claude/skills/kk-add/SKILL.md',
       '.claude/skills/kk-bootstrap/SKILL.md',

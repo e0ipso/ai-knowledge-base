@@ -280,7 +280,7 @@ To force re-extraction of a `failed` entry: set `proposal_status: pending` in th
 
 ### Curate / bootstrap
 
-These do not write `_logs/curator/*.jsonl` or `_logs/bootstrap-incremental/*.jsonl`; the work runs in the host harness session and that transcript captures the reasoning. To inspect what the curate skill did on a run, read the host session transcript (or, for the `curate-dedup` primitive's output, pass `--output <path>` to capture the surviving-actions JSON).
+These do not write `_logs/curator/*.jsonl` or `_logs/bootstrap/*.jsonl`; the work runs in the host harness session and that transcript captures the reasoning. To inspect what the curate skill did on a run, read the host session transcript (or, for the `curate-dedup` primitive's output, pass `--output <path>` to capture the surviving-actions JSON).
 
 | Issue | Diagnosis |
 |---|---|

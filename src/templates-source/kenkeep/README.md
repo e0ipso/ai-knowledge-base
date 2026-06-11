@@ -34,7 +34,7 @@ Either way the result lands in `nodes/<id>.md` (at the root, or a chosen topical
 
 ## Bootstrap from existing docs
 
-If your repo already has READMEs, ADRs, and module docs, you can seed the knowledge base from them with `/kk-bootstrap` (a one-time, supervised pass) or `npx kenkeep bootstrap-incremental --from docs/` (for picking up new or changed docs later). Both write directly to `nodes/`; you review with `git diff` and accept the ones you want.
+If your repo already has READMEs, ADRs, and module docs, you can seed the knowledge base from them with `/kk-bootstrap` (a one-time, supervised pass) or `npx kenkeep bootstrap --from docs/` (for picking up new or changed docs later). Both write directly to `nodes/`; you review with `git diff` and accept the ones you want.
 
 ## Subdirectories
 
