@@ -1,7 +1,7 @@
 ---
 schema_version: 2
-nodes_hash: 'sha256:a3eae4fa8136dda223e49e791b4f36e9aaf36f7c1fc40455b51190d3887c9b42'
-node_count: 57
+nodes_hash: 'sha256:d3276cdbe60ec7e1c406d427037e9a2b4d36599d84898d494818b48f6e90f310'
+node_count: 58
 ---
 # kenkeep
 
@@ -19,3 +19,6 @@ node_count: 57
 - Load [`node-schema/`](nodes/node-schema/index.md) for more information on the node frontmatter schema, the nodes/ directory model, and the naming and schema-version rules.
 - Load [`overview/`](nodes/overview/index.md) for more information on the kenkeep npm package, what it does, and the on-disk .ai/kenkeep/ directory layout.
 - Load [`state/`](nodes/state/index.md) for more information on the on-disk session logs and runtime state files that track capture, proposal, and lock state.
+
+## Conventions (how we build)
+- Open [**Never force push**](practice-never-force-push.md) to learn about: Force pushing rewrites remote history and can lose collaborators' work. #git #conventions

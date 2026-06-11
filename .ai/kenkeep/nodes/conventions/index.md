@@ -29,6 +29,7 @@ _None yet._
 ## By topic
 
 ### #git
+- Open [**Never force push**](practice-never-force-push.md) — Force pushing rewrites remote history and can lose collaborators' work.
 - Open [**Conventional Commits drive semantic-release**](conventions/practice-conventional-commits-and-release.md) — Releases are automated via semantic-release on merge to main. Commit type (feat/fix/etc.) determines version bump; no manual tag or npm publish.
 - Open [**Review node changes via git**](conventions/practice-review-nodes-via-git.md) — All node changes are reviewed via git diff; accept with git commit, reject with git restore. Same workflow for curator output and bootstrap output.
 ### #workflow

@@ -1,7 +1,7 @@
 ---
 schema_version: 2
-nodes_hash: 'sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
-node_count: 0
+nodes_hash: 'sha256:9c79a6d0006cdb96a94be3c9d8751617ff341bcb3dcba23737b2bd33db0ff7d1'
+node_count: 1
 ---
 # kenkeep Index
 
@@ -21,11 +21,16 @@ node_count: 0
 - Load [`state/`](nodes/state/index.md) for more information on the on-disk session logs and runtime state files that track capture, proposal, and lock state.
 
 ## Conventions (how we build)
-_None yet._
+- Open [**Never force push**](practice-never-force-push.md) to learn about: Force pushing rewrites remote history and can lose collaborators' work. #git #conventions
 
 ## Components (what exists)
 _None yet._
 
 ## By topic
 
-_No tags yet._
+### #conventions
+- Open [**Never force push**](practice-never-force-push.md) — Force pushing rewrites remote history and can lose collaborators' work.
+### #git
+- Open [**Never force push**](practice-never-force-push.md) — Force pushing rewrites remote history and can lose collaborators' work.
+- Open [**Conventional Commits drive semantic-release**](conventions/practice-conventional-commits-and-release.md) — Releases are automated via semantic-release on merge to main. Commit type (feat/fix/etc.) determines version bump; no manual tag or npm publish.
+- Open [**Review node changes via git**](conventions/practice-review-nodes-via-git.md) — All node changes are reviewed via git diff; accept with git commit, reject with git restore. Same workflow for curator output and bootstrap output.

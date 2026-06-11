@@ -1,11 +1,11 @@
 ---
 schema_version: 2
-nodes_hash: 'sha256:a3eae4fa8136dda223e49e791b4f36e9aaf36f7c1fc40455b51190d3887c9b42'
-node_count: 57
+nodes_hash: 'sha256:d3276cdbe60ec7e1c406d427037e9a2b4d36599d84898d494818b48f6e90f310'
+node_count: 58
 ---
 # kenkeep Graph
 
-Total nodes: 57
+Total nodes: 58
 
 ## map-bootstrap-incremental-command
 
@@ -449,6 +449,13 @@ Total nodes: 57
 - **tags:** prompts, customization, override
 - **relates_to:** map-config-yaml, map-proposal-drain-hook, map-curate-command, map-bootstrap-incremental-command
 - **derived_from:** docs/internals/prompts.md, docs/troubleshooting.md
+
+## practice-never-force-push
+
+- **kind:** practice
+- **title:** Never force push
+- **path:** practice-never-force-push.md
+- **tags:** git, conventions
 
 ## practice-no-em-dashes
 
