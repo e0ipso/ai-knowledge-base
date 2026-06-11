@@ -12,17 +12,19 @@ import { appendHookDiagnostic } from '../../../lib/hook-diagnostic.js';
 import { readStdin } from '../../../lib/stdin.js';
 import { findRepoRoot, repoPaths } from '../../../lib/paths.js';
 import { assertValidSessionId } from '../../../lib/session-log.js';
+import type { CaptureTrigger } from '../../../lib/schemas.js';
 import { normalizeCursorConversationId } from '../session-id.js';
 import { parseCursorTranscript } from '../transcript.js';
 
 const HARD_DEADLINE_MS = 1000;
 const PACKAGE_TAG = '[kenkeep]';
 
-const CURSOR_EVENT_TO_HOOK: Record<string, string> = {
-  stop: 'Stop',
-  sessionEnd: 'SessionEnd',
-  preCompact: 'PreCompact',
-};
+/** Maps Cursor's native lifecycle event names to the canonical capture trigger. */
+export const CURSOR_EVENT_TO_TRIGGER = {
+  stop: 'stop',
+  sessionEnd: 'session_end',
+  preCompact: 'pre_compact',
+} as const satisfies Record<string, CaptureTrigger>;
 
 async function main(): Promise<void> {
   if (process.env['KENKEEP_BUILDER_INTERNAL'] === '1') return;
@@ -67,15 +69,17 @@ async function main(): Promise<void> {
       if (fallback !== null) transcriptPath = fallback;
     }
 
-    const hookEvent =
-      typeof payload['hook_event_name'] === 'string'
-        ? (CURSOR_EVENT_TO_HOOK[payload['hook_event_name']] ?? payload['hook_event_name'])
-        : undefined;
+    const eventName =
+      typeof payload['hook_event_name'] === 'string' ? payload['hook_event_name'] : undefined;
+    const trigger: CaptureTrigger =
+      (eventName !== undefined
+        ? CURSOR_EVENT_TO_TRIGGER[eventName as keyof typeof CURSOR_EVENT_TO_TRIGGER]
+        : undefined) ?? 'stop';
 
     const input: HookInput = {
       session_id: sessionId,
       ...(transcriptPath ? { transcript_path: transcriptPath } : {}),
-      ...(hookEvent ? { hook_event_name: hookEvent } : {}),
+      trigger,
       cwd: startCwd,
     };
     process.stderr.write('📸 kenkeep Capture: Saving session transcript…\n');

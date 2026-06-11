@@ -4,19 +4,23 @@
  *
  * Copilot writes one JSON object per line under
  * `${COPILOT_HOME:-~/.copilot}/session-state/<sessionID>/events.jsonl`. The
- * envelope is `{ type, data, id, timestamp, parentId }`. The exact `type`
- * strings for user and agent message events are not pinned in public docs,
- * so the parser is defensive: it accepts the documented `userMessage` /
- * `agentMessage` type names and also falls back to `data.role` of `'user'`
- * or `'assistant'`. Message text comes from `data.content`, falling back to
- * `data.text`.
+ * envelope is `{ type, data, id, timestamp, parentId }` (measured against
+ * Copilot CLI v1.0.61). The message events of interest are:
+ *   - `type: "user.message"` — user turn, text at `data.content`.
+ *   - `type: "assistant.message"` — assistant turn, text at `data.content`
+ *     (may also carry `data.toolRequests`, which this parser ignores).
+ * There is no `data.role` field on message events. Every other event type
+ * (`assistant.turn_start` / `assistant.turn_end`, `session.*`, `hook.*`,
+ * `system.message`, and tool events such as `tool.execution_start`) is
+ * ignored gracefully.
  *
- * Chunked streaming output (several events sharing a `parentId` and role) is
- * concatenated into a single turn. Independent events (different `parentId`)
- * become separate turns even when they share a role. Lines that fail
- * `JSON.parse` (including a truncated final line) are skipped silently, so a
- * partially written file never crashes capture. A missing or empty file
- * yields `{ interleaved: [] }`.
+ * Chunked streaming output (several events sharing a grouping key and role)
+ * is concatenated into a single turn. The grouping key is the envelope/`data`
+ * `turnId` when present, falling back to `parentId`. Independent events
+ * (different grouping key) become separate turns even when they share a role.
+ * Lines that fail `JSON.parse` (including a truncated final line) are skipped
+ * silently, so a partially written file never crashes capture. A missing or
+ * empty file yields `{ interleaved: [] }`.
  */
 import type { RoleTaggedTranscript } from '../types.js';
 import { renderRoleTagged } from '../../lib/transcript-render.js';
@@ -25,10 +29,10 @@ interface CopilotEvent {
   type?: string;
   timestamp?: string;
   parentId?: string | null;
+  turnId?: string | null;
   data?: {
-    role?: string;
     content?: unknown;
-    text?: unknown;
+    turnId?: string | null;
   };
 }
 
@@ -38,25 +42,27 @@ interface ParsedTurn {
   role: Role;
   text: string;
   timestamp: string;
-  parentId: string | null;
+  group: string | null;
   order: number;
 }
 
 function classify(event: CopilotEvent): Role | null {
-  if (event.type === 'userMessage') return 'user';
-  if (event.type === 'agentMessage') return 'agent';
-  const role = event.data?.role;
-  if (role === 'user') return 'user';
-  if (role === 'assistant') return 'agent';
+  if (event.type === 'user.message') return 'user';
+  if (event.type === 'assistant.message') return 'agent';
   return null;
 }
 
 function messageText(event: CopilotEvent): string {
   const content = event.data?.content;
   if (typeof content === 'string' && content.length > 0) return content;
-  const text = event.data?.text;
-  if (typeof text === 'string' && text.length > 0) return text;
   return '';
+}
+
+function groupKey(event: CopilotEvent): string | null {
+  if (typeof event.turnId === 'string') return event.turnId;
+  if (typeof event.data?.turnId === 'string') return event.data.turnId;
+  if (typeof event.parentId === 'string') return event.parentId;
+  return null;
 }
 
 export function parseCopilotTranscript(text: string): RoleTaggedTranscript {
@@ -80,7 +86,7 @@ export function parseCopilotTranscript(text: string): RoleTaggedTranscript {
       role,
       text: body,
       timestamp: typeof event.timestamp === 'string' ? event.timestamp : '',
-      parentId: typeof event.parentId === 'string' ? event.parentId : null,
+      group: groupKey(event),
       order: order++,
     });
   }
@@ -93,13 +99,13 @@ export function parseCopilotTranscript(text: string): RoleTaggedTranscript {
   });
 
   const out: RoleTaggedTranscript = { interleaved: [] };
-  let current: { role: Role; parentId: string | null; texts: string[] } | null = null;
+  let current: { role: Role; group: string | null; texts: string[] } | null = null;
   for (const turn of turns) {
     const sameGroup =
       current !== null &&
       current.role === turn.role &&
-      turn.parentId !== null &&
-      current.parentId === turn.parentId;
+      turn.group !== null &&
+      current.group === turn.group;
     if (sameGroup) {
       current!.texts.push(turn.text);
       continue;
@@ -107,7 +113,7 @@ export function parseCopilotTranscript(text: string): RoleTaggedTranscript {
     if (current !== null) {
       out.interleaved.push({ role: current.role, text: current.texts.join('\n') });
     }
-    current = { role: turn.role, parentId: turn.parentId, texts: [turn.text] };
+    current = { role: turn.role, group: turn.group, texts: [turn.text] };
   }
   if (current !== null) {
     out.interleaved.push({ role: current.role, text: current.texts.join('\n') });

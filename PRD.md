@@ -33,7 +33,7 @@ Knowledge is captured automatically. Knowledge is curated deliberately, with a h
 
 1. **Persistent project memory.** Knowledge from one session survives into the next, and into sessions run by other teammates.
 2. **Truthful as of last curation.** When new sessions contradict old knowledge, the system surfaces the conflict for a human; it doesn't silently overwrite or silently ignore. Drift between captured sessions and the curated knowledge base is bounded by curation cadence, which the contributor controls.
-3. **Low setup cost for consumers.** No installation beyond Claude Code and Node 22+. No API keys. No DB. No services.
+3. **Low setup cost for consumers.** No installation beyond a supported harness and Node 22+. No API keys. No DB. No services.
 4. **Low friction for contributors.** Capture is automatic. Curation is one skill invocation, run when convenient.
 5. **Reviewable like code.** All knowledge base changes go through git. A reviewer can read a diff, accept some, reject others; the audit trail is the commit history.
 6. **Safe by default.** No secrets, API keys, customer data, or other sensitive content ever lands in the knowledge base.
@@ -84,7 +84,7 @@ Capture happens via session-end hooks. After several sessions, a notification at
 
 > "I want to control when knowledge actually lands in the knowledge base, so I'm not getting noisy commits after every coffee-break session."
 
-The `kk-curate` Claude Code skill runs the curator on demand. The curator writes nodes directly into `nodes/<folder>/<slug>.md` (new files for additions, in-place rewrites for modifications). Nothing lands in the live knowledge base until the contributor reviews the diff with `git` and commits.
+The `kk-curate` skill runs the curator on demand. The curator writes nodes directly into `nodes/<folder>/<slug>.md` (new files for additions, in-place rewrites for modifications). Nothing lands in the live knowledge base until the contributor reviews the diff with `git` and commits.
 
 > "I want to know when my new finding contradicts something the knowledge base already says, so I can decide which is right."
 
@@ -100,11 +100,11 @@ Every LLM-driven step writes a verbose log file under `_logs/` (gitignored). For
 
 > "I just realized something about the project, even though I'm not in a session. I want to add it to the knowledge base now."
 
-Two paths into manual capture: `npx kenkeep node add` from the terminal (interactive prompts collect kind, title, summary, body, tags), or the `kk-add` Claude Code skill from inside a session (the skill guides the agent through the same fields and writes a node). Either path writes directly to `nodes/<folder>/<slug>.md`. Acceptance is `git commit`; rejection is `git restore <path>`. Same human-in-the-loop guarantee as session-derived captures, just with git as the review surface instead of a separate staging directory.
+Two paths into manual capture: `npx kenkeep node add` from the terminal (interactive prompts collect kind, title, summary, body, tags), or the `kk-add` skill from inside a session (the skill guides the agent through the same fields and writes a node). Either path writes directly to `nodes/<folder>/<slug>.md`. Acceptance is `git commit`; rejection is `git restore <path>`. Same human-in-the-loop guarantee as session-derived captures, just with git as the review surface instead of a separate staging directory.
 
 > "My project already has a bunch of READMEs, ADRs, and module docs. I don't want to start with an empty knowledge base - I want the knowledge base seeded from what's already documented."
 
-The `kk-bootstrap` Claude Code skill runs an agent-driven first-time bootstrap inside a normal session. The agent surveys the project's docs directory, reads representative content, follows cross-references between docs, and writes nodes directly to `nodes/<folder>/<slug>.md` with `derived_from` pointing to the actual doc paths. Bootstrap is conservative: it never overwrites an existing node - collisions are skipped and reported. The contributor reviews each new node with `git diff nodes/` and accepts what they want. Bootstrap is a supervised one-off, not an autopilot.
+The `kk-bootstrap` skill runs an agent-driven first-time bootstrap inside a normal session. The agent surveys the project's docs directory, reads representative content, follows cross-references between docs, and writes nodes directly to `nodes/<folder>/<slug>.md` with `derived_from` pointing to the actual doc paths. Bootstrap is conservative: it never overwrites an existing node - collisions are skipped and reported. The contributor reviews each new node with `git diff nodes/` and accepts what they want. Bootstrap is a supervised one-off, not an autopilot.
 
 > "I added some new docs after the initial bootstrap. I want them folded into the knowledge base without re-processing everything."
 
@@ -140,8 +140,8 @@ Every node carries a `derived_from` list pointing to session log filenames. **Ca
 
 ### 8.1 First-time setup
 
-1. A contributor runs `npx <pkg> init --assistants claude`.
-2. The installer creates `.ai/kenkeep/` with starter structure (including `_logs/` and `_sessions/` both gitignored), registers hooks under `.claude/`, installs the `kk-add`, `kk-bootstrap`, and `kk-curate` Claude Code skills, writes `.ai/kenkeep/.state/installed-version`, seeds an empty `.ai/kenkeep/config.yaml` for project-level tunables, copies local prompt overrides into `.ai/kenkeep/.config/prompts/`, and adds a managed `.gitignore` block. It does **not** install husky, lint-staged, secretlint, commitlint, or any other commit-time tooling in the consuming repo. Teams that want a commit-time secret scanner or a commit-message linter wire those up themselves (see [Installation](docs/installation.md)). Re-running with `init --upgrade` refreshes templates and skills while preserving `config.yaml` and local prompt overrides.
+1. A contributor runs `npx <pkg> init --harnesses <id[,id,...]>` (e.g. `claude`, or `codex,cursor,opencode,copilot`).
+2. The installer creates `.ai/kenkeep/` with starter structure (including `_logs/` and `_sessions/` both gitignored), registers hooks under `.claude/`, installs the `kk-add`, `kk-bootstrap`, and `kk-curate` skills, writes `.ai/kenkeep/.state/installed-version`, seeds an empty `.ai/kenkeep/config.yaml` for project-level tunables, copies local prompt overrides into `.ai/kenkeep/.config/prompts/`, and adds a managed `.gitignore` block. It does **not** install husky, lint-staged, secretlint, commitlint, or any other commit-time tooling in the consuming repo. Teams that want a commit-time secret scanner or a commit-message linter wire those up themselves (see [Installation](docs/installation.md)). Re-running with `init --upgrade` refreshes templates and skills while preserving `config.yaml` and local prompt overrides.
 3. The contributor commits. knowledge base is live but empty.
 
 ### 8.2 Daily session capture (automatic)
@@ -174,7 +174,7 @@ Every node carries a `derived_from` list pointing to session log filenames. **Ca
 
 ### 8.6 First-time bootstrap from existing docs (optional, one-off)
 
-1. The contributor invokes the `kk-bootstrap` skill inside a normal Claude Code session, optionally passing a path argument (defaults to common doc locations like `docs/`, `README.md`, top-level `*.md` files).
+1. The contributor invokes the `kk-bootstrap` skill inside a normal session, optionally passing a path argument (defaults to common doc locations like `docs/`, `README.md`, top-level `*.md` files).
 2. The agent surveys the directory structure, reads representative content, follows cross-references, identifies candidate practice and map nodes, and writes them directly to `nodes/<folder>/<slug>.md`. Each node carries `derived_from: [<doc-path>]`. Bootstrap is conservative: existing nodes are never overwritten; collisions are skipped and reported.
 3. The agent updates `bootstrap-state.json` with content hashes of every doc it read.
 4. The contributor reviews the new nodes with `git diff nodes/` and commits the ones they want; `git restore` discards the rest.

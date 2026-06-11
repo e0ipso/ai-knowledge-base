@@ -66,23 +66,13 @@ const textTranscriptCases: Array<{
   },
   {
     id: 'copilot',
-    text: [
-      JSON.stringify({
-        type: 'userMessage',
-        data: { role: 'user', content: 'How do I run tests?' },
-        timestamp: '2026-06-05T00:00:01Z',
-        parentId: null,
-      }),
-      JSON.stringify({
-        type: 'agentMessage',
-        data: { role: 'assistant', content: 'Run npm test from the repo root.' },
-        timestamp: '2026-06-05T00:00:02Z',
-        parentId: 'a1',
-      }),
-    ].join('\n'),
+    text: readFileSync(
+      join(import.meta.dirname, '../fixtures/copilot-transcript/events.jsonl'),
+      'utf8'
+    ),
     expected: [
       { role: 'user', text: 'How do I run tests?' },
-      { role: 'agent', text: 'Run npm test from the repo root.' },
+      { role: 'agent', text: 'Run npm test \nfrom the repo root.' },
     ],
   },
   {
@@ -152,33 +142,65 @@ describe('codex transcript parsing edge cases', () => {
 describe('copilot transcript parsing edge cases', () => {
   const copilot = getHarness('copilot');
 
-  it('concatenates chunked agent output sharing a parentId and skips a truncated final line', () => {
+  it('concatenates chunked agent output sharing a grouping key and skips a truncated final line', () => {
     const lines = [
       JSON.stringify({
-        type: 'userMessage',
-        data: { role: 'user', content: 'complete line' },
+        type: 'user.message',
+        data: { content: 'complete line' },
+        id: 'u1',
         timestamp: '2026-06-05T00:00:01Z',
         parentId: null,
       }),
       JSON.stringify({
-        type: 'agentMessage',
-        data: { role: 'assistant', content: 'part one ' },
+        type: 'assistant.message',
+        data: { content: 'part one ' },
+        id: 'a1',
         timestamp: '2026-06-05T00:00:02Z',
         parentId: 'turn-1',
       }),
       JSON.stringify({
-        type: 'agentMessage',
-        data: { role: 'assistant', content: 'part two' },
+        type: 'assistant.message',
+        data: { content: 'part two' },
+        id: 'a2',
         timestamp: '2026-06-05T00:00:03Z',
         parentId: 'turn-1',
       }),
-      '{"type":"agentMessage","data":{"role":"assistant","content":"trunc',
+      '{"type":"assistant.message","data":{"content":"trunc',
     ];
     expect(copilot.parseTranscript(lines.join('\n')).interleaved).toEqual([
       { role: 'user', text: 'complete line' },
       { role: 'agent', text: 'part one \npart two' },
     ]);
     expect(copilot.parseTranscript('').interleaved).toEqual([]);
+  });
+
+  it('rejects the old invented event shapes so the fixture reflects production', () => {
+    // The pre-v1.0.61 parser keyed on invented type names and a data.role
+    // fallback. Those shapes must no longer classify as turns.
+    const inventedType = 'user' + 'Message';
+    const inventedAgentType = 'agent' + 'Message';
+    const lines = [
+      JSON.stringify({
+        type: inventedType,
+        data: { role: 'user', content: 'invented user shape' },
+        timestamp: '2026-06-05T00:00:01Z',
+        parentId: null,
+      }),
+      JSON.stringify({
+        type: inventedAgentType,
+        data: { role: 'assistant', content: 'invented agent shape' },
+        timestamp: '2026-06-05T00:00:02Z',
+        parentId: 'a1',
+      }),
+      // A message event carrying only the removed data.role discriminator.
+      JSON.stringify({
+        type: 'message',
+        data: { role: 'assistant', content: 'role-only shape' },
+        timestamp: '2026-06-05T00:00:03Z',
+        parentId: 'a1',
+      }),
+    ];
+    expect(copilot.parseTranscript(lines.join('\n')).interleaved).toEqual([]);
   });
 });
 

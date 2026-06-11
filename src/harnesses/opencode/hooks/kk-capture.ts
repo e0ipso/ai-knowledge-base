@@ -19,12 +19,18 @@ import { appendHookDiagnostic } from '../../../lib/hook-diagnostic.js';
 import { readStdin } from '../../../lib/stdin.js';
 import { findRepoRoot, repoPaths } from '../../../lib/paths.js';
 import { assertValidSessionId } from '../../../lib/session-log.js';
+import type { CaptureTrigger } from '../../../lib/schemas.js';
 import type { RoleTaggedTranscript } from '../../types.js';
 import { defaultOpenCodeStorageDir, parseOpenCodeTranscript } from '../transcript.js';
 
 const HARD_DEADLINE_MS = 1000;
 const EXPORT_TIMEOUT_MS = 30_000;
 const PACKAGE_TAG = '[kenkeep]';
+
+/** OpenCode's lifecycle event is `session.idle`; map it to the canonical trigger. */
+export const OPENCODE_EVENT_TO_TRIGGER = {
+  'session.idle': 'stop',
+} as const satisfies Record<string, CaptureTrigger>;
 
 async function main(): Promise<void> {
   if (process.env['KENKEEP_BUILDER_INTERNAL'] === '1') return;
@@ -69,7 +75,7 @@ async function main(): Promise<void> {
     const input: HookInput = {
       session_id: sessionId,
       transcript_path: transcriptFile,
-      hook_event_name: 'Stop',
+      trigger: OPENCODE_EVENT_TO_TRIGGER['session.idle'],
       ...(typeof payload['cwd'] === 'string' ? { cwd: payload['cwd'] as string } : {}),
     };
     process.stderr.write('📸 kenkeep Capture: Saving session transcript…\n');

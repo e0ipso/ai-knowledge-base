@@ -21,11 +21,18 @@ import { appendHookDiagnostic } from '../../../lib/hook-diagnostic.js';
 import { findRepoRoot, repoPaths } from '../../../lib/paths.js';
 import { assertValidSessionId } from '../../../lib/session-log.js';
 import { readStdin } from '../../../lib/stdin.js';
+import type { CaptureTrigger } from '../../../lib/schemas.js';
 import { copilotHome } from '../hooks-config.js';
 import { parseCopilotTranscript } from '../transcript.js';
 
 const HARD_DEADLINE_MS = 1000;
 const PACKAGE_TAG = '[kenkeep]';
+
+/** Maps Copilot's native event names to the canonical capture trigger. */
+export const COPILOT_EVENT_TO_TRIGGER = {
+  agentStop: 'stop',
+  sessionEnd: 'session_end',
+} as const satisfies Record<string, CaptureTrigger>;
 
 function pickString(payload: Record<string, unknown>, ...keys: string[]): string | undefined {
   for (const key of keys) {
@@ -68,11 +75,14 @@ async function main(): Promise<void> {
       return;
     }
     const event = pickString(payload, 'hook_event_name', 'event', 'type');
-    const hookEventName = event === 'agentStop' ? 'Stop' : 'SessionEnd';
+    const trigger: CaptureTrigger =
+      (event !== undefined
+        ? COPILOT_EVENT_TO_TRIGGER[event as keyof typeof COPILOT_EVENT_TO_TRIGGER]
+        : undefined) ?? 'stop';
     const input: HookInput = {
       session_id: sessionId,
       transcript_path: eventsFile,
-      hook_event_name: hookEventName,
+      trigger,
       cwd: startCwd,
     };
     process.stderr.write('📸 kenkeep Capture: Saving session transcript…\n');

@@ -149,18 +149,26 @@ function writeCopilotEvents(
   writeFileSync(
     join(dir, 'events.jsonl'),
     [
-      JSON.stringify({ type: 'sessionStart', data: {}, timestamp: '2026-06-05T00:00:00Z' }),
       JSON.stringify({
-        type: 'userMessage',
-        data: { role: 'user', content: userText },
+        type: 'session.start',
+        data: {},
+        id: 's1',
+        timestamp: '2026-06-05T00:00:00Z',
+        parentId: null,
+      }),
+      JSON.stringify({
+        type: 'user.message',
+        data: { content: userText },
+        id: 'u1',
         timestamp: '2026-06-05T00:00:01Z',
         parentId: null,
       }),
       JSON.stringify({
-        type: 'agentMessage',
-        data: { role: 'assistant', content: agentText },
+        type: 'assistant.message',
+        data: { content: agentText },
+        id: 'a1',
         timestamp: '2026-06-05T00:00:02Z',
-        parentId: 'a1',
+        parentId: 'u1',
       }),
     ].join('\n')
   );

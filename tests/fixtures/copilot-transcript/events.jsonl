@@ -1,0 +1,7 @@
+{"type":"session.start","data":{},"id":"s1","timestamp":"2026-06-05T00:00:00Z","parentId":null}
+{"type":"user.message","data":{"content":"How do I run tests?"},"id":"u1","timestamp":"2026-06-05T00:00:01Z","parentId":null}
+{"type":"assistant.turn_start","data":{},"id":"t1","timestamp":"2026-06-05T00:00:02Z","parentId":"u1"}
+{"type":"assistant.message","data":{"content":"Run npm test "},"id":"a1","timestamp":"2026-06-05T00:00:03Z","parentId":"t1"}
+{"type":"assistant.message","data":{"content":"from the repo root."},"id":"a2","timestamp":"2026-06-05T00:00:04Z","parentId":"t1"}
+{"type":"tool.execution_start","data":{"toolName":"view","arguments":{"path":"README.md"}},"id":"x1","timestamp":"2026-06-05T00:00:05Z","parentId":"t1"}
+{"type":"assistant.turn_end","data":{},"id":"t1e","timestamp":"2026-06-05T00:00:06Z","parentId":"t1"}

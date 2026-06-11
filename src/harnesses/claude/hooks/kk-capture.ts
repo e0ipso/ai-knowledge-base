@@ -11,10 +11,18 @@ import { appendHookDiagnostic } from '../../../lib/hook-diagnostic.js';
 import { readStdin } from '../../../lib/stdin.js';
 import { findRepoRoot, repoPaths } from '../../../lib/paths.js';
 import { assertValidSessionId } from '../../../lib/session-log.js';
+import type { CaptureTrigger } from '../../../lib/schemas.js';
 import { parseTranscriptJsonl } from '../transcript.js';
 
 const HARD_DEADLINE_MS = 1000;
 const PACKAGE_TAG = '[kenkeep]';
+
+/** Maps Claude's native hook event names to the canonical capture trigger. */
+export const CLAUDE_EVENT_TO_TRIGGER = {
+  Stop: 'stop',
+  SessionEnd: 'session_end',
+  PreCompact: 'pre_compact',
+} as const satisfies Record<string, CaptureTrigger>;
 
 async function main(): Promise<void> {
   // Recursion guard: when the proposal drain (M2) spawns `claude -p`, the
@@ -46,14 +54,18 @@ async function main(): Promise<void> {
 
   try {
     const sessionId = assertValidSessionId(payload['session_id']);
+    const eventName =
+      typeof payload['hook_event_name'] === 'string' ? payload['hook_event_name'] : undefined;
+    const trigger: CaptureTrigger =
+      (eventName !== undefined
+        ? CLAUDE_EVENT_TO_TRIGGER[eventName as keyof typeof CLAUDE_EVENT_TO_TRIGGER]
+        : undefined) ?? 'stop';
     const input: HookInput = {
       session_id: sessionId,
       ...(typeof payload['transcript_path'] === 'string'
         ? { transcript_path: payload['transcript_path'] as string }
         : {}),
-      ...(typeof payload['hook_event_name'] === 'string'
-        ? { hook_event_name: payload['hook_event_name'] as string }
-        : {}),
+      trigger,
       ...(typeof payload['cwd'] === 'string' ? { cwd: payload['cwd'] as string } : {}),
     };
     process.stderr.write('📸 kenkeep Capture: Saving session transcript…\n');

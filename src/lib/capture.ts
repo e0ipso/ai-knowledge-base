@@ -20,7 +20,7 @@ export type TranscriptParser = (text: string) => RoleTaggedTranscript;
 export interface HookInput {
   session_id: string;
   transcript_path?: string;
-  hook_event_name?: string;
+  trigger?: CaptureTrigger;
   cwd?: string;
 }
 
@@ -38,24 +38,11 @@ export interface CaptureContext {
   now?: () => Date;
 }
 
-const HOOK_EVENT_TO_TRIGGER: Record<string, CaptureTrigger> = {
-  Stop: 'stop',
-  SessionEnd: 'session_end',
-  PreCompact: 'pre_compact',
-};
-
-export function eventToTrigger(event: string | undefined): CaptureTrigger {
-  if (event && HOOK_EVENT_TO_TRIGGER[event]) {
-    return HOOK_EVENT_TO_TRIGGER[event];
-  }
-  return 'stop';
-}
-
 export async function captureSession(
   input: HookInput,
   ctx: CaptureContext
 ): Promise<CaptureResult> {
-  const trigger = eventToTrigger(input.hook_event_name);
+  const trigger = input.trigger ?? 'stop';
   const transcriptPath = input.transcript_path;
   if (!transcriptPath || !existsSync(transcriptPath)) {
     return {

@@ -16,10 +16,16 @@ import { appendHookDiagnostic } from '../../../lib/hook-diagnostic.js';
 import { readStdin } from '../../../lib/stdin.js';
 import { findRepoRoot, repoPaths } from '../../../lib/paths.js';
 import { assertValidSessionId } from '../../../lib/session-log.js';
+import type { CaptureTrigger } from '../../../lib/schemas.js';
 import { parseCodexTranscript } from '../transcript.js';
 
 const HARD_DEADLINE_MS = 1000;
 const PACKAGE_TAG = '[kenkeep]';
+
+/** Codex emits only a Stop event; map it to the canonical capture trigger. */
+export const CODEX_EVENT_TO_TRIGGER = {
+  Stop: 'stop',
+} as const satisfies Record<string, CaptureTrigger>;
 
 async function main(): Promise<void> {
   if (process.env['KENKEEP_BUILDER_INTERNAL'] === '1') return;
@@ -58,7 +64,7 @@ async function main(): Promise<void> {
     const input: HookInput = {
       session_id: sessionId,
       transcript_path: rolloutPath,
-      hook_event_name: 'Stop',
+      trigger: CODEX_EVENT_TO_TRIGGER.Stop,
       ...(typeof payload['cwd'] === 'string' ? { cwd: payload['cwd'] as string } : {}),
     };
     process.stderr.write('📸 kenkeep Capture: Saving session transcript…\n');
