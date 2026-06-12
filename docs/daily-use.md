@@ -11,7 +11,7 @@ After install, kenkeep runs itself. Capture and injection happen on their own; t
 
 ## The loop
 
-1. Code with your AI assistant as usual.
+1. Code with your AI assistant as usual. Anything you wrap in `<kk-private>…</kk-private>` mid-session is stripped from the capture before it touches disk.
 2. When you see the curate nudge (or whenever you feel like it), run `/kk-curate`.
 3. If the curator reports any contradictions, the skill walks you through each one in-session and applies your chosen resolution.
 4. Inspect the resulting changes under `.ai/kenkeep/nodes/` with `git diff` (or your preferred diff tool, e.g. [self-review](https://github.com/e0ipso/self-review)).

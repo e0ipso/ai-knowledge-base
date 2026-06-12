@@ -54,6 +54,23 @@ export interface CaptureContext {
   };
 }
 
+/**
+ * Removes user-marked private spans before anything is persisted. Text
+ * wrapped in `<kk-private>…</kk-private>` never reaches the session log,
+ * the transcript hash, or the cursory-session stats. An UNCLOSED opening
+ * tag strips to the end of that message — privacy-first: a typo must fail
+ * toward removing too much, never too little. This is explicit user-intent
+ * marking, not a secret scanner; the PRD's human-review gate (Goal 6)
+ * remains the safeguard for everything unmarked.
+ */
+export const PRIVATE_SPAN_PLACEHOLDER = '[kk-private removed]';
+
+export function stripPrivateSpans(text: string): string {
+  return text
+    .replace(/<kk-private>[\s\S]*?<\/kk-private>/g, PRIVATE_SPAN_PLACEHOLDER)
+    .replace(/<kk-private>[\s\S]*$/, PRIVATE_SPAN_PLACEHOLDER);
+}
+
 export async function captureSession(
   input: HookInput,
   ctx: CaptureContext
@@ -69,6 +86,9 @@ export async function captureSession(
 
   const transcriptText = readFileSync(transcriptPath, 'utf8');
   const parsed = ctx.parseTranscript(transcriptText);
+  for (const seg of parsed.interleaved) {
+    seg.text = stripPrivateSpans(seg.text);
+  }
   const slice = renderRoleTagged(parsed);
   if (!slice.trim()) {
     return { status: 'no-content' };
