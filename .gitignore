@@ -12,3 +12,4 @@ docs/Gemfile.lock
 .claude/plans/
 settings.local.json
 .ai/task-manager/scratch
+.opencode/AGENTS.md

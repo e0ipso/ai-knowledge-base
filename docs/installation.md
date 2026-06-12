@@ -33,14 +33,14 @@ npx kenkeep --harness <id> doctor
 
 ## Per-harness notes
 
-The CLI auto-detects Claude (via `CLAUDECODE=1`) and Cursor (via `CURSOR_VERSION`). **Codex, OpenCode, and Copilot export no in-session env var**, so when invoking from outside a session, or from inside a Codex/OpenCode/Copilot session, pass `--harness <id>` explicitly, or set `cliDefaultHarness` in `.ai/kenkeep/config.yaml`.
+The CLI auto-detects Claude (via `CLAUDECODE=1`) and Cursor (via `CURSOR_AGENT=1`). **Codex, OpenCode, and Copilot export no in-session env var**, so when invoking from outside a session, or from inside a Codex/OpenCode/Copilot session, pass `--harness <id>` explicitly, or set `cliDefaultHarness` in `.ai/kenkeep/config.yaml`.
 
 | Harness | Capture events | Notable |
 |---|---|---|
 | Claude | `Stop`, `SessionEnd`, `PreCompact` | (none) |
 | Codex | `Stop`, `PreCompact` | A pre-existing `[hooks]` table in `.codex/config.toml` makes `init` refuse to write. See [coexistence](installation/codex-toml-hooks-coexistence.md). After first install, run `/hooks` inside a Codex session once to trust the kenkeep hook scripts before they will execute. |
 | Cursor | `stop`, `sessionEnd`, `preCompact` | If Cursor's *Third-party skills* is on, don't also install the `claude` adapter, or you'll double-fire. INDEX injection via `sessionStart` is fire-and-forget; reference INDEX from `AGENTS.md` if it proves unreliable. |
-| OpenCode | `session.idle`, `session.created` | No `additionalContext` channel. The session-start hook writes INDEX to `.opencode/AGENTS.md`; reference that file from your primary `AGENTS.md`. `init` automatically registers the plugin and instructions entries in `.opencode/opencode.json` (required for OpenCode to load the hooks; verified against opencode 1.17.3). |
+| OpenCode | `session.idle`, `session.created` | No `additionalContext` channel. The session-start hook writes the entry catalog to `.opencode/AGENTS.md`, and `init` registers it in `.opencode/opencode.json`'s `instructions` array so OpenCode loads it natively (no manual reference needed; verified against opencode 1.17.3), alongside the `plugin` entry OpenCode requires to load the hooks. `.opencode/AGENTS.md` is per-user, regenerated every session — add it to your `.gitignore`, never commit it. |
 | Copilot | `sessionEnd`, `agentStop` | Hooks register in the user-level `~/.copilot/hooks/kk.json`. No `additionalContext` channel; the session-start hook writes INDEX into `.github/copilot-instructions.md` under a sentinel block. See [GitHub Copilot CLI](#github-copilot-cli) below. |
 
 If your harness isn't listed above, this tool doesn't support it yet.
