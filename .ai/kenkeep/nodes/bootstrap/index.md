@@ -3,8 +3,8 @@ schema_version: 2
 nodes_hash: 'sha256:3cf33b3455cfa7df3c0815ca0c866a8c40ea6a007d574ce86e4c7399c6c05038'
 node_count: 6
 summary: >-
-  seeding the knowledge base from existing docs via /kk-bootstrap and the
-  bootstrap-incremental command
+  seeding the knowledge base from existing docs via /kk-bootstrap; read when
+  bootstrapping a repo or folding new docs in
 ---
 # kenkeep Index: bootstrap
 

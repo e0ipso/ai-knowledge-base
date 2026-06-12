@@ -3,8 +3,8 @@ schema_version: 2
 nodes_hash: 'sha256:78a5b9e88da2e2a7686a30603b71453bb84a1504def69a67488c5486ac979895'
 node_count: 4
 summary: >-
-  config.yaml project settings and the prompt templates, their versioning, and
-  local overrides
+  config.yaml settings and the prompt templates with their versioning; read when
+  adding a setting or touching a prompt
 ---
 # kenkeep Index: config-and-prompts
 

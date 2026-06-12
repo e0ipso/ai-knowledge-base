@@ -3,8 +3,8 @@ schema_version: 2
 nodes_hash: 'sha256:1e5ed1243b4a5c1845c7c9170c3ea8fc6999bc14ed8f3a053f6bcdebe5f0362d'
 node_count: 2
 summary: >-
-  the on-disk session logs and runtime state files that track capture, proposal,
-  and lock state
+  session logs and runtime state files; read when changing capture state, locks,
+  or proposal tracking
 ---
 # kenkeep Index: state
 

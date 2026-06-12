@@ -3,8 +3,8 @@ schema_version: 2
 nodes_hash: 'sha256:b7a670bdbbb95a69a1b43f4b36642d5b44ae87fcedaa0541dfeefe99660ee340'
 node_count: 8
 summary: >-
-  the CLI init and upgrade commands, AGENTS.md pointer injection, and how to run
-  the CLI locally
+  the init/upgrade commands and AGENTS.md pointer injection; read when changing
+  the CLI surface or install behavior
 ---
 # kenkeep Index: cli
 

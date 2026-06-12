@@ -3,8 +3,8 @@ schema_version: 2
 nodes_hash: 'sha256:e8fd5c6e0a98c451c83f2a52aa891852a9cd182e99571e626200f58d87c068aa'
 node_count: 8
 summary: >-
-  Project-wide conventions for commits, releases, testing, CI, writing style,
-  and reviewing nodes via git.
+  commit, release, testing, CI, and writing-style rules; read before committing,
+  releasing, or writing docs
 ---
 # kenkeep Index: conventions
 

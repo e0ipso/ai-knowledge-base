@@ -3,8 +3,8 @@ schema_version: 2
 nodes_hash: 'sha256:afb1d0c0b8cafa14cd8e6f45672b064359604709b1c26bf218752eea42bf4c3f'
 node_count: 12
 summary: >-
-  the per-runtime harness adapters (claude, codex, cursor, opencode, copilot)
-  and the rules keeping them isolated
+  the five harness adapters and their isolation rules; read before adding a
+  harness, changing hook wiring, or debugging a host integration
 ---
 # kenkeep Index: harnesses
 

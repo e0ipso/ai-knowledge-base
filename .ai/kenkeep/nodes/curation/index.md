@@ -3,8 +3,8 @@ schema_version: 2
 nodes_hash: 'sha256:bf426da70a0e68d7c1d68c1a23c4a0dd4eccb4339357f9bcfba4f44f3d8aa94b'
 node_count: 8
 summary: >-
-  the curator pipeline that turns proposals into nodes, including conflict
-  handling and the /kk-curate flow
+  the curator pipeline from proposals to nodes, including conflicts; read when
+  changing curation, dedup, or conflict handling
 ---
 # kenkeep Index: curation
 

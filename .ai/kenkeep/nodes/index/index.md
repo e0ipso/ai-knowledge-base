@@ -3,8 +3,8 @@ schema_version: 2
 nodes_hash: 'sha256:2506f3ff0fde6020138743711bfc9cd2857d8fe09018760d764b3ba77f1344f3'
 node_count: 5
 summary: >-
-  the deterministic ENTRY.md and GRAPH.md indexes and the nodes_hash that drives
-  their regeneration
+  the deterministic ENTRY/GRAPH/index generation and nodes_hash; read when
+  touching index generation or staleness checks
 ---
 # kenkeep Index: index
 

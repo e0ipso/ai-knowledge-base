@@ -3,8 +3,8 @@ schema_version: 2
 nodes_hash: 'sha256:212039fda9ba9e61f241b4c234f5bc7c0eb1104387c5f58a3db1557f1b748727'
 node_count: 4
 summary: >-
-  the node frontmatter schema, the nodes/ directory model, and the naming and
-  schema-version rules
+  node frontmatter, naming, and schema-version rules; read before changing any
+  node field or bumping the schema
 ---
 # kenkeep Index: node-schema
 
