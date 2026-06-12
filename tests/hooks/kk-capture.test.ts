@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { cleanSandbox, makeSandbox, runCli } from '../helpers.js';
+import { normalizeOpenCodeSessionId } from '../../src/harnesses/opencode/session-id.js';
 
 const exec = promisify(execFile);
 const here = dirname(fileURLToPath(import.meta.url));
@@ -178,6 +179,43 @@ const CLAUDE_SESS = '66666666-6666-4666-8666-666666666666';
 const CODEX_SESS = '12345678-1234-4abc-8def-1234567890ab';
 const COPILOT_SESS = '12345678-1234-4abc-8def-1234567890ab';
 const CURSOR_SESS = 'c6b62c6f-7ead-4fd6-9922-e952131177ff';
+const OPENCODE_RAW_SESS = 'ses_6f8a2b4c9d1e3f5a7b9c1d2e3f4a5b6c';
+const OPENCODE_SESS = normalizeOpenCodeSessionId(OPENCODE_RAW_SESS);
+
+/**
+ * Materialize a fake `opencode` binary plus the `opencode export` JSON
+ * document it serves. The capture hook probes `opencode --version` and then
+ * shells out to `opencode export <ses_id>`; pointing PATH at `<home>/bin`
+ * makes the real spawn path run end-to-end without the actual CLI.
+ */
+function writeOpenCodeStub(home: string, userText: string, agentText: string): void {
+  const binDir = join(home, 'bin');
+  mkdirSync(binDir, { recursive: true });
+  const doc = {
+    info: { id: OPENCODE_RAW_SESS },
+    messages: [
+      {
+        info: { role: 'user', time: { created: 1 } },
+        parts: [{ type: 'text', text: userText }],
+      },
+      {
+        info: { role: 'assistant', time: { created: 2 } },
+        parts: [{ type: 'text', text: agentText }],
+      },
+    ],
+  };
+  writeFileSync(join(home, 'oc-export.json'), JSON.stringify(doc));
+  const script = [
+    '#!/bin/sh',
+    'DIR=$(dirname "$0")',
+    'if [ "$1" = "--version" ]; then echo 1.17.3; exit 0; fi',
+    'if [ "$1" = "export" ]; then cat "$DIR/../oc-export.json"; exit 0; fi',
+    'exit 1',
+    '',
+  ].join('\n');
+  const scriptPath = join(binDir, 'opencode');
+  writeFileSync(scriptPath, script, { mode: 0o755 });
+}
 
 const harnessCases: HarnessCase[] = [
   {
@@ -239,6 +277,21 @@ const harnessCases: HarnessCase[] = [
       workspace_roots: [sandbox],
     }),
     env: () => ({}),
+  },
+  {
+    id: 'opencode',
+    sessionId: OPENCODE_SESS,
+    hookPath: join(repoRoot, 'dist/hooks/opencode/kk-capture.cjs'),
+    capturedBy: 'stop',
+    needsInit: true,
+    homePrefix: 'ai-kk-opencode-stub-',
+    seed: ({ home }) => writeOpenCodeStub(home as string, SUBSTANTIAL_USER, SUBSTANTIAL_AGENT),
+    input: ({ sandbox }) => ({
+      session_id: OPENCODE_RAW_SESS,
+      hook_event_name: 'SessionIdle',
+      cwd: sandbox,
+    }),
+    env: ({ home }) => ({ PATH: `${join(home as string, 'bin')}:${process.env['PATH'] ?? ''}` }),
   },
 ];
 

@@ -123,8 +123,12 @@ async function main(): Promise<void> {
  * against a real OpenCode v1.17.3 session.
  */
 function runOpenCodeExport(sessionId: string): unknown | null {
+  // The guard travels on the export child (not on this hook's own env): if
+  // `opencode export` ever loads project plugins, the plugin's host-env check
+  // makes it a no-op instead of re-entering the dispatch loop.
+  const childEnv = { ...process.env, KENKEEP_BUILDER_INTERNAL: '1' };
   try {
-    execFileSync('opencode', ['--version'], { timeout: 5000, stdio: 'ignore' });
+    execFileSync('opencode', ['--version'], { timeout: 5000, stdio: 'ignore', env: childEnv });
   } catch {
     return null;
   }
@@ -136,6 +140,7 @@ function runOpenCodeExport(sessionId: string): unknown | null {
     const run = spawnSync('opencode', ['export', sessionId], {
       timeout: EXPORT_TIMEOUT_MS,
       stdio: ['ignore', fd, 'ignore'],
+      env: childEnv,
     });
     status = run.status;
   } finally {

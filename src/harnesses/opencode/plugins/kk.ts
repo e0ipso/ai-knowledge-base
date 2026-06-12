@@ -2,12 +2,16 @@
 /**
  * OpenCode plugin shim. Subscribes to the runtime `event` hook and
  * dispatches each event to the matching per-event Node script under
- * `.opencode/kk-hooks/` via `child_process.spawn`. Children always run
- * with `KENKEEP_BUILDER_INTERNAL=1` so any kk CLI they invoke does not
- * recursively re-enter the plugin.
+ * `.opencode/kk-hooks/` via `child_process.spawn`.
  *
- * Placeholder implementation written by Task 4 (adapter scaffold).
- * Task 5 expands this into the real dispatch handler.
+ * Recursion-guard layering: the plugin itself no-ops when
+ * `KENKEEP_BUILDER_INTERNAL=1` is in its host env (a kenkeep-spawned
+ * headless OpenCode session). The hook children are spawned WITHOUT the
+ * guard — they carry the same check at their own entry point, so setting
+ * it here would make every hook a no-op (no capture, no injection). Any
+ * kenkeep process the hooks themselves spawn (`opencode export`, the
+ * headless drain runner, skill launchers) sets the guard on its own child
+ * at that boundary.
  */
 import { spawn } from 'node:child_process';
 import { join } from 'node:path';
@@ -43,7 +47,7 @@ export default async (input: OpenCodePluginInput) => {
       });
       for (const script of scripts) {
         const child = spawn('node', [join(kkHooks, script)], {
-          env: { ...process.env, KENKEEP_BUILDER_INTERNAL: '1' },
+          env: process.env,
           stdio: ['pipe', 'inherit', 'inherit'],
         });
         if (child.stdin) {
