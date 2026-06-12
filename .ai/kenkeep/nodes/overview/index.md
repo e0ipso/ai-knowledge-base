@@ -19,22 +19,22 @@ _None._
 _None yet._
 
 ## Components (what exists)
-- Open [**.ai/kenkeep/ directory layout**](overview/map-kenkeep-directory.md) to learn about: Per-repo scaffold at .ai/kenkeep/: nodes/, ENTRY/GRAPH, _sessions/, _logs/, .state/, .config/prompts/, conflicts/. #layout #state #directory
-- Open [**kenkeep npm package**](overview/map-kenkeep-package.md) to learn about: Per-repo knowledge base built from AI sessions; installs hooks, captures redacted slices, lets a curator write nodes/, injects ENTRY into every new session. #overview #package #npm
+- Open [**.ai/kenkeep/ directory layout**](map-kenkeep-directory.md) to learn about: Per-repo scaffold at .ai/kenkeep/: nodes/, ENTRY/GRAPH, _sessions/, _logs/, .state/, .config/prompts/, conflicts/. #layout #state #directory
+- Open [**kenkeep npm package**](map-kenkeep-package.md) to learn about: Per-repo knowledge base built from AI sessions; installs hooks, captures redacted slices, lets a curator write nodes/, injects ENTRY into every new session. #overview #package #npm
 
 ## By topic
 
 ### #directory
-- Open [**.ai/kenkeep/ directory layout**](overview/map-kenkeep-directory.md) — Per-repo scaffold at .ai/kenkeep/: nodes/, ENTRY/GRAPH, _sessions/, _logs/, .state/, .config/prompts/, conflicts/.
+- Open [**.ai/kenkeep/ directory layout**](map-kenkeep-directory.md) — Per-repo scaffold at .ai/kenkeep/: nodes/, ENTRY/GRAPH, _sessions/, _logs/, .state/, .config/prompts/, conflicts/.
 ### #layout
-- Open [**.ai/kenkeep/ directory layout**](overview/map-kenkeep-directory.md) — Per-repo scaffold at .ai/kenkeep/: nodes/, ENTRY/GRAPH, _sessions/, _logs/, .state/, .config/prompts/, conflicts/.
+- Open [**.ai/kenkeep/ directory layout**](map-kenkeep-directory.md) — Per-repo scaffold at .ai/kenkeep/: nodes/, ENTRY/GRAPH, _sessions/, _logs/, .state/, .config/prompts/, conflicts/.
 ### #npm
-- Open [**kenkeep npm package**](overview/map-kenkeep-package.md) — Per-repo knowledge base built from AI sessions; installs hooks, captures redacted slices, lets a curator write nodes/, injects ENTRY into every new session.
+- Open [**kenkeep npm package**](map-kenkeep-package.md) — Per-repo knowledge base built from AI sessions; installs hooks, captures redacted slices, lets a curator write nodes/, injects ENTRY into every new session.
 ### #overview
-- Open [**kenkeep npm package**](overview/map-kenkeep-package.md) — Per-repo knowledge base built from AI sessions; installs hooks, captures redacted slices, lets a curator write nodes/, injects ENTRY into every new session.
+- Open [**kenkeep npm package**](map-kenkeep-package.md) — Per-repo knowledge base built from AI sessions; installs hooks, captures redacted slices, lets a curator write nodes/, injects ENTRY into every new session.
 ### #package
-- Open [**kenkeep npm package**](overview/map-kenkeep-package.md) — Per-repo knowledge base built from AI sessions; installs hooks, captures redacted slices, lets a curator write nodes/, injects ENTRY into every new session.
+- Open [**kenkeep npm package**](map-kenkeep-package.md) — Per-repo knowledge base built from AI sessions; installs hooks, captures redacted slices, lets a curator write nodes/, injects ENTRY into every new session.
 ### #state
-- Open [**.state/state.json (lock + nudge state)**](state/map-state-file.md) — Gitignored runtime state. Holds one lock at a time (30-min TTL, stale locks reclaimed) and last_nudged_at.
-- Open [**.state/bootstrap-state.json (per-doc hash cache)**](bootstrap/map-bootstrap-state-file.md) — Per-doc SHA-256 cache used by bootstrap-incremental for hash-aware re-runs. Gitignored.
-- Open [**Session log (_sessions/*.md)**](state/map-session-log.md) — Per-session checkpoint at _sessions/<YYYYMMDD-HHmm-id>.md; one file per session_id; frontmatter tracks capture, proposal, and curator phases.
+- Open [**.state/state.json (lock + nudge state)**](../state/map-state-file.md) — Gitignored runtime state. Holds one lock at a time (30-min TTL, stale locks reclaimed) and last_nudged_at.
+- Open [**.state/bootstrap-state.json (per-doc hash cache)**](../bootstrap/map-bootstrap-state-file.md) — Per-doc SHA-256 cache used by bootstrap-incremental for hash-aware re-runs. Gitignored.
+- Open [**Session log (_sessions/*.md)**](../state/map-session-log.md) — Per-session checkpoint at _sessions/<YYYYMMDD-HHmm-id>.md; one file per session_id; frontmatter tracks capture, proposal, and curator phases.

@@ -123,6 +123,24 @@ function escapeInlineMarkdown(text: string): string {
 }
 
 /**
+ * Maps a nodes/-relative leaf path to the href rendered into one specific
+ * generated file. Hrefs must resolve as STANDARD markdown relative links
+ * from the file they appear in — GitHub's web UI, editors, and any agent
+ * resolving a link against the open file's directory all use that rule.
+ * Two render origins exist:
+ *   - a folder `index.md` at `nodes/<fromDir>/` → `posix.relative(fromDir, …)`
+ *   - the root catalog at `<kkDir>/ENTRY.md` (one level above `nodes/`)
+ *     → prefix `nodes/`.
+ */
+export type LeafHref = (relPath: string) => string;
+
+export function hrefFromFolder(fromDir: string): LeafHref {
+  return relPath => posix.relative(fromDir, relPath) || '.';
+}
+
+export const hrefFromEntryCatalog: LeafHref = relPath => posix.join('nodes', relPath);
+
+/**
  * Imperative leaf pointer: a verb-first invitation to open a terminal leaf,
  * splicing in the leaf's own summary so the reader knows what they will get
  * before following the link. Uses valid `[label](path)` Markdown so the link is
@@ -130,11 +148,11 @@ function escapeInlineMarkdown(text: string): string {
  * The author-controlled title and summary are escaped so a stray `]`/backtick
  * cannot break the link or list item.
  */
-function renderLeafPointer(n: NodeFile): string {
+function renderLeafPointer(n: NodeFile, href: LeafHref): string {
   const tagPart = n.frontmatter.tags.map(t => ` #${t}`).join('');
   const summary = escapeInlineMarkdown(n.frontmatter.summary);
   const learn = summary ? ` to learn about: ${summary}` : '';
-  return `- Open [**${escapeInlineMarkdown(n.frontmatter.title)}**](${n.relPath})${learn}${tagPart}`;
+  return `- Open [**${escapeInlineMarkdown(n.frontmatter.title)}**](${href(n.relPath)})${learn}${tagPart}`;
 }
 
 /**
@@ -146,13 +164,16 @@ function renderLeafPointer(n: NodeFile): string {
  * double-punctuated. The terminal-punctuation test runs on the raw summary; the
  * spliced phrase is then escaped so a stray `]`/backtick cannot break the bullet.
  */
-function renderDescentPointer(sub: string, childSummary: string | undefined): string {
-  const href = posix.join('nodes', sub, 'index.md');
+function renderDescentPointer(
+  sub: string,
+  childSummary: string | undefined,
+  href: LeafHref
+): string {
   const name = sub.split('/').pop() ?? sub;
   const raw = childSummary?.trim() || deterministicIntent(sub);
   const tail = /[.!?][)\]"'`]*$/.test(raw) ? '' : '.';
   const phrase = escapeInlineMarkdown(raw);
-  return `- Load [\`${name}/\`](${href}) for more information on ${phrase}${tail}`;
+  return `- Load [\`${name}/\`](${href(posix.join(sub, 'index.md'))}) for more information on ${phrase}${tail}`;
 }
 
 /**
@@ -245,7 +266,11 @@ function rankTagCohorts(
  * `hashLeaves`, so cross-tree churn never perturbs this folder's stability hash
  * (paired with the Task 1 hash boundary).
  */
-export function renderTagIndex(leaves: NodeFile[], rankedCohorts: Map<string, NodeFile[]>): string {
+export function renderTagIndex(
+  leaves: NodeFile[],
+  rankedCohorts: Map<string, NodeFile[]>,
+  href: LeafHref
+): string {
   // Bucket selection/order: the folder's own direct leaves (unchanged).
   const directBuckets = new Map<string, number>();
   for (const n of leaves) {
@@ -273,7 +298,7 @@ export function renderTagIndex(leaves: NodeFile[], rankedCohorts: Map<string, No
       const summary = escapeInlineMarkdown(node.frontmatter.summary);
       const summaryPart = summary ? ` — ${summary}` : '';
       lines.push(
-        `- Open [**${escapeInlineMarkdown(node.frontmatter.title)}**](${node.relPath})${summaryPart}`
+        `- Open [**${escapeInlineMarkdown(node.frontmatter.title)}**](${href(node.relPath)})${summaryPart}`
       );
     }
   }
@@ -337,7 +362,7 @@ function renderRootCatalog(args: RenderRootCatalogArgs): string {
     parts.push('_None._');
   } else {
     for (const sub of rootSubDirs) {
-      parts.push(renderDescentPointer(sub, folderSummaries.get(sub)));
+      parts.push(renderDescentPointer(sub, folderSummaries.get(sub), hrefFromEntryCatalog));
     }
   }
 
@@ -350,12 +375,12 @@ function renderRootCatalog(args: RenderRootCatalogArgs): string {
   if (byKind.practice.length > 0) {
     parts.push('');
     parts.push('## Conventions (how we build)');
-    for (const b of byKind.practice) parts.push(renderLeafPointer(b));
+    for (const b of byKind.practice) parts.push(renderLeafPointer(b, hrefFromEntryCatalog));
   }
   if (byKind.map.length > 0) {
     parts.push('');
     parts.push('## Components (what exists)');
-    for (const b of byKind.map) parts.push(renderLeafPointer(b));
+    for (const b of byKind.map) parts.push(renderLeafPointer(b, hrefFromEntryCatalog));
   }
 
   const body = parts.join('\n');
@@ -582,6 +607,9 @@ interface RenderFolderArgs {
 function renderFolderIndex(args: RenderFolderArgs): string {
   const { relDir, leaves, subDirs, rankedCohorts, inDegree, folderSummaries } = args;
   const cmp = makeCatalogComparator(inDegree);
+  // Every href in this body must resolve relative to THIS index file's own
+  // directory (standard markdown link semantics).
+  const href = hrefFromFolder(relDir);
 
   const byKind: Record<'practice' | 'map', NodeFile[]> = { practice: [], map: [] };
   for (const n of leaves) byKind[n.frontmatter.kind].push(n);
@@ -614,7 +642,7 @@ function renderFolderIndex(args: RenderFolderArgs): string {
     parts.push('_None._');
   } else {
     for (const sub of subDirs) {
-      parts.push(renderDescentPointer(sub, folderSummaries.get(sub)));
+      parts.push(renderDescentPointer(sub, folderSummaries.get(sub), href));
     }
   }
 
@@ -629,12 +657,12 @@ function renderFolderIndex(args: RenderFolderArgs): string {
     if (s.bullets.length === 0) {
       parts.push('_None yet._');
     } else {
-      for (const b of s.bullets) parts.push(renderLeafPointer(b));
+      for (const b of s.bullets) parts.push(renderLeafPointer(b, href));
     }
   }
 
   parts.push('');
-  parts.push(renderTagIndex(leaves, rankedCohorts));
+  parts.push(renderTagIndex(leaves, rankedCohorts, href));
 
   const body = parts.join('\n');
   // The summary is the only non-deterministic field; emit no key when absent so

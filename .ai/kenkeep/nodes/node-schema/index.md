@@ -16,36 +16,36 @@ summary: >-
 _None._
 
 ## Conventions (how we build)
-- Open [**Strict schema-version bump policy**](node-schema/practice-strict-schema-version-bump-policy.md) to learn about: On-disk shapes carry schema_version. Breaking changes get a clean break: readers reject mismatches and direct users to re-init, with no compatibility shims or legacy read paths. A hidden, supervised \`migrate\` command is the one escape-hatch for crossing breaking layout bumps without re-init; it is deliberately unpublicized. #schema #versioning #breaking-change
-- Open [**Node naming: id, filename, and kind must agree**](node-schema/practice-lint-naming-rules.md) to learn about: Every node's id must equal <kind>-<slug>; the filename must be <id>.md in its topical folder under nodes/. Lint reports mismatches as errors. #lint #naming #nodes
+- Open [**Strict schema-version bump policy**](practice-strict-schema-version-bump-policy.md) to learn about: On-disk shapes carry schema_version. Breaking changes get a clean break: readers reject mismatches and direct users to re-init, with no compatibility shims or legacy read paths. A hidden, supervised \`migrate\` command is the one escape-hatch for crossing breaking layout bumps without re-init; it is deliberately unpublicized. #schema #versioning #breaking-change
+- Open [**Node naming: id, filename, and kind must agree**](practice-lint-naming-rules.md) to learn about: Every node's id must equal <kind>-<slug>; the filename must be <id>.md in its topical folder under nodes/. Lint reports mismatches as errors. #lint #naming #nodes
 
 ## Components (what exists)
-- Open [**Node frontmatter schema**](node-schema/map-node-frontmatter.md) to learn about: Required node fields: schema_version, id, title, kind, tags, derived_from, relates_to, depends_on, confidence, summary. #schema #frontmatter #nodes
-- Open [**nodes/ directory and the two kinds**](node-schema/map-nodes-directory.md) to learn about: Knowledge nodes are markdown files in nested topical folders under nodes/; kind (practice/map) is a frontmatter facet, not a directory. #nodes #practice #map #frontmatter #schema
+- Open [**Node frontmatter schema**](map-node-frontmatter.md) to learn about: Required node fields: schema_version, id, title, kind, tags, derived_from, relates_to, depends_on, confidence, summary. #schema #frontmatter #nodes
+- Open [**nodes/ directory and the two kinds**](map-nodes-directory.md) to learn about: Knowledge nodes are markdown files in nested topical folders under nodes/; kind (practice/map) is a frontmatter facet, not a directory. #nodes #practice #map #frontmatter #schema
 
 ## By topic
 
 ### #nodes
-- Open [**Node frontmatter schema**](node-schema/map-node-frontmatter.md) — Required node fields: schema_version, id, title, kind, tags, derived_from, relates_to, depends_on, confidence, summary.
-- Open [**nodes/ directory and the two kinds**](node-schema/map-nodes-directory.md) — Knowledge nodes are markdown files in nested topical folders under nodes/; kind (practice/map) is a frontmatter facet, not a directory.
-- Open [**Bootstrap never overwrites existing nodes**](bootstrap/practice-bootstrap-never-overwrites-existing-nodes.md) — Both /kk-bootstrap and bootstrap-incremental skip a candidate when a node with that id already exists; collisions are reported, not merged.
+- Open [**Node frontmatter schema**](map-node-frontmatter.md) — Required node fields: schema_version, id, title, kind, tags, derived_from, relates_to, depends_on, confidence, summary.
+- Open [**nodes/ directory and the two kinds**](map-nodes-directory.md) — Knowledge nodes are markdown files in nested topical folders under nodes/; kind (practice/map) is a frontmatter facet, not a directory.
+- Open [**Bootstrap never overwrites existing nodes**](../bootstrap/practice-bootstrap-never-overwrites-existing-nodes.md) — Both /kk-bootstrap and bootstrap-incremental skip a candidate when a node with that id already exists; collisions are reported, not merged.
 ### #schema
-- Open [**.state/state.json (lock + nudge state)**](state/map-state-file.md) — Gitignored runtime state. Holds one lock at a time (30-min TTL, stale locks reclaimed) and last_nudged_at.
-- Open [**Node frontmatter schema**](node-schema/map-node-frontmatter.md) — Required node fields: schema_version, id, title, kind, tags, derived_from, relates_to, depends_on, confidence, summary.
-- Open [**Use a single generic migrate command for schema bumps**](cli/practice-use-a-single-generic-migrate-command-for-schema-bumps.md) — Schema migrations are handled by one generic migrate command that detects the current schema and dispatches the appropriate step, not by separate commands per bump.
+- Open [**.state/state.json (lock + nudge state)**](../state/map-state-file.md) — Gitignored runtime state. Holds one lock at a time (30-min TTL, stale locks reclaimed) and last_nudged_at.
+- Open [**Node frontmatter schema**](map-node-frontmatter.md) — Required node fields: schema_version, id, title, kind, tags, derived_from, relates_to, depends_on, confidence, summary.
+- Open [**Use a single generic migrate command for schema bumps**](../cli/practice-use-a-single-generic-migrate-command-for-schema-bumps.md) — Schema migrations are handled by one generic migrate command that detects the current schema and dispatches the appropriate step, not by separate commands per bump.
 ### #frontmatter
-- Open [**Node frontmatter schema**](node-schema/map-node-frontmatter.md) — Required node fields: schema_version, id, title, kind, tags, derived_from, relates_to, depends_on, confidence, summary.
-- Open [**nodes/ directory and the two kinds**](node-schema/map-nodes-directory.md) — Knowledge nodes are markdown files in nested topical folders under nodes/; kind (practice/map) is a frontmatter facet, not a directory.
+- Open [**Node frontmatter schema**](map-node-frontmatter.md) — Required node fields: schema_version, id, title, kind, tags, derived_from, relates_to, depends_on, confidence, summary.
+- Open [**nodes/ directory and the two kinds**](map-nodes-directory.md) — Knowledge nodes are markdown files in nested topical folders under nodes/; kind (practice/map) is a frontmatter facet, not a directory.
 ### #breaking-change
-- Open [**Strict schema-version bump policy**](node-schema/practice-strict-schema-version-bump-policy.md) — On-disk shapes carry schema_version. Breaking changes get a clean break: readers reject mismatches and direct users to re-init, with no compatibility shims or legacy read paths. A hidden, supervised \`migrate\` command is the one escape-hatch for crossing breaking layout bumps without re-init; it is deliberately unpublicized.
+- Open [**Strict schema-version bump policy**](practice-strict-schema-version-bump-policy.md) — On-disk shapes carry schema_version. Breaking changes get a clean break: readers reject mismatches and direct users to re-init, with no compatibility shims or legacy read paths. A hidden, supervised \`migrate\` command is the one escape-hatch for crossing breaking layout bumps without re-init; it is deliberately unpublicized.
 ### #lint
-- Open [**Node naming: id, filename, and kind must agree**](node-schema/practice-lint-naming-rules.md) — Every node's id must equal <kind>-<slug>; the filename must be <id>.md in its topical folder under nodes/. Lint reports mismatches as errors.
+- Open [**Node naming: id, filename, and kind must agree**](practice-lint-naming-rules.md) — Every node's id must equal <kind>-<slug>; the filename must be <id>.md in its topical folder under nodes/. Lint reports mismatches as errors.
 ### #map
-- Open [**nodes/ directory and the two kinds**](node-schema/map-nodes-directory.md) — Knowledge nodes are markdown files in nested topical folders under nodes/; kind (practice/map) is a frontmatter facet, not a directory.
+- Open [**nodes/ directory and the two kinds**](map-nodes-directory.md) — Knowledge nodes are markdown files in nested topical folders under nodes/; kind (practice/map) is a frontmatter facet, not a directory.
 ### #naming
-- Open [**Node naming: id, filename, and kind must agree**](node-schema/practice-lint-naming-rules.md) — Every node's id must equal <kind>-<slug>; the filename must be <id>.md in its topical folder under nodes/. Lint reports mismatches as errors.
+- Open [**Node naming: id, filename, and kind must agree**](practice-lint-naming-rules.md) — Every node's id must equal <kind>-<slug>; the filename must be <id>.md in its topical folder under nodes/. Lint reports mismatches as errors.
 ### #practice
-- Open [**nodes/ directory and the two kinds**](node-schema/map-nodes-directory.md) — Knowledge nodes are markdown files in nested topical folders under nodes/; kind (practice/map) is a frontmatter facet, not a directory.
+- Open [**nodes/ directory and the two kinds**](map-nodes-directory.md) — Knowledge nodes are markdown files in nested topical folders under nodes/; kind (practice/map) is a frontmatter facet, not a directory.
 ### #versioning
-- Open [**Strict schema-version bump policy**](node-schema/practice-strict-schema-version-bump-policy.md) — On-disk shapes carry schema_version. Breaking changes get a clean break: readers reject mismatches and direct users to re-init, with no compatibility shims or legacy read paths. A hidden, supervised \`migrate\` command is the one escape-hatch for crossing breaking layout bumps without re-init; it is deliberately unpublicized.
-- Open [**Bump the prompt's Version comment on every behavior change**](config-and-prompts/practice-bump-prompt-version-comment.md) — Each prompt template carries a top-of-file Version: N comment. Bump it on every behavior change; logs record the prompt so audits remain coherent.
+- Open [**Strict schema-version bump policy**](practice-strict-schema-version-bump-policy.md) — On-disk shapes carry schema_version. Breaking changes get a clean break: readers reject mismatches and direct users to re-init, with no compatibility shims or legacy read paths. A hidden, supervised \`migrate\` command is the one escape-hatch for crossing breaking layout bumps without re-init; it is deliberately unpublicized.
+- Open [**Bump the prompt's Version comment on every behavior change**](../config-and-prompts/practice-bump-prompt-version-comment.md) — Each prompt template carries a top-of-file Version: N comment. Bump it on every behavior change; logs record the prompt so audits remain coherent.

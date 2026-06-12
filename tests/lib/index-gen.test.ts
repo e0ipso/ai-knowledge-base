@@ -57,18 +57,21 @@ describe('generateIndex (recursive per-folder)', () => {
     // The root index node lists its immediate subfolders as imperative Load
     // pointers, not its descendants' leaves. (The ENTRY catalog uses ## Branches;
     // the per-folder root index node uses ## Subfolders.)
+    // Hrefs resolve as standard markdown relative links from the file that
+    // carries them: a folder index links relative to its own directory; the
+    // ENTRY catalog (one level above nodes/) links with the nodes/ prefix.
     const rootBody = out.folders.get('')!.content;
     expect(rootBody).toContain('## Subfolders');
-    expect(rootBody).toContain('Load [`topic-a/`](nodes/topic-a/index.md)');
-    expect(rootBody).toContain('Load [`topic-b/`](nodes/topic-b/index.md)');
-    expect(rootBody).not.toContain('nodes/topic-a/sub/index.md'); // not an immediate child of root
+    expect(rootBody).toContain('Load [`topic-a/`](topic-a/index.md)');
+    expect(rootBody).toContain('Load [`topic-b/`](topic-b/index.md)');
+    expect(rootBody).not.toContain('topic-a/sub/index.md'); // not an immediate child of root
     // The ENTRY catalog carries the branch list under ## Branches.
     expect(out.rootCatalog).toContain('## Branches');
     expect(out.rootCatalog).toContain('Load [`topic-a/`](nodes/topic-a/index.md)');
     // topic-a lists its leaf (Open pointer) and its immediate subfolder (Load).
     const aBody = out.folders.get('topic-a')!.content;
-    expect(aBody).toContain('Open [**A**](topic-a/practice-a.md)');
-    expect(aBody).toContain('Load [`sub/`](nodes/topic-a/sub/index.md)');
+    expect(aBody).toContain('Open [**A**](practice-a.md)');
+    expect(aBody).toContain('Load [`sub/`](sub/index.md)');
   });
 
   it('splits leaves by kind facet into Conventions and Components', () => {
@@ -80,8 +83,8 @@ describe('generateIndex (recursive per-folder)', () => {
     expect(body).toContain('## Conventions (how we build)');
     expect(body).toContain('## Components (what exists)');
     expect(body).toContain('## By topic');
-    // Imperative leaf pointer carries verb, title, current path, summary, tags.
-    expect(body).toContain('- Open [**X**](topic/practice-x.md) to learn about: s #foo');
+    // Imperative leaf pointer carries verb, title, file-relative path, summary, tags.
+    expect(body).toContain('- Open [**X**](practice-x.md) to learn about: s #foo');
   });
 
   it('is byte-identical across two consecutive generations (deterministic)', () => {
@@ -378,11 +381,11 @@ describe('generateIndex actionable rendering', () => {
     const rootBody = generateIndex(root).folders.get('')!.content;
     // Child WITH a summary: spliced verbatim, sentence terminated with a period.
     expect(rootBody).toContain(
-      'Load [`with-summary/`](nodes/with-summary/index.md) for more information on how summaries are carried.'
+      'Load [`with-summary/`](with-summary/index.md) for more information on how summaries are carried.'
     );
     // Child WITHOUT a summary: Title-cased folder-name fallback.
     expect(rootBody).toContain(
-      'Load [`no-summary/`](nodes/no-summary/index.md) for more information on No Summary.'
+      'Load [`no-summary/`](no-summary/index.md) for more information on No Summary.'
     );
   });
 
@@ -490,7 +493,7 @@ describe('generateIndex actionable rendering', () => {
     const content = matter(generateIndex(root).folders.get('topic')!.content).content;
     // Title (inside the link label) and summary (trailing prose) are both escaped
     // so a stray `]`/backtick cannot break the link or the list item.
-    expect(content).toContain('Open [**Title \\[with\\] \\`code\\`**](topic/map-tricky.md)');
+    expect(content).toContain('Open [**Title \\[with\\] \\`code\\`**](map-tricky.md)');
     expect(content).toContain('to learn about: summary with \\] bracket and \\` tick');
   });
 
@@ -558,6 +561,7 @@ describe('cross references render the current path resolved by id', () => {
         id: 'map-target',
         title: 'Target',
         summary: 's',
+        tags: ['shared'],
       },
       {
         dir: 'other',
@@ -565,14 +569,15 @@ describe('cross references render the current path resolved by id', () => {
         id: 'practice-src',
         title: 'Src',
         summary: 's',
+        tags: ['shared'],
         relates_to: ['map-target'],
       },
     ]);
     const out = generateIndex(root);
-    // The target leaf renders at its current deep path in its own folder index.
-    expect(out.folders.get('deep/nested')!.content).toContain(
-      'Open [**Target**](deep/nested/map-target.md)'
-    );
+    // The target leaf renders file-relative in its own folder index, and the
+    // cross-tree By-topic pull from another folder climbs with ../ segments.
+    expect(out.folders.get('deep/nested')!.content).toContain('Open [**Target**](map-target.md)');
+    expect(out.folders.get('other')!.content).toContain('../deep/nested/map-target.md');
     // GRAPH overlay references by id and records the current path.
     const graph = generateGraph(root).content;
     expect(graph).toContain('## map-target');
