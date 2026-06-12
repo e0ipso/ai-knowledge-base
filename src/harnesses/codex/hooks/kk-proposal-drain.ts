@@ -1,10 +1,13 @@
 /**
- * SessionStart hook (async) for the Codex CLI adapter.
+ * SessionStart hook for the Codex CLI adapter (proposal drain).
  *
  * Drains the proposal queue by spawning `codex exec --json` for each pending
- * session log. Configured in `.codex/hooks.json` with `async: true` so it
- * never blocks the agent.
+ * session log. Codex's hook schema carries no async flag (the spec's
+ * `async: true` is dropped by the writer), so the hook re-spawns itself
+ * detached and returns immediately; the drain's headless LLM runs continue
+ * in the background child instead of blocking session start.
  */
+import { detachSelf, detachedPayload, isDetachedChild } from '../../../lib/hook-detach.js';
 import { appendHookDiagnostic } from '../../../lib/hook-diagnostic.js';
 import { findRepoRoot, repoPaths } from '../../../lib/paths.js';
 import { runProposalDrain } from '../../../lib/proposal-drain.js';
@@ -15,7 +18,8 @@ import { buildCodexHarnessOpts } from '../opts.js';
 async function main(): Promise<void> {
   if (process.env['KENKEEP_BUILDER_INTERNAL'] === '1') return;
 
-  const raw = await readStdin();
+  const raw = isDetachedChild() ? detachedPayload() : await readStdin();
+  if (!isDetachedChild() && detachSelf(raw)) return;
   let input: { cwd?: unknown } = {};
   if (raw.trim().length > 0) {
     try {

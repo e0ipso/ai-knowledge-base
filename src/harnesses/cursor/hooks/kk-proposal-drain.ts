@@ -1,8 +1,14 @@
 /**
  * sessionStart hook for the Cursor adapter (proposal drain).
  *
- * Drains the proposal queue via `agent -p --output-format json`.
+ * Drains the proposal queue via `agent -p --output-format json`. Cursor has
+ * no async hook support and waits for sessionStart hooks before the first
+ * turn (measured: a pending backlog stalled session start by up to the full
+ * 30s hook timeout, with Cursor killing the hook mid-LLM-run), so the hook
+ * re-spawns itself detached and returns immediately; the drain runs in the
+ * background child.
  */
+import { detachSelf, detachedPayload, isDetachedChild } from '../../../lib/hook-detach.js';
 import { appendHookDiagnostic } from '../../../lib/hook-diagnostic.js';
 import { findRepoRoot, repoPaths } from '../../../lib/paths.js';
 import { runProposalDrain } from '../../../lib/proposal-drain.js';
@@ -13,7 +19,8 @@ import { buildCursorHarnessOpts } from '../opts.js';
 async function main(): Promise<void> {
   if (process.env['KENKEEP_BUILDER_INTERNAL'] === '1') return;
 
-  const raw = await readStdin();
+  const raw = isDetachedChild() ? detachedPayload() : await readStdin();
+  if (!isDetachedChild() && detachSelf(raw)) return;
   let input: { workspace_roots?: unknown } = {};
   if (raw.trim().length > 0) {
     try {

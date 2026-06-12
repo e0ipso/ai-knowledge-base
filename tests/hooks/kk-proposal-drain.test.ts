@@ -130,4 +130,51 @@ describe('kk-proposal-drain hook (spawned)', () => {
       cleanSandbox(empty);
     }
   });
+
+  it('cursor drain detaches: the hook returns before the headless run finishes, the child still drains', async () => {
+    if (process.platform === 'win32') return;
+    const cursorHookPath = join(repoRoot, 'dist/hooks/cursor/kk-proposal-drain.cjs');
+    const file = seedSession(sandbox, 'detach-pending');
+
+    // Stub `agent` binary that takes 3s and fails: long enough to prove the
+    // hook did not wait for it, failing so the child marks the log failed.
+    const stubDir = join(sandbox, 'stub-bin');
+    mkdirSync(stubDir, { recursive: true });
+    writeFileSync(join(stubDir, 'agent'), '#!/bin/sh\nsleep 3\nexit 1\n', { mode: 0o755 });
+    const env = { PATH: `${stubDir}:${dirname(process.execPath)}:/usr/bin` };
+
+    const started = Date.now();
+    const hookResult = await new Promise<SpawnResult>(resolveFn => {
+      const proc = execFile(
+        process.execPath,
+        [cursorHookPath],
+        { cwd: sandbox, env: { ...process.env, NO_COLOR: '1', ...env } },
+        (err, stdout, stderr) => {
+          resolveFn({
+            stdout: stdout.toString(),
+            stderr: stderr.toString(),
+            exitCode: err ? 1 : 0,
+          });
+        }
+      );
+      proc.stdin?.write(JSON.stringify({ workspace_roots: [sandbox] }));
+      proc.stdin?.end();
+    });
+    const hookMs = Date.now() - started;
+
+    expect(hookResult.exitCode).toBe(0);
+    // The stub takes 3s; a non-detached drain would block at least that long.
+    expect(hookMs).toBeLessThan(2500);
+
+    // The detached child runs the drain to completion in the background.
+    const logFile = join(sandbox, '.ai/kenkeep/_sessions', file);
+    let status = '';
+    const deadline = Date.now() + 15_000;
+    while (Date.now() < deadline) {
+      status = matter(readFileSync(logFile, 'utf8')).data['proposal_status'] as string;
+      if (status !== 'pending') break;
+      await new Promise(r => setTimeout(r, 250));
+    }
+    expect(status).toBe('failed');
+  }, 30_000);
 });

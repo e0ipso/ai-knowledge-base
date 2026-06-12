@@ -1,9 +1,13 @@
 /**
- * SessionStart hook (async) for the GitHub Copilot CLI adapter.
+ * SessionStart hook for the GitHub Copilot CLI adapter (proposal drain).
  *
  * Drains the proposal queue by spawning `copilot -p` for each pending
- * session log. Registered with `async: true` so it never blocks the agent.
+ * session log. Copilot's hook config carries no async mechanism and caps
+ * hooks at timeoutSec, so the hook re-spawns itself detached and returns
+ * immediately; the drain's headless LLM runs continue in the background
+ * child instead of blocking session start.
  */
+import { detachSelf, detachedPayload, isDetachedChild } from '../../../lib/hook-detach.js';
 import { appendHookDiagnostic } from '../../../lib/hook-diagnostic.js';
 import { findRepoRoot, repoPaths } from '../../../lib/paths.js';
 import { runProposalDrain } from '../../../lib/proposal-drain.js';
@@ -14,7 +18,8 @@ import { buildCopilotHarnessOpts } from '../opts.js';
 async function main(): Promise<void> {
   if (process.env['KENKEEP_BUILDER_INTERNAL'] === '1') return;
 
-  const raw = await readStdin();
+  const raw = isDetachedChild() ? detachedPayload() : await readStdin();
+  if (!isDetachedChild() && detachSelf(raw)) return;
   let input: { cwd?: unknown } = {};
   if (raw.trim().length > 0) {
     try {
