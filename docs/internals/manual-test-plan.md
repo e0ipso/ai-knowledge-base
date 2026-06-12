@@ -104,7 +104,7 @@ Curate and bootstrap take no `state.json` lock; they are single-author by design
 
 ## 9. Settings file
 
-- [ ] With no `config.yaml`, `curate` uses built-in defaults (`curationThreshold: 5`, `logsRetentionDays: 30`, `lintEveryNSessions: 50`).
+- [ ] With no `config.yaml`, `curate` uses built-in defaults (`curationThreshold: 20`, `logsRetentionDays: 30`, `lintEveryNSessions: 50`).
 - [ ] Add project `.ai/kenkeep/config.yaml` with `curationThreshold: 3`. Re-run honors 3.
 - [ ] Add an unknown key (e.g. `foo: bar`). `curate` exits with an error naming the file.
 

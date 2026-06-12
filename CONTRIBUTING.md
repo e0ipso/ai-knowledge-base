@@ -73,7 +73,7 @@ Concretely:
 - **Bump `schema_version`** when: removing a field; renaming a field; changing the semantics of a field; making a previously-optional field required.
 - **Do not bump** when: adding an optional field; adding a new enum case; relaxing a constraint.
 
-When you bump, the reader rejects older files with a clear error directing the user to re-run `init`.
+When you bump, the reader rejects older files with a clear error directing the user to run the `kk-migrate` skill in their agent session (migration requires an interactive session; re-running `init` does not migrate existing nodes).
 
 ## Prompt versioning
 

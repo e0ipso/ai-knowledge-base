@@ -76,7 +76,7 @@ A generated index node renders:
 
 - Each harness lives under `src/harnesses/<id>/` and implements `HarnessAdapter` from [`src/harnesses/types.ts`](src/harnesses/types.ts). Register it in [`src/harnesses/registry.ts`](src/harnesses/registry.ts). See [map-harness-adapter](.ai/kenkeep/nodes/harnesses/map-harness-adapter.md).
 - **[Adapters never reach into each other's directories.](.ai/kenkeep/nodes/harnesses/practice-adapters-never-cross-directories.md)** Shared logic lives in `src/lib/`, `src/commands/`, or `src/templates-source/skills/`.
-- **[No event-name translation across adapters.](.ai/kenkeep/nodes/harnesses/practice-no-event-translation-across-adapters.md)** `HookEvent` is opaque `string`; each adapter declares the event names its runtime emits natively (Claude: `Stop`/`SessionEnd`/`PreCompact`; Codex: `Stop` only; Cursor: `stop`/`sessionEnd`/`preCompact`; OpenCode: `session.idle`/`session.created`; Copilot: `sessionStart`/`sessionEnd`/`agentStop`). Do not introduce a global enum.
+- **[No event-name translation across adapters.](.ai/kenkeep/nodes/harnesses/practice-no-event-translation-across-adapters.md)** `HookEvent` is opaque `string`; each adapter declares the event names its runtime emits natively (Claude: `Stop`/`SessionEnd`/`PreCompact`; Codex: `Stop`/`PreCompact`; Cursor: `stop`/`sessionEnd`/`preCompact`; OpenCode: `session.idle`/`session.created`; Copilot: `sessionStart`/`sessionEnd`/`agentStop`). Do not introduce a global enum.
 - Adapters with per-event shell hooks use `paths(root).hooksDir`. Adapters with a long-lived plugin module (OpenCode) use `pluginsDir`; the build pipeline auto-detects a sibling `plugins/` source dir and renames hook output to `kk-hooks/` to avoid the runtime-reserved `.opencode/hooks/`. An adapter with no plugin shim that still needs its scripts kept apart from a config-bearing `<dir>/hooks/` (Copilot's `kk.json` lives there) opts into the same `kk-hooks/` output via a `src/harnesses/<id>/.kk-hooks-output` marker file. Per-entry hook metadata the host's config schema needs (Copilot's `{ type, timeoutSec, env }`) rides on the optional `HookSpec.payload` blob, consumed only by that adapter's `hooks-config` writer. See [map-opencode-harness](.ai/kenkeep/nodes/harnesses/map-opencode-harness.md) and [map-copilot-harness-adapter](.ai/kenkeep/nodes/harnesses/map-copilot-harness-adapter.md).
 - New harness env detectors must be added to **both** the adapter's `detectFromEnv` **and** the `ENV_DETECTORS` heredoc in `src/templates-source/skills/kk-curate/SKILL.md`. `npm run lint:detect-harness` fails CI on drift.
 
@@ -112,7 +112,7 @@ Each `src/templates-source/prompts/*.md` and `src/templates-source/claude/comman
   |---------|-----------|------------------|
   | Claude Code | transcript JSONL | `tool_use` `Read` → `input.file_path` |
   | Codex CLI | rollout JSONL | `function_call` read → `arguments.path` (defensive; shell reads not counted) |
-  | Cursor | `agent-transcripts/*.jsonl` | `tool_use` `ReadFile` → `input.path` |
+  | Cursor | `agent-transcripts/*.jsonl` | `tool_use` `Read` or `ReadFile` → `input.path` |
   | OpenCode | `opencode export` parts | `tool` `read` → `state.input.filePath` |
   | GitHub Copilot CLI | `events.jsonl` | `tool.execution_start` `view` → `data.arguments.path` |
 - **[The curator never auto-resolves contradictions.](.ai/kenkeep/nodes/curation/practice-curator-never-auto-resolves-contradictions.md)** It writes one markdown file per conflict under [`.ai/kenkeep/conflicts/<run-id>-<n>.md`](.ai/kenkeep/nodes/curation/map-conflict-files.md) and lets the `kk-curate` skill walk them with the human.
@@ -139,7 +139,7 @@ The per-folder [`index.md`](.ai/kenkeep/nodes/index/map-entry-md.md) tree (plus 
 
 ## Testing
 
-- `npm test` runs vitest with the `claude` subprocess **mocked**. Tests must not require a real `claude` binary on PATH except where explicitly marked as integration smoke.
+- `npm test` runs vitest with the harness binary **mocked via `vi.mock('execa')`**, so tests run against any harness without a real binary on PATH. Tests must not require a real harness binary except where explicitly marked as integration smoke.
 - Fixtures live under `tests/fixtures/`. Per-adapter behavior is parametrized over the registered harnesses in `tests/harnesses/{transcript,headless,hooks-config,list-memory-files}.test.ts` (with `tests/harnesses/copilot-headless.test.ts` covering Copilot's spawned headless path) rather than per-adapter directories. A new adapter must cover transcript parsing, hook registration round-trip, doctor checks, and headless-run option mapping at minimum: add it to the relevant parametrized case tables, and rely on the live `tests/doctor.test.ts` run for the doctor-checks assertion.
 - Before a release that touches schema, capture/curate behavior, or the pinned Claude Code CLI version, work through [`docs/internals/manual-test-plan.md`](docs/internals/manual-test-plan.md) and record results in the release PR description.
 - **Never** add environment-detection branches or test-only conditionals in production source files. Fix root causes. Green tests must mean the code actually works.

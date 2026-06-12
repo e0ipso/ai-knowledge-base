@@ -50,6 +50,8 @@ npx kenkeep init --harnesses claude
 npx kenkeep doctor
 ```
 
+Swap `claude` for `codex`, `cursor`, `opencode`, or `copilot` to match your harness; pass a comma-separated list to install several at once.
+
 Then code normally. When you want to turn captured material into knowledge nodes, run `/kk-curate` inside your harness session (also `/kk-add`, `/kk-bootstrap`). The skills are context-aware and walk you through conflict resolution. New nodes appear in `nodes/`; review with `git diff` and commit the ones you want to keep.
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;margin-top:1rem;">

@@ -8,9 +8,9 @@ nav_order: 3
 ## Prerequisites
 
 - Node.js 22+
-- One of the supported AI harnesses on PATH: [Claude Code](https://docs.claude.com/en/docs/claude-code/getting-started), [Codex CLI](https://developers.openai.com/codex/cli/), [Cursor](https://cursor.com/docs) (agent CLI), or [OpenCode](https://opencode.ai/).
+- One of the supported AI harnesses on PATH: [Claude Code](https://docs.claude.com/en/docs/claude-code/getting-started), [Codex CLI](https://developers.openai.com/codex/cli/), [Cursor](https://cursor.com/docs) (agent CLI), [OpenCode](https://opencode.ai/), or [GitHub Copilot CLI](https://github.com/github/copilot) (`@github/copilot`).
 
-No API key required. `init` spawns the harness's own headless driver (`claude -p`, `codex exec`, `agent -p`, or `opencode run`) and inherits whatever auth that CLI already uses. A `package.json` at the repo root is **not** required.
+No API key required. `init` spawns the harness's own headless driver (`claude -p`, `codex exec`, `agent -p`, `opencode run`, or `copilot -p`) and inherits whatever auth that CLI already uses. A `package.json` at the repo root is **not** required.
 
 ## Install
 
@@ -38,9 +38,9 @@ The CLI auto-detects Claude (via `CLAUDECODE=1`) and Cursor (via `CURSOR_VERSION
 | Harness | Capture events | Notable |
 |---|---|---|
 | Claude | `Stop`, `SessionEnd`, `PreCompact` | (none) |
-| Codex | `Stop` only | A pre-existing `[hooks]` table in `.codex/config.toml` makes `init` refuse to write. See [coexistence](installation/codex-toml-hooks-coexistence.md). |
+| Codex | `Stop`, `PreCompact` | A pre-existing `[hooks]` table in `.codex/config.toml` makes `init` refuse to write. See [coexistence](installation/codex-toml-hooks-coexistence.md). After first install, run `/hooks` inside a Codex session once to trust the kenkeep hook scripts before they will execute. |
 | Cursor | `stop`, `sessionEnd`, `preCompact` | If Cursor's *Third-party skills* is on, don't also install the `claude` adapter, or you'll double-fire. INDEX injection via `sessionStart` is fire-and-forget; reference INDEX from `AGENTS.md` if it proves unreliable. |
-| OpenCode | `session.idle` only | No `additionalContext` channel. The session-start hook writes INDEX to `.opencode/AGENTS.md`; reference that file from your primary `AGENTS.md`. |
+| OpenCode | `session.idle`, `session.created` | No `additionalContext` channel. The session-start hook writes INDEX to `.opencode/AGENTS.md`; reference that file from your primary `AGENTS.md`. `init` automatically registers the plugin and instructions entries in `.opencode/opencode.json` (required for OpenCode to load the hooks; verified against opencode 1.17.3). |
 | Copilot | `sessionEnd`, `agentStop` | Hooks register in the user-level `~/.copilot/hooks/kk.json`. No `additionalContext` channel; the session-start hook writes INDEX into `.github/copilot-instructions.md` under a sentinel block. See [GitHub Copilot CLI](#github-copilot-cli) below. |
 
 If your harness isn't listed above, this tool doesn't support it yet.
@@ -68,7 +68,7 @@ What `init` writes:
 
 **No in-session env detection**: Copilot exports no env var that identifies an active session, so selection always requires `--harness copilot`, `--hint copilot` (inside a skill), or `cliDefaultHarness: copilot` in `config.yaml`. For a Copilot-primary repo, set `cliDefaultHarness: copilot` so plain-shell `npx kenkeep` invocations resolve correctly.
 
-**Headless model**: `curate`, `bootstrap-incremental`, and the background proposal drain spawn `copilot -p "<prompt>" --no-ask-user --allow-all-tools --add-dir <repo-root>`. Both `--no-ask-user` and `--allow-all-tools` are required for fully autonomous non-interactive operation. Copilot has no `--json` programmatic-output flag, so the runner parses the JSON payload the prompt instructs the model to emit at the end of its plain-text answer. Set the model in `config.yaml` (for example `claude-sonnet-4.5` if your account has access); omit it to use Copilot's default.
+**Headless model**: `curate`, `bootstrap`, and the background proposal drain spawn `copilot -p "<prompt>" --no-ask-user --allow-all-tools --add-dir <repo-root>`. Both `--no-ask-user` and `--allow-all-tools` are required for fully autonomous non-interactive operation. Copilot has no `--json` programmatic-output flag, so the runner parses the JSON payload the prompt instructs the model to emit at the end of its plain-text answer. Set the model in `config.yaml` (for example `claude-sonnet-4.5` if your account has access); omit it to use Copilot's default.
 
 **Session-start context injection (known limitation)**: Copilot does not document a stdout context-injection channel on `sessionStart`. As a workaround, the session-start hook writes the current INDEX content into `.github/copilot-instructions.md` under a `<!-- kk:start --> ... <!-- kk:end -->` sentinel block, which Copilot reads on session start. The rewrite is idempotent and preserves any content you author outside the block. Leave the sentinel block intact to keep the injection active.
 
@@ -90,7 +90,7 @@ Project settings live in `.ai/kenkeep/config.yaml`. It is committed and strict: 
 
 ```yaml
 schema_version: 1
-curationThreshold: 5          # pending sessions that trigger the curate nudge
+curationThreshold: 20         # pending sessions that trigger the curate nudge
 logsRetentionDays: 30         # retention for pruning diagnostic logs
 lintEveryNSessions: 50        # background lint cadence
 cliDefaultHarness: codex      # harness to assume when none is detected

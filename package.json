@@ -17,7 +17,14 @@
     "claude-code",
     "kenkeep",
     "ai",
-    "agents"
+    "agents",
+    "codex",
+    "cursor",
+    "opencode",
+    "github-copilot",
+    "agents-md",
+    "knowledge-base",
+    "memory"
   ],
   "type": "module",
   "bin": {

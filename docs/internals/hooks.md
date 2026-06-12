@@ -6,21 +6,24 @@ nav_order: 2
 
 # Hooks
 
-"Hooks" here means [Claude Code's hook mechanism](https://docs.claude.com/en/docs/claude-code/hooks): scripts the assistant invokes on events like `SessionStart` and `Stop`. kenkeep consumes them; it does not expose a hook API of its own for third-party extension.
+"Hooks" here means scripts the host harness invokes on lifecycle events like `SessionStart` and `Stop`. kenkeep consumes them; it does not expose a hook API of its own for third-party extension.
 
-`init` registers three hook scripts in `.claude/settings.json`:
+`init` registers four hook scripts per harness. The Claude Code wiring (`.claude/settings.json`) is the canonical reference:
 
 | Script | Event(s) | Mode |
 |---|---|---|
-| `kk-capture.mjs` | `Stop`, `SessionEnd`, `PreCompact` | sync, ≤1s |
-| `kk-proposal-drain.mjs` | `SessionStart` | async |
-| `kk-session-start.mjs` | `SessionStart` | sync, ≤1s |
+| `kk-capture.cjs` | `Stop`, `SessionEnd`, `PreCompact` | sync, ≤1s |
+| `kk-proposal-drain.cjs` | `SessionStart` | async |
+| `kk-session-start.cjs` | `SessionStart` | sync, ≤1s |
+| `kk-lint-tick.cjs` | `SessionEnd` | async — runs lint every `lintEveryNSessions` sessions (default 50) |
 
 The two `SessionStart` entries are independent: a failure in one does not block the other.
 
+Every harness wires the same four scripts through its native mechanism: Codex via `.codex/hooks.json`; Cursor via `.cursor/hooks.json`; OpenCode via a plugin registered in `.opencode/opencode.json` that dispatches scripts under `.opencode/kk-hooks/`; Copilot via `~/.copilot/hooks/kk.json` walk-up commands. Event names vary (Codex/Cursor fire `Stop`/`PreCompact`; OpenCode uses `session.idle`/`session.created`; Copilot uses `sessionEnd`/`agentStop`/`sessionStart`) but the four scripts are identical across all five harnesses.
+
 ## Recursion guard
 
-All three hooks exit immediately if `KENKEEP_BUILDER_INTERNAL=1` is set. Two surfaces set this var on the harness child they exec:
+All four hooks exit immediately if `KENKEEP_BUILDER_INTERNAL=1` is set. Two surfaces set this var on the harness child they exec:
 
 - The `proposal-drain` hook, when it spawns its headless extractor.
 - The CLI launchers (`bootstrap`, `curate`, `node add`), which exec `<harness> -p "/kk-<name>"`.
@@ -76,7 +79,7 @@ Per `SessionStart`:
 2. Load **only** the entry catalog (`ENTRY.md`, the top-level branch catalog). If missing, emit `_The knowledge base is empty._`. The injected body is bounded and does not grow with node count; deep leaves surface only as branch rollup counts.
 3. Append the descent navigation directive (pick relevant branches by intent and tags, read their index nodes, descend as needed, open only confirmed-relevant leaves, follow cross edges). It comes from the single `KK_NAVIGATION_DIRECTIVE` constant that the `kenkeep:kk-index` block in `AGENTS.md` reuses verbatim, so the two surfaces never drift.
 4. Compare the root index node's `nodes_hash` (the global hash over the whole leaf set) against the live hash of `nodes/`. On drift, append `> kenkeep index is stale, run \`npx kenkeep index rebuild\``.
-5. Count pending logs. If the count is at or above `curationThreshold` (default 5) and the last nudge was over an hour ago, append a one-line nudge and write `last_nudged_at`. The nudge escalates to a loud `🚨 kenkeep curation queue is overdue` heading when the queue is large or stale: `pending >= 10`, or `pending >= curationThreshold` with the oldest log at least `staleDays` (default 7) old.
+5. Count pending logs. If the count is at or above `curationThreshold` (default 20) and the last nudge was over an hour ago, append a one-line nudge and write `last_nudged_at`. The nudge escalates to a loud `🚨 kenkeep curation queue is overdue` heading when the queue is large or stale: `pending >= 10`, or `pending >= curationThreshold` with the oldest log at least `staleDays` (default 7) old.
 6. Emit through the host's native channel, with no event-name translation: Claude and Codex return `additionalContext`; Cursor relays `additional_context` (dropped where the host doesn't consume it); OpenCode writes `.opencode/AGENTS.md`; Copilot writes the `.github/copilot-instructions.md` sentinel block. The Claude shape is:
 
    ```json
@@ -87,17 +90,24 @@ The staleness line, curation nudge, and lint summary are preserved across all ch
 
 ## Registration shape
 
-After `init`, `.claude/settings.json` carries one block per event:
+After `init`, `.claude/settings.json` carries one block per event (scripts are compiled `.cjs` bundles):
 
 ```json
 {
   "hooks": {
     "Stop": [
-      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kk-capture.mjs" }] }
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kk-capture.cjs" }] }
+    ],
+    "SessionEnd": [
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kk-capture.cjs" }] },
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kk-lint-tick.cjs", "async": true }] }
+    ],
+    "PreCompact": [
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kk-capture.cjs" }] }
     ],
     "SessionStart": [
-      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kk-proposal-drain.mjs", "async": true }] },
-      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kk-session-start.mjs" }] }
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kk-proposal-drain.cjs", "async": true }] },
+      { "hooks": [{ "type": "command", "command": "node .claude/hooks/kk-session-start.cjs" }] }
     ]
   }
 }

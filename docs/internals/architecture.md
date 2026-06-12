@@ -12,12 +12,13 @@ nav_order: 1
 src/
 ├── cli.ts                       # Commander entry
 ├── commands/                    # User-facing CLI implementations
-├── hooks/                       # Compiled-to-.mjs hook scripts
-│   ├── kk-capture.ts            # capture     (Stop/SessionEnd/PreCompact)
-│   ├── kk-proposal-drain.ts     # extraction  (SessionStart, async)
-│   └── kk-session-start.ts      # consume     (SessionStart, sync)
+├── harnesses/                   # One sub-directory per adapter
+│   ├── types.ts                 # HarnessAdapter interface
+│   ├── registry.ts              # Central adapter registry
+│   ├── detect.ts                # Env-based active-harness resolver
+│   ├── claude/ codex/ cursor/ opencode/ copilot/
+│   │   └── hooks/               # Per-harness compiled hook sources
 ├── lib/                         # Reusable building blocks
-├── adapters/                    # Adapter interface
 └── templates-source/            # Files copied into consumer repos
 ```
 
@@ -101,6 +102,7 @@ The parallel path additionally writes a `<runId>__<batchN>.draft.json` beside ea
 | `.state/bootstrap-state.json` | bootstrap | Doc SHA-256 cache. Gitignored. |
 | `conflicts/<run-id>-<n>.md` | curator (write), kk-curate skill (resolve), status (read) | Curator-detected contradictions, one markdown file per conflict. Frontmatter carries `status: pending`; resolution is via `git restore` (Reject / Accept-after-apply) or `git commit` (Keep as record). |
 | `.config/prompts/*` | init | Local prompt overrides. Committed. |
+| `.state/usage.jsonl` | capture | Write-only ledger of which KB documents each session read (`{ document, type, session_id, used_at }`). One line per read occurrence. Gitignored. |
 
 ## Locking
 
@@ -125,7 +127,7 @@ An index node body carries: an embedded one-line descent directive (from the sin
 - **Tree over DAG.** Containment is a tree (one parent folder per leaf); `relates_to` / `depends_on` stay a cross-tree DAG overlay, resolved by `id`.
 - **Path is presentation; `id` is identity.** No node references another by path; index generation resolves each `id` to its current path, so relocation never breaks a reference. `generateIndex` returns one `index.md` body per directory plus per-folder metrics (occupancy, tag diversity, leaf size); the metrics feed `rebalance` but are no longer printed in the body.
 - **`nodes_hash` excludes generated `index.md`.** The per-folder `nodes_hash` covers that folder's own direct leaves only; hashing the generated index nodes would be self-referential, and the whole-tree `## By topic` block is deliberately excluded from it so cross-tree churn reorders the rendered block without perturbing an unrelated folder's stability hash.
-- **No schema bump.** The `summary` field folds into the unreleased `schema_version: 2` index frontmatter (added optional); there is no v3 hop. The reader still rejects the old flat `nodes/<kind>/` layout (or `schema_version: 1`) with a migrate message that now points at the `kk-migrate` skill, which preserves ids and edges. The headless `migrate` command (which spawned a nested `<harness> -p` to cluster) has been removed: the in-host `kk-migrate` skill performs the clustering in the user's current session and drives the deterministic `place` primitive (inventory + apply) for all file I/O, so a full migration now requires an interactive agent session.
+- **No schema bump.** The `summary` field folds into the current released `schema_version: 2` index frontmatter (added optional); there is no v3 hop. The reader still rejects the old flat `nodes/<kind>/` layout (or `schema_version: 1`) with a migrate message that now points at the `kk-migrate` skill, which preserves ids and edges. The headless `migrate` command (which spawned a nested `<harness> -p` to cluster) has been removed: the in-host `kk-migrate` skill performs the clustering in the user's current session and drives the deterministic `place` primitive (inventory + apply) for all file I/O, so a full migration now requires an interactive agent session.
 
 ## Determinism contract
 
@@ -138,23 +140,28 @@ An index node body carries: an embedded one-line descent directive (from the sin
 
 ## Adapter interface
 
-`src/harnesses/types.ts`:
+`src/harnesses/types.ts` (abbreviated — see source for full JSDoc):
 
-```ts
-interface HarnessAdapter {
-  name: string;
-  hookInstallPath(): string;
-  skillInstallPath(): string;
-  writeHookConfig(repoRoot: string, hooks: HookSpec[]): Promise<void>;
-  readTranscript(hookInput: unknown): Promise<RoleTaggedTranscript>;
-  runHeadless<T>(promptBody: string, stdin: string, schema: ZodSchema<T>, opts?: HeadlessOpts): Promise<T>;
-  renderSkill(spec: SkillSpec): string;
-}
-```
+| Member | Kind | Notes |
+|---|---|---|
+| `id` | property | Stable id used in `--harnesses` and `installed-version` |
+| `launchBinary` | property | Executable name on PATH (`claude`, `codex`, `opencode`, …) |
+| `launchArgsPrefix` | property | Argv prepended before the slash-command payload |
+| `hooks` | property | `readonly HookSpec[]` — lifecycle declarations |
+| `paths(root)` | method | Returns harness-owned on-disk locations (`dir`, `skillsDir`, `hooksDir`/`pluginsDir`, …) |
+| `install(opts)` | method | First-time install |
+| `upgrade(opts)` | method | Idempotent refresh |
+| `parseTranscript(text)` | method | Harness-native format → `RoleTaggedTranscript` |
+| `renderTranscript(t)` | method | `RoleTaggedTranscript` → human-readable `[USER]:` / `[AGENT]:` form |
+| `runHeadless(prompt, stdin, schema, opts?)` | method | Spawns harness headless driver; validates result against Zod schema |
+| `buildHarnessOpts(settings, role)` | method | Translates `EffectiveSettings` → adapter-specific `harnessOpts` blob |
+| `doctorChecks(paths)` | method | Harness-specific health probes |
+| `listMemoryFiles(opts?)` | method | Returns `file://` IRIs of harness auto-memory files |
+| `detectFromEnv?(env)` | optional method | Returns true when this harness is the active one |
 
-`runHeadless` spawns the harness's `-p` non-interactive mode. It has exactly two consumers: the **proposal-drain hook** (per-session candidate extraction) and the **CLI launchers** (`bootstrap`, `curate`, `node add`, which exec the active harness against a slash-command).
+`runHeadless` spawns the harness's headless driver (e.g. `claude -p`, `codex exec`, `opencode run`). It has exactly two consumers: the **proposal-drain hook** (per-session candidate extraction) and the **CLI launchers** (`bootstrap`, `curate`, `node add`, which exec the active harness against a slash-command).
 
-**Adding an adapter:** implement the methods, then dispatch from `src/commands/init.ts`.
+**Adding an adapter:** implement `HarnessAdapter`, then register it in `src/harnesses/registry.ts`. See [CONTRIBUTING.md](../../CONTRIBUTING.md) for the full step-by-step.
 
 ## Testing
 
@@ -170,8 +177,8 @@ interface HarnessAdapter {
 | Change bootstrap | `src/templates-source/skills/kk-bootstrap/SKILL.md` (discovery primitive in `src/commands/finddocs.ts`, write primitive in `src/commands/node-write.ts`) |
 | Change manual node add | `src/templates-source/skills/kk-add/SKILL.md` |
 | New CLI subcommand | `src/commands/<name>.ts` + wire in `src/cli.ts` |
-| New hook | `src/hooks/<name>.ts` + `tsup.config.ts` + register in `init.ts` |
+| New hook | `src/harnesses/<id>/hooks/<name>.ts` + register in `src/harnesses/<id>/hook-spec.ts` |
 | New state file | Schema in `src/lib/schemas.ts`; add to gitignore block |
-| New adapter | Implement `src/harnesses/types.ts`; dispatch from `src/commands/init.ts` |
+| New adapter | Implement `src/harnesses/types.ts`; register in `src/harnesses/registry.ts` |
 </content>
 </invoke>
