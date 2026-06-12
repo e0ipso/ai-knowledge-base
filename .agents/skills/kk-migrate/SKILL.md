@@ -23,6 +23,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 const REGISTERED = ['claude', 'codex', 'copilot', 'cursor', 'opencode'];
 const ENV_DETECTORS = [
+  { env: 'CURSOR_AGENT', value: '1', harness: 'cursor' },
   { env: 'CURSOR_VERSION', value: '*nonempty*', harness: 'cursor' },
   { env: 'CLAUDECODE', value: '1', harness: 'claude' },
 ];
@@ -119,7 +120,7 @@ Group the leaves from the inventory into a small set of topical folders. Apply t
 - **Topical folders, small set.** Group related leaves into a small set of topical folders. A folder name is lowercase and dash-separated, and may nest with `/` (e.g. `cli`, `knowledge-base/index`). Do not create a folder per leaf; cluster.
 - **Keep cross-referencing nodes close.** Leaves that reference each other (via `relates_to`) generally belong near each other.
 - **Preserve every id exactly.** Every leaf in the inventory gets exactly one placement, and you place it under its exact `id` — never invent, rename, drop, or merge an id. The id is the node's identity; the folder is presentation only.
-- **Author one `summary` per created folder.** For each distinct folder you use, write a one-line `summary`: a noun phrase / sentence fragment that completes "for more information on &lt;summary&gt;" (lowercase start, no trailing period, ≤ ~140 chars), describing what lives in that folder.
+- **Author one `summary` per created folder.** For each distinct folder you use, write a one-line `summary`: a noun phrase / sentence fragment that completes "for more information on &lt;summary&gt;" (lowercase start, no trailing period, ≤ ~140 chars). Name what lives in the folder, then append a short `; read when <task pattern>` clause naming the tasks that should trigger descent — agents route by matching their task against these summaries, so the trigger clause is what makes descent reliable.
 
 Assemble the placement-and-folders document. It must match the exact shape `place apply` parses:
 

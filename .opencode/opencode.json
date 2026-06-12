@@ -1,0 +1,8 @@
+{
+  "plugin": [
+    "./plugins/kk.mjs"
+  ],
+  "instructions": [
+    ".opencode/AGENTS.md"
+  ]
+}

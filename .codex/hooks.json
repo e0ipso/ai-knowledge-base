@@ -20,6 +20,17 @@
         ]
       }
     ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./.codex/hooks/kk-capture.cjs",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
     "SessionStart": [
       {
         "hooks": [

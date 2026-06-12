@@ -23,6 +23,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 const REGISTERED = ['claude', 'codex', 'copilot', 'cursor', 'opencode'];
 const ENV_DETECTORS = [
+  { env: 'CURSOR_AGENT', value: '1', harness: 'cursor' },
   { env: 'CURSOR_VERSION', value: '*nonempty*', harness: 'cursor' },
   { env: 'CLAUDECODE', value: '1', harness: 'claude' },
 ];
@@ -432,7 +433,7 @@ It prints exactly one JSON line:
 
 For each entry in `actions`, read only that branch (the named folder's `index.md` and its leaves, or the named leaf for `split-leaf` / `create-branch`) and decide a concrete operation. This is the only non-deterministic step in the whole run; it is quarantined behind the deterministic trigger and the human's commit gate. Do not touch any branch the trigger did not name.
 
-Map each operation class to a concrete plan entry. For every NEW folder an operation creates, also author a one-line folder `summary`: a noun phrase / sentence fragment that completes `for more information on <summary>` (lowercase start, no trailing period, concise). The move primitive stamps it into the new folder's `index.md` frontmatter, and every later deterministic rebuild self-preserves it; it is what the parent index splices into its `Load …` descent pointer.
+Map each operation class to a concrete plan entry. For every NEW folder an operation creates, also author a one-line folder `summary`: a noun phrase / sentence fragment that completes `for more information on <summary>` (lowercase start, no trailing period, concise). Make it task-keyed, not just structural: after naming what lives in the folder, append a short `; read when <task pattern>` clause naming the tasks that should trigger descent (e.g. `the five harness adapters and their isolation rules; read before adding a harness or changing hook wiring`). Agents route by matching their task against these summaries, so the trigger clause is what makes descent reliable. The move primitive stamps it into the new folder's `index.md` frontmatter, and every later deterministic rebuild self-preserves it; it is what the parent index splices into its `Load …` descent pointer.
 
 - **split-folder** (`branch` is an over-full folder): cluster that folder's direct leaves into two or more topical subfolders. Emit `{"operation":"split-folder","branch":"<folder>","groups":[{"subfolder":"<name>","summary":"<fragment>","ids":["<id>", ...]}, ...]}`. Every id must be a current direct leaf of `branch`; assign each leaf to exactly one subgroup; author one `summary` per subfolder.
 - **merge** (`branch` is a sparse/redundant folder): pick the best existing destination folder `into` (a sibling or parent whose topic subsumes the sparse branch; empty string for the `nodes/` root). Emit `{"operation":"merge","branch":"<folder>","into":"<destination>"}`. A merge creates no folder, so it authors no `summary`; the destination keeps its own self-preserved summary.
