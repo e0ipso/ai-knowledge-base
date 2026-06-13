@@ -1,3 +1,24 @@
+## [1.5.0](https://github.com/e0ipso/kenkeep/compare/v1.4.0...v1.5.0) (2026-06-13)
+
+### Features
+
+* **capture:** strip user-marked kk-private spans ([0c5ad88](https://github.com/e0ipso/kenkeep/commit/0c5ad880ef61fcf9c45f5d36d44a56bc5e96d65c))
+* **codex:** pre-compact capture + trust notice ([d5c7101](https://github.com/e0ipso/kenkeep/commit/d5c710170b1707e3ee6ed2f15d61101c3bc5d267))
+* deterministic agents-file kb block + lint rule ([84b2b6c](https://github.com/e0ipso/kenkeep/commit/84b2b6ce5503bee6fb01cc3484c7635e9b8728e1)), closes [#35](https://github.com/e0ipso/kenkeep/issues/35)
+* entry-size doctor check, docs comparison page ([57f5fae](https://github.com/e0ipso/kenkeep/commit/57f5fae556c28f63f581da3c4687ae5e54baaa7a))
+* **kb:** task-keyed branch summaries for routing ([dd8fcf8](https://github.com/e0ipso/kenkeep/commit/dd8fcf87303b5c78f984eb8a497288ede909ee50))
+* **opencode:** ignore generated AGENTS.md ([23c6736](https://github.com/e0ipso/kenkeep/commit/23c6736dd490d034363f50ff0794b842aaae24a6))
+
+### Bug Fixes
+
+* **copilot:** unguard hooks; repo-agnostic config ([8aa20cb](https://github.com/e0ipso/kenkeep/commit/8aa20cb1792f79907cfe2910b9e7fdf978c66b28))
+* cross-harness correctness hardening ([034366d](https://github.com/e0ipso/kenkeep/commit/034366dbf25622ba6e5209d5f39f7ddd238ba5ab))
+* **doctor:** treat url provenance as resolvable ([b615eb1](https://github.com/e0ipso/kenkeep/commit/b615eb1a0bf2c6ebf15dbed5a16273f69403778c))
+* **drain:** detach so session start never blocks ([f1c02d0](https://github.com/e0ipso/kenkeep/commit/f1c02d01ce91b5f77bd7d13318925be950dfe627))
+* **index:** file-relative links in generated indexes ([ad731f5](https://github.com/e0ipso/kenkeep/commit/ad731f59ace647a4745db38e749896a80d69d4af))
+* **opencode:** register plugin + instructions in config ([0a5413b](https://github.com/e0ipso/kenkeep/commit/0a5413b0c7d197a745d1f85464295cfdd2436366))
+* **opencode:** unguard plugin hook children ([f139c48](https://github.com/e0ipso/kenkeep/commit/f139c4873d043972e54fae181ed01e6f50671c52))
+
 ## [1.4.0](https://github.com/e0ipso/kenkeep/compare/v1.3.1...v1.4.0) (2026-06-11)
 
 ### Features
